@@ -707,3 +707,79 @@ window.goToDashboard      = () => { document.getElementById('speak-score').style
 
 // ── Exports ───────────────────────────────────────────────────────────────────
 export { showOnboarding, hideOnboarding, routeAfterAuth, checkPaywallGate, showUpgradeModal, dashStartSession, updateTrialBadge };
+
+// ── Daily focus card interaction ──────────────────────────────────────────────
+export function setupDailyFocusCardInteraction() {
+  const card = document.getElementById('daily-focus-card');
+  if (!card || card.dataset.bound === '1') return;
+  const activate = () => window.applyTodayFocus && window.applyTodayFocus();
+  card.addEventListener('click', activate);
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+  });
+  card.dataset.bound = '1';
+}
+
+// Call on load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupDailyFocusCardInteraction, { once: true });
+} else {
+  setupDailyFocusCardInteraction();
+}
+
+// ── enterSpeakingInterface — called from landing page buttons ─────────────────
+window.enterSpeakingInterface = () => {
+  if (window.location.hash !== '#aura') window.location.hash = '#aura';
+  document.documentElement.setAttribute('data-route', 'app');
+  document.body.style.background = 'var(--app-bg)';
+
+  const user    = window.__auraUser;
+  const profile = window.__auraProfile;
+  const overlay = document.getElementById('auth-overlay');
+
+  function showAuth() {
+    const authScreen = document.getElementById('auth-screen');
+    const checking   = document.getElementById('auth-checking');
+    const formWrap   = document.getElementById('auth-form-wrap');
+    if (authScreen) authScreen.classList.add('active');
+    if (checking)   checking.style.display = 'none';
+    if (formWrap)   formWrap.style.display = '';
+  }
+
+  if (!user) { showAuth(); return; }
+
+  if (overlay) overlay.style.display = 'flex';
+
+  // Profile already loaded
+  if (profile !== undefined) {
+    if (overlay) overlay.style.display = 'none';
+    if (!profile?.onboardingComplete) {
+      showOnboarding();
+    } else {
+      routeAfterAuth();
+    }
+    return;
+  }
+
+  // Wait for profile to load (max 8s)
+  let resolved = false;
+  const timeout = setTimeout(() => {
+    if (!resolved) {
+      resolved = true;
+      if (overlay) overlay.style.display = 'none';
+      window.__auraUser ? routeAfterAuth() : showAuth();
+    }
+  }, 8000);
+
+  const poll = setInterval(() => {
+    if (window.__auraProfile !== undefined || resolved) {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        if (overlay) overlay.style.display = 'none';
+        window.__auraUser ? routeAfterAuth() : showAuth();
+      }
+      clearInterval(poll);
+    }
+  }, 100);
+};
