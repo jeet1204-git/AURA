@@ -1,1 +1,144 @@
-// placeholder
+/* ═══════════════════════════════════════════════════════════
+   ROUTE-BASED VISIBILITY
+   Prevents any flash between landing and app views.
+   Set by synchronous script in <head> before paint.
+═══════════════════════════════════════════════════════════ */
+html[data-route="app"] #landing { display: none !important; }
+html[data-route="landing"] #app-shell { display: none !important; }
+html:not([data-route]) #app-shell { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 1: DESIGN TOKENS
+═══════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Landing page (light) */
+  --white:    #ffffff;
+  --snow:     #f5f5f7;
+  --ice:      #fafafa;
+  --fog:      #e8e8ed;
+  --smoke:    #d2d2d7;
+  --mid:      #6e6e73;
+  --deep:     #1d1d1f;
+  --ink:      #000000;
+  --blue:     #0071e3;
+  --blue-h:   #0077ed;
+  --green:    #30d158;
+
+  /* App (dark) */
+  --app-bg:   #08090e;
+  --app-card: rgba(255,255,255,0.04);
+  --app-border: rgba(255,255,255,0.08);
+  --app-text: #f0f0f5;
+  --app-text-dim: rgba(255,255,255,0.4);
+  --app-text-muted: rgba(255,255,255,0.3);
+  --app-blue: #3b82f6;
+  --app-blue-dim: rgba(59,130,246,0.12);
+
+  /* AURA sage-green brand palette */
+  --sage-1: #8ab5a0;
+  --sage-2: #6aab8e;
+  --sage-3: #5a9b7f;
+  --sage-4: #4a8c72;
+  --sage-5: #3d7360;
+  --sage-dot: #2d6a4f;
+
+  /* Shared */
+  --f: 'Mona Sans', -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  --nav-h: 52px;
+  --chap-h: 48px;
+  --nav-total: 100px;
+}
+
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: var(--f);
+  background: var(--white);
+  color: var(--deep);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* When in app mode, body bg is dark */
+html[data-route="app"] body {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 2: KEYFRAMES
+═══════════════════════════════════════════════════════════ */
+@keyframes fadeUp  { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn  { from { opacity:0; } to   { opacity:1; } }
+@media (prefers-reduced-motion: reduce) {
+  .hero-eyebrow, .hero-title, .hero-sub, .hero-actions, .hero-visual,
+  .stats-kicker, .stats-grid { opacity:1 !important; transform:none !important; animation:none !important; }
+}
+@keyframes floatOrb { 0%,100%{transform:translateY(0px) scale(1);} 50%{transform:translateY(-16px) scale(1.02);} }
+@keyframes pulse-ring { 0%{transform:scale(0.9);opacity:0.8;} 100%{transform:scale(1.6);opacity:0;} }
+@keyframes waveBar { 0%,100%{transform:scaleY(0.3);} 50%{transform:scaleY(1);} }
+@keyframes cw      { to { transform: rotate( 360deg); } }
+@keyframes ccw     { to { transform: rotate(-360deg); } }
+@keyframes shimmer { 0%{background-position:-200% center;} 100%{background-position:200% center;} }
+@keyframes lineGrow { 0%{transform:scaleY(0);transform-origin:top;} 50%{transform:scaleY(1);transform-origin:top;} 51%{transform:scaleY(1);transform-origin:bottom;} 100%{transform:scaleY(0);transform-origin:bottom;} }
+@keyframes dotBlink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+@keyframes micGlow  { 0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,0.3)} 50%{box-shadow:0 0 0 14px rgba(255,59,48,0)} }
+@keyframes marquee  { from{transform:translateX(0);} to{transform:translateX(-50%);} }
+@keyframes countUp  { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+@keyframes cardFloat{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+@keyframes typing   { from{width:0} to{width:100%} }
+@keyframes blink-caret { 0%,100%{border-color:transparent} 50%{border-color:var(--blue)} }
+@keyframes blink-dot   { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+@keyframes slideInRight { from{opacity:0;transform:translateX(24px);} to{opacity:1;transform:translateX(0);} }
+@keyframes slideInLeft  { from{opacity:0;transform:translateX(-24px);} to{opacity:1;transform:translateX(0);} }
+@keyframes orbPulse { 0%,100%{transform:scale(1);opacity:0.7;} 50%{transform:scale(1.15);opacity:1;} }
+@keyframes orbPulseLive {
+  0%,100%{box-shadow:0 0 0 0 rgba(0,245,160,0.4),0 0 24px rgba(0,245,160,0.2);}
+  50%{box-shadow:0 0 0 14px rgba(0,245,160,0),0 0 40px rgba(0,245,160,0.35);}
+}
+@keyframes spinAuth{to{transform:rotate(360deg)}}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes chipIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+@keyframes statePulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+@keyframes timerPulse{0%,100%{opacity:0.8;}50%{opacity:0.3;}}
+
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 3: LANDING PAGE CSS (Light UI)
+   Nav, hero, sections, pricing, footer
+═══════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --white:    #ffffff;
+  --snow:     #f5f5f7;
+  --ice:      #fafafa;
+  --fog:      #e8e8ed;
+  --smoke:    #d2d2d7;
+  --mid:      #6e6e73;
+  --deep:     #1d1d1f;
+  --ink:      #000000;
+  --blue:     #0071e3;
+  --blue-h:   #0077ed;
+  --green:    #30d158;
+
+  --f: 'Mona Sans', -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  --nav-h: 52px;
+  --chap-h: 48px;
+  --nav-total: 100px;
+}
+
+html { scroll-behavior: smooth; overflow-x: hidden; }
+
+body {
+  font-family: var(--f);
+  background: var(--white);
+  color: var(--deep);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
