@@ -1,0 +1,315 @@
+<div id="page-mocktest" class="aura-page">
+
+  <!-- Portal nav -->
+  <nav id="mt-nav">
+    <a id="mt-nav-logo" href="#" onclick="navigateTo('home');return false;">
+      <svg class="aura-logo-svg flower-logo" width="22" height="22" viewBox="0 0 22 22">
+        <path class="logo-ring r1"/><path class="logo-ring r2"/><path class="logo-ring r3"/>
+        <path class="logo-ring r4"/><path class="logo-ring r5"/>
+        <circle class="center-dot" cx="11" cy="11" r="1.7"/>
+      </svg>
+      AURA
+    </a>
+    <div id="mt-nav-title">Mock Test Portal</div>
+    <button id="mt-nav-exit" onclick="navigateTo('home')">← Exit</button>
+  </nav>
+
+  <!-- ── SCREEN 1: LOBBY ── -->
+  <div id="mt-lobby" class="mt-screen active">
+    <div class="mt-lobby-inner">
+      <div class="mt-lobby-header">
+        <div class="mt-lobby-kicker">Mock Test Portal</div>
+        <h1 class="mt-lobby-title">Choose your exam.</h1>
+        <p class="mt-lobby-sub">Practice under real exam conditions. AURA acts as your Goethe examiner — no hints, no coaching, full exam realism.</p>
+      </div>
+
+      <!-- A1 row -->
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:12px;">A1</div>
+      <div class="mt-exam-grid" id="mt-exam-grid" style="grid-template-columns:1fr;margin-bottom:32px;">
+
+        <div class="mt-exam-card" data-exam="a1_speaking" onclick="mtSelectExam(this)">
+          <div class="mt-exam-card-check">✓</div>
+          <div class="mt-exam-card-badge">A1 Speaking</div>
+          <div class="mt-exam-card-title">Goethe A1 · Sprechen</div>
+          <div class="mt-exam-card-desc">Personal topics, basic questions and answers. Ideal for beginners preparing for their first oral exam.</div>
+          <div class="mt-exam-card-meta">
+            <span class="mt-exam-tag">~5 min</span>
+            <span class="mt-exam-tag">CEFR A1</span>
+            <span class="mt-exam-tag">Pass: 60%</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- A2 individual parts -->
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:12px;">A2 · Individual Parts</div>
+      <div class="mt-exam-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:32px;">
+
+        <div class="mt-exam-card" data-exam="a2_teil1" onclick="mtSelectExam(this)">
+          <div class="mt-exam-card-check">✓</div>
+          <div class="mt-exam-card-badge">Teil 1</div>
+          <div class="mt-exam-card-title">Personal Q&amp;A</div>
+          <div class="mt-exam-card-desc">Examiner asks about hobbies, daily life, profession. You answer naturally in German.</div>
+          <div class="mt-exam-card-meta">
+            <span class="mt-exam-tag">~4 min</span>
+            <span class="mt-exam-tag">Q&amp;A</span>
+          </div>
+        </div>
+
+        <div class="mt-exam-card" data-exam="a2_teil2" onclick="mtSelectExam(this)">
+          <div class="mt-exam-card-check">✓</div>
+          <div class="mt-exam-card-badge">Teil 2</div>
+          <div class="mt-exam-card-title">Card Monologue</div>
+          <div class="mt-exam-card-desc">Card with topic + 4 corners. Speak for 60–90 seconds covering all corners.</div>
+          <div class="mt-exam-card-meta">
+            <span class="mt-exam-tag">~5 min</span>
+            <span class="mt-exam-tag">Card format</span>
+          </div>
+        </div>
+
+        <div class="mt-exam-card" data-exam="a2_teil3" onclick="mtSelectExam(this)">
+          <div class="mt-exam-card-check">✓</div>
+          <div class="mt-exam-card-badge">Teil 3</div>
+          <div class="mt-exam-card-title">Collaborative Planning</div>
+          <div class="mt-exam-card-desc">Plan something together with AURA as your partner — a party, a trip, an event. Negotiate in German.</div>
+          <div class="mt-exam-card-meta">
+            <span class="mt-exam-tag">~6 min</span>
+            <span class="mt-exam-tag">Dialogue</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- A2 Full Mock -->
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:12px;">A2 · Full Mock</div>
+      <div class="mt-exam-grid" style="grid-template-columns:1fr;margin-bottom:32px;">
+
+        <div class="mt-exam-card" data-exam="a2_full" onclick="mtSelectExam(this)">
+          <div class="mt-exam-card-check">✓</div>
+          <div class="mt-exam-card-badge">Complete Simulation</div>
+          <div class="mt-exam-card-title">Goethe A2 FIT · Full Mock Exam</div>
+          <div class="mt-exam-card-desc">All three parts back to back: Teil 1 (Q&amp;A) → Teil 2 (card monologue) → Teil 3 (collaborative planning). One final score and verdict.</div>
+          <div class="mt-exam-card-meta">
+            <span class="mt-exam-tag">~15 min</span>
+            <span class="mt-exam-tag">CEFR A2</span>
+            <span class="mt-exam-tag">Pass: 60%</span>
+            <span class="mt-exam-tag">All 3 parts</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Examiner style picker -->
+      <div style="margin-bottom:32px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:12px;">Examiner Style</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="mt-style-btn active" data-style="supportive" onclick="mtSelectStyle(this)">Supportive</button>
+          <button class="mt-style-btn" data-style="standard" onclick="mtSelectStyle(this)">Standard</button>
+          <button class="mt-style-btn" data-style="strict" onclick="mtSelectStyle(this)">Strict</button>
+        </div>
+        <p style="font-size:12px;color:rgba(255,255,255,0.25);margin-top:8px;">Standard matches real Goethe conditions.</p>
+      </div>
+
+      <button class="mt-start-btn" id="mt-proceed-btn" disabled onclick="mtProceedToBriefing()">Select an exam to continue →</button>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 2: BRIEFING ── -->
+  <div id="mt-briefing" class="mt-screen">
+    <div class="mt-briefing-inner">
+      <div class="mt-briefing-icon">📋</div>
+      <h2 class="mt-briefing-title" id="mt-briefing-title">A2 Sprechen Teil 2</h2>
+      <div class="mt-briefing-subtitle" id="mt-briefing-subtitle">Mock Exam · Standard Examiner</div>
+
+      <div class="mt-briefing-rules" id="mt-briefing-rules">
+        <!-- Populated by JS based on exam type -->
+      </div>
+
+      <button class="mt-begin-btn" onclick="mtBeginExam()">Begin Exam →</button>
+      <button class="mt-back-link" onclick="mtShowScreen('mt-lobby')">← Back to exam selection</button>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 3: EXAM ROOM ── -->
+  <div id="mt-exam" class="mt-screen">
+
+    <!-- Sticky topbar -->
+    <div id="mt-exam-topbar">
+      <div class="mt-live-dot"></div>
+      <div id="mt-exam-label">A2 · Teil 2 · Mock Exam</div>
+      <div id="mt-exam-timer">00:00</div>
+    </div>
+
+    <!-- Body: card panel + conversation -->
+    <div id="mt-exam-body">
+
+      <!-- Left: card panel (always visible) -->
+      <div id="mt-card-panel">
+        <div id="mt-card-panel-state" class="prep">
+          <span id="mt-panel-state-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
+          <span id="mt-panel-state-text">Preparation · 20s</span>
+        </div>
+
+        <!-- Goethe exam card — rendered by JS -->
+        <div class="mt-goethe-card" id="mt-goethe-card" style="display:none;">
+          <div class="mt-goethe-topbar">
+            <span id="mt-card-cert">Goethe-Zertifikat A2 Fit</span>
+            <span id="mt-card-section">Sprechen Teil 2</span>
+          </div>
+          <div class="mt-goethe-subtitle" id="mt-card-subtitle">von sich erzählen</div>
+          <div class="mt-goethe-corners" id="mt-card-corners">
+            <div class="mt-goethe-corner tl" id="mt-c-tl">—</div>
+            <div class="mt-goethe-corner tr" id="mt-c-tr">—</div>
+            <div class="mt-goethe-corner bl" id="mt-c-bl">—</div>
+            <div class="mt-goethe-corner br" id="mt-c-br">—</div>
+            <svg class="mt-goethe-lines" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="18" y1="12" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
+              <line x1="82" y1="12" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
+              <line x1="18" y1="88" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
+              <line x1="82" y1="88" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
+            </svg>
+            <div class="mt-goethe-center" id="mt-card-center">—</div>
+          </div>
+        </div>
+
+        <!-- Teil 1: four word cards — shown during Teil 1 sessions -->
+        <div id="mt-question-display" style="display:none;">
+          <div id="mt-teil1-cards" style="display:none;">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:12px;text-align:center;">GOETHE-ZERTIFIKAT A2 · Sprechen Teil 1 · Fragen zur Person</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="mt-t1-card" id="mt-t1-card-0"></div>
+              <div class="mt-t1-card" id="mt-t1-card-1"></div>
+              <div class="mt-t1-card" id="mt-t1-card-2"></div>
+              <div class="mt-t1-card" id="mt-t1-card-3"></div>
+            </div>
+          </div>
+          <!-- Teil 3: calendar display -->
+          <div id="mt-teil3-calendar" style="display:none;">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px;text-align:center;">GOETHE-ZERTIFIKAT A2 · Sprechen Teil 3</div>
+            <div id="mt-t3-task" style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:10px;text-align:center;line-height:1.4;"></div>
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px;" id="mt-t3-day"></div>
+            <div id="mt-t3-calendar-grid" style="display:flex;flex-direction:column;gap:2px;max-height:320px;overflow-y:auto;"></div>
+          </div>
+          <!-- fallback plain text (A1 etc) -->
+          <div id="mt-question-text-wrap" style="display:none;">
+            <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:10px;">Topic</div>
+            <div id="mt-question-text" style="font-size:16px;font-weight:600;color:#fff;line-height:1.4;letter-spacing:-0.02em;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px 18px;"></div>
+          </div>
+        </div>
+
+        <!-- Prep countdown -->
+        <div id="mt-prep-countdown">
+          <div class="mt-prep-label">
+            <span>Vorbereitungszeit</span>
+            <span class="mt-prep-secs" id="mt-prep-secs">20</span>
+          </div>
+          <div class="mt-prep-track">
+            <div class="mt-prep-fill" id="mt-prep-fill"></div>
+          </div>
+        </div>
+
+        <!-- Speaking prompt (replaces countdown when speaking begins) -->
+        <div id="mt-speaking-prompt">
+          <strong>Sprechen Sie jetzt.</strong> Das Thema und alle vier Punkte. Ziel: 12–15 Sätze.
+        </div>
+      </div>
+
+      <!-- Right: conversation panel -->
+      <div id="mt-convo-panel">
+        <div id="mt-convo-area">
+          <div class="mt-examiner-strip">
+            <div class="mt-examiner-avatar">⚖️</div>
+            <div>
+              <div class="mt-examiner-name">Goethe Examiner</div>
+              <div class="mt-examiner-role">Waiting to begin…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mic bar -->
+        <div id="mt-mic-bar">
+          <div id="mt-mic-status">🎙 Microphone active</div>
+          <button id="mt-end-btn" onclick="mtEndExam()">■ End &amp; Submit</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── SCREEN 4: RESULTS ── -->
+  <div id="mt-results" class="mt-screen">
+    <div class="mt-results-inner">
+
+      <!-- Verdict hero -->
+      <div id="mt-verdict-hero">
+        <div id="mt-verdict-label">Evaluating…</div>
+        <div id="mt-verdict-score">—</div>
+        <div id="mt-verdict-score-sub">/100</div>
+        <div id="mt-verdict-title">Processing your exam…</div>
+        <div id="mt-verdict-reason"></div>
+      </div>
+
+      <!-- Score breakdown -->
+      <div class="mt-score-section" id="mt-score-breakdown" style="display:none;">
+        <div class="mt-score-section-title">Score Breakdown</div>
+        <div class="mt-score-row">
+          <div class="mt-score-label">Task Completion</div>
+          <div class="mt-score-track"><div class="mt-score-fill" id="mt-bar-task"></div></div>
+          <div class="mt-score-val" id="mt-val-task">—</div>
+        </div>
+        <div class="mt-score-row" id="mt-connector-row">
+          <div class="mt-score-label">Connector Use</div>
+          <div class="mt-score-track"><div class="mt-score-fill" id="mt-bar-connector"></div></div>
+          <div class="mt-score-val" id="mt-val-connector">—</div>
+        </div>
+        <div class="mt-score-row">
+          <div class="mt-score-label">Grammar</div>
+          <div class="mt-score-track"><div class="mt-score-fill" id="mt-bar-grammar"></div></div>
+          <div class="mt-score-val" id="mt-val-grammar">—</div>
+        </div>
+        <div class="mt-score-row">
+          <div class="mt-score-label">Vocabulary</div>
+          <div class="mt-score-track"><div class="mt-score-fill" id="mt-bar-vocab"></div></div>
+          <div class="mt-score-val" id="mt-val-vocab">—</div>
+        </div>
+        <div class="mt-score-row">
+          <div class="mt-score-label">Fluency</div>
+          <div class="mt-score-track"><div class="mt-score-fill" id="mt-bar-fluency"></div></div>
+          <div class="mt-score-val" id="mt-val-fluency">—</div>
+        </div>
+        <div class="mt-score-row" id="mt-sentence-row" style="display:none;">
+          <div class="mt-score-label">Sentences spoken</div>
+          <div class="mt-score-track"><div class="mt-score-fill" id="mt-bar-sentences"></div></div>
+          <div class="mt-score-val" id="mt-val-sentences">—</div>
+        </div>
+      </div>
+
+      <!-- Corner coverage (Teil 2 only) -->
+      <div class="mt-score-section" id="mt-corner-section" style="display:none;">
+        <div class="mt-score-section-title">Corner Coverage</div>
+        <div id="mt-corner-list"></div>
+      </div>
+
+      <!-- Overall feedback -->
+      <div class="mt-feedback-block" id="mt-feedback-block" style="display:none;">
+        <div class="mt-score-section-title">Examiner Feedback</div>
+        <div id="mt-feedback-text"></div>
+      </div>
+
+      <!-- Errors -->
+      <div class="mt-score-section" id="mt-errors-section" style="display:none;">
+        <div class="mt-score-section-title">Key Corrections</div>
+        <div id="mt-errors-list"></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="mt-results-actions">
+        <button class="mt-btn-primary" onclick="mtRetakeExam()">↻ Retake exam</button>
+        <button class="mt-btn-ghost" onclick="mtShowScreen('mt-lobby')">← Choose different exam</button>
+        <button class="mt-btn-ghost" onclick="navigateTo('home')">← Back to AURA</button>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /page-mocktest -->
