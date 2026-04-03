@@ -1,12 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AURA</title>
-  </head>
-  <body>
-    <h1>AURA is coming.</h1>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AURA -- Immersive Language Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mona+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap" rel="stylesheet">
+
+<!-- Route guard — runs synchronously before first paint -->
+<script>
+(function(){
+  var hash = window.location.hash;
+  var isApp = hash === '#aura' || hash === '#aura/' || (hash.indexOf('#aura') === 0 && hash.length === 5);
+  document.documentElement.setAttribute('data-route', 'landing');
+  if (isApp) document.documentElement.setAttribute('data-route-intent', 'app');
+})();
+</script>
+
+<!-- Styles -->
+<link rel="stylesheet" href="/src/styles/base.css">
+<link rel="stylesheet" href="/src/styles/landing.css">
+<link rel="stylesheet" href="/src/styles/app.css">
+<link rel="stylesheet" href="/src/styles/exam.css">
+
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LANDING PAGES
+═══════════════════════════════════════════════════════════ -->
+<div id="landing">
+
+  <!-- Home page -->
+  <div id="page-home" class="aura-page active">
+    <!-- inject: src/pages/home.html -->
+  </div>
+
+  <!-- Features page -->
+  <div id="page-features" class="aura-page">
+    <!-- inject: src/pages/features.html -->
+  </div>
+
+  <!-- Why AURA page -->
+  <div id="page-why" class="aura-page">
+    <!-- inject: src/pages/why.html -->
+  </div>
+
+  <!-- Mock test landing page -->
+  <div id="page-mocktest" class="aura-page">
+    <!-- inject: src/pages/mocktest-page.html -->
+  </div>
+
+</div><!-- /landing -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     APP SCREENS
+═══════════════════════════════════════════════════════════ -->
+
+<!-- Auth screen -->
+<!-- inject: src/app/screens/auth.html -->
+
+<!-- Onboarding screen -->
+<!-- inject: src/app/screens/onboarding.html -->
+
+<!-- Dashboard + Setup + Session + Score screens -->
+<!-- inject: src/app/screens/app-screens.html -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     MEMORY HELPERS
+═══════════════════════════════════════════════════════════ -->
+<script>
+const WORKER_URL = 'https://aura-token-worker.jeetupadhyay1204.workers.dev';
+
+const AuraMemory = (() => {
+  async function sessionStart(idToken, mode) {
+    try {
+      const resp = await fetch(`${WORKER_URL}/session-start`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ idToken, mode }) });
+      if (!resp.ok) return { contextBlock:'', memorySnapshot:null };
+      return await resp.json();
+    } catch { return { contextBlock:'', memorySnapshot:null }; }
+  }
+  async function sessionEnd(idToken, payload) {
+    try {
+      const resp = await fetch(`${WORKER_URL}/session-end`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ idToken, ...payload }) });
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch { return null; }
+  }
+  async function onboard(idToken, profile) {
+    try {
+      const resp = await fetch(`${WORKER_URL}/onboarding`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ idToken, ...profile }) });
+      if (!resp.ok) return { success:false };
+      return await resp.json();
+    } catch (err) { return { success:false, error:err.message }; }
+  }
+  return { sessionStart, sessionEnd, onboard };
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN APPLICATION ENTRY POINT
+═══════════════════════════════════════════════════════════ -->
+<script type="module">
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { auth, initAuthKeyListeners, handleHashChange } from '/src/modules/auth.js';
+import { loadUserProfile } from '/src/modules/firestore.js';
+import { routeAfterAuth, showOnboarding } from '/src/modules/ui.js';
+import { initLanding } from '/src/modules/landing.js';
+
+// Init landing page behaviour (router, flower logo, scroll reveal, waitlist)
+initLanding();
+
+// Auth key listeners (enter key on login/signup forms)
+initAuthKeyListeners();
+
+// Hash change handler
+window.addEventListener('hashchange', handleHashChange);
+
+// ── Auth state listener ───────────────────────────────────────────────────────
+const DEV_EMAILS = ['jeetupadhyay1204@gmail.com', 'hetvi@germanmadeeasy.com'];
+
+onAuthStateChanged(auth, async (user) => {
+  const authScreen    = document.getElementById('auth-screen');
+  const authChecking  = document.getElementById('auth-checking');
+  const authFormWrap  = document.getElementById('auth-form-wrap');
+  const appRoute      = document.documentElement.getAttribute('data-route-intent') === 'app'
+                     || window.location.hash === '#aura';
+
+  if (user) {
+    // Hide auth screen
+    if (authScreen)   authScreen.classList.remove('active');
+    if (authChecking) authChecking.style.display = 'none';
+
+    // Load profile from Firestore
+    const profile = await loadUserProfile(user.uid);
+
+    // Founder bypass — always treat as paid
+    const isPaid = DEV_EMAILS.includes(user.email)
+      || profile?.isPaidStudent === true
+      || profile?.subscription === 'pro';
+
+    // Store on window for session module access
+    window.__auraUser         = user;
+    window.__auraProfile      = profile;
+    window.__auraIsPaid       = isPaid;
+
+    if (appRoute) {
+      if (!profile?.onboardingComplete) {
+        showOnboarding();
+      } else {
+        routeAfterAuth();
+      }
+    }
+  } else {
+    // No user
+    window.__auraUser    = null;
+    window.__auraProfile = null;
+    window.__auraIsPaid  = false;
+
+    if (appRoute) {
+      if (authScreen)  authScreen.classList.add('active');
+      if (authChecking) authChecking.style.display = 'none';
+      if (authFormWrap) authFormWrap.style.display = '';
+    }
+  }
+});
+
+// Import remaining modules to register their window.* bindings
+import '/src/modules/session.js';
+import '/src/modules/mocktest.js';
+</script>
+
+</body>
 </html>
