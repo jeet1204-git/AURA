@@ -325,9 +325,6 @@ function insertHint(text) {
   if (input) { input.value = text; input.focus(); }
 }
 
-/* ==========
-   LIVE AI DEMO
-
 // ── Window bindings ───────────────────────────────────────────────────────────
 window.scrollToSection = (id) => { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }); };
 window.navigateTo      = navigateTo;
