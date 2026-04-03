@@ -60,15 +60,701 @@
      APP SCREENS
 ═══════════════════════════════════════════════════════════ -->
 
-<!-- Auth screen -->
-<!-- inject: src/app/screens/auth.html -->
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 7: APP SHELL
+     Dark UI application. Hidden when data-route="landing".
+     Contains: Auth, Onboarding, Dashboard, Session, Score
+═══════════════════════════════════════════════════════════ -->
+<div id="app-shell">
 
-<!-- Onboarding screen -->
-<!-- inject: src/app/screens/onboarding.html -->
+<!-- ── 7A: AUTH SCREEN (NEW) ─────────────────────────────── -->
+<div id="auth-screen" class="app-screen">
+  <div class="auth-container">
+    <div class="auth-logo">AU<span>RA</span></div>
+    <div class="auth-tagline">Immersive Language Intelligence</div>
 
-<!-- Dashboard + Setup + Session + Score screens -->
-<!-- inject: src/app/screens/app-screens.html -->
+    <div class="auth-loading" id="auth-checking">
+      <div class="auth-spinner"></div>
+      <div class="auth-loading-text">Checking your session...</div>
+    </div>
 
+    <div id="auth-form-wrap" style="display:none;">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="auth-tab-login" onclick="window.switchAuthTab('login')">Sign in</button>
+        <button class="auth-tab" id="auth-tab-signup" onclick="window.switchAuthTab('signup')">Create account</button>
+      </div>
+
+      <div class="auth-error" id="auth-error"></div>
+
+      <div class="auth-form" id="auth-form-login">
+        <input class="auth-input" id="auth-email" type="email" placeholder="Email address" autocomplete="email"/>
+        <input class="auth-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password"/>
+        <button class="auth-submit-btn" id="auth-login-btn" onclick="window.doEmailLogin()">Sign in</button>
+      </div>
+
+      <div class="auth-form" id="auth-form-signup" style="display:none;">
+        <input class="auth-input" id="auth-signup-email" type="email" placeholder="Email address" autocomplete="email"/>
+        <input class="auth-input" id="auth-signup-password" type="password" placeholder="Create password (6+ characters)" autocomplete="new-password"/>
+        <button class="auth-submit-btn" id="auth-signup-btn" onclick="window.doEmailSignup()">Create account</button>
+      </div>
+
+      <div class="auth-divider">
+        <div class="auth-divider-line"></div>
+        <div class="auth-divider-text">or</div>
+        <div class="auth-divider-line"></div>
+      </div>
+
+      <button class="auth-google-btn" onclick="window.doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 2.58 9 3.58z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+
+      <div class="auth-footer">
+        By continuing, you agree to AURA's terms of service.
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SPEAKING INTERFACE
+═══════════════════════════════════════════════ -->
+<!-- ── Auth overlay (loading spinner while checking auth) ── -->
+<div id="auth-overlay">
+  <div class="auth-spinner"></div>
+  <p>Checking access...</p>
+</div>
+
+<!-- ── Access denied (shown when no user and not using new auth screen) ── -->
+<div id="access-denied">
+  <h2>No access yet.</h2>
+  <p>AURA is available to German Made Easy students. Sign in or create an account to get started.</p>
+  <a href="#aura" onclick="document.getElementById('access-denied').style.display='none';document.getElementById('auth-screen').classList.add('active');document.getElementById('auth-checking').classList.remove('active');document.getElementById('auth-form-wrap').style.display='';">Sign in to AURA</a>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PHASE 4 -- ONBOARDING SCREEN
+     Shown once when a new user has no profile doc.
+     Calls /onboarding on completion, then shows dashboard.
+════════════════════════════════════════════════════════════ -->
+<div id="onboarding-screen">
+  <div class="ob-wrap">
+    <div class="ob-logo">AU<span>RA</span></div>
+    <div class="ob-step-track">
+      <div class="ob-step-dot active" id="ob-dot-0"></div>
+      <div class="ob-step-dot" id="ob-dot-1"></div>
+      <div class="ob-step-dot" id="ob-dot-2"></div>
+      <div class="ob-step-dot" id="ob-dot-3"></div>
+    </div>
+
+    <!-- Step 0: Name -->
+    <div id="ob-step-0" class="ob-step-content">
+      <div class="ob-question">What should AURA call you?</div>
+      <div class="ob-subq">Used to personalise your sessions and memory.</div>
+      <input id="ob-name-input" class="ob-name-input" type="text" placeholder="Your first name…" maxlength="40" autocomplete="given-name" oninput="window.obValidateName&&window.obValidateName()" onkeydown="if(event.key==='Enter')window.obNext&&window.obNext()"/>
+      <button class="ob-next-btn" id="ob-next-0" onclick="obNext()" disabled>Continue →</button>
+    </div>
+
+    <!-- Step 1: Native language -->
+    <div id="ob-step-1" class="ob-step-content" style="display:none">
+      <button class="ob-back-btn" onclick="obBack()">← Back</button>
+      <div class="ob-question">What's your native language?</div>
+      <div class="ob-subq">AURA will explain grammar in this language.</div>
+      <div class="ob-options" id="ob-lang-options">
+        <div class="ob-option" onclick="obSelectLang('english')" data-val="english">
+          <span class="ob-opt-icon">🇬🇧</span>
+          <div><div class="ob-opt-label">English</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectLang('gujarati')" data-val="gujarati">
+          <span class="ob-opt-icon">🇮🇳</span>
+          <div><div class="ob-opt-label">Gujarati</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectLang('hindi')" data-val="hindi">
+          <span class="ob-opt-icon">🇮🇳</span>
+          <div><div class="ob-opt-label">Hindi</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectLang('other')" data-val="other">
+          <span class="ob-opt-icon">🌐</span>
+          <div><div class="ob-opt-label">Other</div></div>
+        </div>
+      </div>
+      <input id="ob-other-lang-input" class="ob-name-input" type="text" placeholder="Type your language…" maxlength="40" style="display:none" oninput="window.obValidateLangOther&&window.obValidateLangOther()"/>
+      <button class="ob-next-btn" id="ob-next-1" onclick="obNext()" disabled>Continue →</button>
+    </div>
+
+    <!-- Step 2: Current level -->
+    <div id="ob-step-2" class="ob-step-content" style="display:none">
+      <button class="ob-back-btn" onclick="obBack()">← Back</button>
+      <div class="ob-question">What's your current German level?</div>
+      <div class="ob-subq">Be honest — AURA will adapt to you.</div>
+      <div class="ob-options" id="ob-level-options">
+        <div class="ob-option" onclick="obSelectLevel('A1')" data-val="A1">
+          <span class="ob-opt-icon">🌱</span>
+          <div><div class="ob-opt-label">A1 — Complete beginner</div><div class="ob-opt-desc">Little to no German yet</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectLevel('A2')" data-val="A2">
+          <span class="ob-opt-icon">🌿</span>
+          <div><div class="ob-opt-label">A2 — Elementary</div><div class="ob-opt-desc">Know basics, building sentences</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectLevel('B1')" data-val="B1">
+          <span class="ob-opt-icon">🌳</span>
+          <div><div class="ob-opt-label">B1 — Intermediate</div><div class="ob-opt-desc">Can hold simple conversations</div></div>
+        </div>
+      </div>
+      <button class="ob-next-btn" id="ob-next-2" onclick="obNext()" disabled>Continue →</button>
+    </div>
+
+    <!-- Step 3: Goal -->
+    <div id="ob-step-3" class="ob-step-content" style="display:none">
+      <button class="ob-back-btn" onclick="obBack()">← Back</button>
+      <div class="ob-question">What's your main goal?</div>
+      <div class="ob-subq">AURA will build your sessions around this.</div>
+      <div class="ob-options" id="ob-goal-options">
+        <div class="ob-option" onclick="obSelectGoal('Pass the A2 Zertifikat exam')" data-val="Pass the A2 Zertifikat exam">
+          <span class="ob-opt-icon">🎓</span>
+          <div><div class="ob-opt-label">Pass the A2 exam</div><div class="ob-opt-desc">Zertifikat Deutsch / Goethe A2</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectGoal('Speak confidently in everyday situations')" data-val="Speak confidently in everyday situations">
+          <span class="ob-opt-icon">💬</span>
+          <div><div class="ob-opt-label">Everyday speaking</div><div class="ob-opt-desc">Shops, transport, work, life in Germany</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectGoal('Improve for work or a job interview')" data-val="Improve for work or a job interview">
+          <span class="ob-opt-icon">💼</span>
+          <div><div class="ob-opt-label">Work / job interview</div><div class="ob-opt-desc">Professional German situations</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectGoal('General fluency and confidence')" data-val="General fluency and confidence">
+          <span class="ob-opt-icon">✨</span>
+          <div><div class="ob-opt-label">General fluency</div><div class="ob-opt-desc">Just want to get better overall</div></div>
+        </div>
+      </div>
+      <div id="ob-saving" class="ob-saving">
+        <div class="ob-saving-spinner"></div>
+        Setting up your profile…
+      </div>
+      <button class="ob-next-btn" id="ob-next-3" onclick="obFinish()" disabled>Start learning →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PHASE 5 — DASHBOARD SCREEN
+     Shown after onboarding and on return visits.
+     Shows last session summary, Language Island, streak, stats.
+════════════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════════
+     PHASE 6 — UPGRADE MODAL
+     Shown when free session limit is reached.
+════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="upgrade-modal">
+  <div class="modal-sheet">
+    <div class="trial-badge-pill">✦ Free Sessions Used</div>
+    <h2>You've hit your free limit.</h2>
+    <p id="upgrade-modal-body">You've used all <strong>3 free sessions</strong> this month. Upgrade to Pro for unlimited AURA conversations, full memory, and exam prep.</p>
+    <div class="modal-btns" style="margin-top:24px; display:flex; flex-direction:column; gap:10px;">
+      <a href="/#courses" class="mbtn-dark" style="text-decoration:none;display:inline-flex;justify-content:center;">Unlock Full Access →</a>
+      <button onclick="document.getElementById('upgrade-modal').classList.remove('open')" style="background:none;border:none;color:rgba(255,255,255,0.35);font-size:13px;cursor:pointer;font-family:var(--f);padding:8px;">Maybe later</button>
+    </div>
+  </div>
+</div>
+
+<div id="speaking-interface">
+  <div class="speak-wrap">
+
+    <!-- SETUP SCREEN -->
+    <div id="speak-setup">
+      <div class="setup-head">
+        <button onclick="auraGoToLanding()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--mid);padding:0 0 16px;display:flex;align-items:center;gap:6px;font-family:var(--f);letter-spacing:-0.01em;">← Back</button>
+        <h1>Start your session.</h1>
+        <p>Choose your scenario, level, and language — then speak freely in German. AURA will guide you.</p>
+      </div>
+
+      <div class="setup-section">
+        <div class="setup-label">Your Level</div>
+        <div class="seg-row">
+          <div class="seg-pill level-tab active" role="button" tabindex="0" onclick="setLevel('A1')" onkeydown="if(event.key==='Enter'||event.key===' ')setLevel('A1')">A1 — Beginner</div>
+          <div class="seg-pill level-tab" role="button" tabindex="0" onclick="setLevel('A2')" onkeydown="if(event.key==='Enter'||event.key===' ')setLevel('A2')">A2 — Elementary</div>
+        </div>
+      </div>
+
+      <div class="setup-section" id="program-type-section" style="display:none;">
+        <div class="setup-label">A2 Path</div>
+        <div class="seg-row" id="program-type-row">
+          <div class="seg-pill program-type-tab active" role="button" tabindex="0" onclick="setProgramType('general')" onkeydown="if(event.key==='Enter'||event.key===' ')setProgramType('general')">Everyday Speaking</div>
+          <div class="seg-pill program-type-tab" role="button" tabindex="0" onclick="setProgramType('exam')" onkeydown="if(event.key==='Enter'||event.key===' ')setProgramType('exam')">Exam Mode</div>
+        </div>
+      </div>
+
+      <div class="setup-section" id="exam-controls-section" style="display:none;">
+        <div class="setup-label">Exam Setup</div>
+
+        <div class="setup-subsection">
+          <div class="setup-label">Part</div>
+          <div class="seg-row" id="exam-part-row">
+            <div class="seg-pill exam-part-tab active" role="button" tabindex="0" onclick="setExamPart('teil1')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamPart('teil1')">Teil 1</div>
+            <div class="seg-pill exam-part-tab" role="button" tabindex="0" onclick="setExamPart('teil2')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamPart('teil2')">Teil 2</div>
+            <div class="seg-pill exam-part-tab" role="button" tabindex="0" onclick="setExamPart('teil3')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamPart('teil3')">Teil 3</div>
+            <div class="seg-pill exam-part-tab" role="button" tabindex="0" onclick="setExamPart('full_mock')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamPart('full_mock')">Full Mock</div>
+          </div>
+        </div>
+
+        <div class="setup-subsection">
+          <div class="setup-label">Run Type</div>
+          <div class="seg-row" id="exam-run-type-row">
+            <div class="seg-pill exam-run-type-tab active" role="button" tabindex="0" onclick="setExamRunType('practice')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamRunType('practice')">Practice</div>
+            <div class="seg-pill exam-run-type-tab" role="button" tabindex="0" onclick="setExamRunType('scored')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamRunType('scored')">Scored</div>
+          </div>
+        </div>
+
+        <div class="setup-subsection">
+          <div class="setup-label">Examiner</div>
+          <div class="seg-row" id="examiner-style-row">
+            <div class="seg-pill examiner-style-tab" role="button" tabindex="0" onclick="setExaminerStyle('supportive')" onkeydown="if(event.key==='Enter'||event.key===' ')setExaminerStyle('supportive')">Supportive</div>
+            <div class="seg-pill examiner-style-tab active" role="button" tabindex="0" onclick="setExaminerStyle('standard')" onkeydown="if(event.key==='Enter'||event.key===' ')setExaminerStyle('standard')">Standard</div>
+            <div class="seg-pill examiner-style-tab" role="button" tabindex="0" onclick="setExaminerStyle('strict')" onkeydown="if(event.key==='Enter'||event.key===' ')setExaminerStyle('strict')">Strict</div>
+          </div>
+        </div>
+
+        <div class="setup-subsection" id="exam-topic-section">
+          <div class="setup-label">Topic</div>
+          <select class="scenario-sel" id="exam-topic-select" onchange="setExamTopic(this.value)"></select>
+          <div class="scenario-hint" id="exam-topic-hint">Choose Random for a realistic exam draw, or pick a specific topic.</div>
+        </div>
+      </div>
+
+      <div class="setup-section" id="readiness-meter-wrap">
+        <div class="readiness-meter">
+          <div class="readiness-meter-top">
+            <div class="readiness-meter-label" id="readiness-meter-label">A1 Speaking Readiness</div>
+            <div class="readiness-meter-value" id="readiness-meter-value">0%</div>
+          </div>
+          <div class="readiness-track"><div class="readiness-fill" id="readiness-meter-fill"></div></div>
+          <p class="readiness-note" id="readiness-meter-note">You’re building confidence for real-life conversations.</p>
+        </div>
+      </div>
+
+      <div class="setup-section" id="recent-practice-wrap">
+        <div class="setup-label">Your Progress</div>
+        <div class="recent-practice-card">
+          <div class="recent-practice-list" id="recent-practice-list">
+            <p class="recent-practice-empty">Your recent speaking sessions will appear here.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <div class="setup-label">Today’s Speaking Focus</div>
+        <div class="daily-focus-card" id="daily-focus-card" role="button" tabindex="0" aria-label="Apply today's speaking focus">
+          <p class="daily-focus-title" id="daily-focus-title">Let’s begin with one short roleplay.</p>
+          <p class="daily-focus-message" id="daily-focus-message">Tap to auto-select a focused scenario for today.</p>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <div class="setup-label">
+          Input Mode
+          <span class="setup-badge-pill">Gemini 2.5 Live</span>
+        </div>
+        <div class="seg-row">
+          <div class="seg-pill mode-tab active" role="button" tabindex="0" onclick="setInputMode('both')" onkeydown="if(event.key==='Enter'||event.key===' ')setInputMode('both')">🎙️ + Type</div>
+          <div class="seg-pill mode-tab" role="button" tabindex="0" onclick="setInputMode('voice')" onkeydown="if(event.key==='Enter'||event.key===' ')setInputMode('voice')">🎙️ Voice only</div>
+          <div class="seg-pill mode-tab" role="button" tabindex="0" onclick="setInputMode('text')" onkeydown="if(event.key==='Enter'||event.key===' ')setInputMode('text')">⌨️ Type only</div>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <div class="setup-label">Session Mode</div>
+        <div class="session-mode-grid" id="session-mode-group">
+          <div class="seg-pill session-mode-tab active" onclick="setSessionMode('guided')">
+            <span class="session-mode-title">Guided</span>
+            <span class="session-mode-help">More explanation and support</span>
+          </div>
+          <div class="seg-pill session-mode-tab" onclick="setSessionMode('immersion')">
+            <span class="session-mode-title">Immersion</span>
+            <span class="session-mode-help">Mostly German, more realistic practice</span>
+          </div>
+        </div>
+        <p class="lang-note" id="mode-recommendation" style="display:none;margin-top:8px;color:var(--blue);"></p>
+      </div>
+
+      <div class="setup-section">
+        <div class="setup-label">
+          Explanation Language
+          <span class="setup-badge-pill" style="background:rgba(48,209,88,0.1);color:rgba(0,150,60,0.9);border-color:rgba(48,209,88,0.2);">Locked for session</span>
+        </div>
+        <p class="lang-note">AURA explains grammar in this language throughout the session. German pronunciation stays native.</p>
+        <div class="seg-row" id="lang-pref-group">
+          <div class="seg-pill lang-pref-tab active" onclick="setLangPref('Gujarati')">🇮🇳 Gujarati</div>
+          <div class="seg-pill lang-pref-tab" onclick="setLangPref('Hindi')">🇮🇳 Hindi</div>
+          <div class="seg-pill lang-pref-tab" onclick="setLangPref('English')">🇬🇧 English</div>
+          <div class="seg-pill lang-pref-tab" id="other-lang-pill" onclick="toggleOtherLangInput()">🌐 Other</div>
+        </div>
+        <div id="other-lang-wrap">
+          <input type="text" id="other-lang-input" placeholder="e.g. Tamil, Telugu, Marathi, Kannada…" maxlength="32" oninput="applyOtherLang(this.value)" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor=''"/>
+          <p id="other-lang-confirm"></p>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <div class="setup-label"><span id="scenario-emoji-label">🛒</span> Scenario</div>
+        <select class="scenario-sel" id="scenario-select" onchange="onScenarioChange()">
+          <optgroup label="— A1 Scenarios —">
+            <option value="a1_shop" data-level="A1" data-role="Shopkeeper" data-emoji="🛒" data-desc="You're a customer at a German supermarket. Ask for items, quantities, and prices.">🛒 At the Supermarket</option>
+            <option value="a1_doctor" data-level="A1" data-role="Doctor" data-emoji="🏥" data-desc="You're at a German GP clinic. Describe your symptoms and understand basic advice.">🏥 At the Doctor</option>
+            <option value="a1_hotel" data-level="A1" data-role="Hotel Receptionist" data-emoji="🏨" data-desc="Check into a German hotel. Ask about room types, prices, and breakfast.">🏨 Hotel Check-in</option>
+            <option value="a1_cafe" data-level="A1" data-role="Café Waiter" data-emoji="☕" data-desc="Order food and drinks at a German café. Ask about the menu and pay the bill.">☕ At the Café</option>
+            <option value="a1_directions" data-level="A1" data-role="Passerby" data-emoji="🗺️" data-desc="You're lost in a German city. Ask for directions to key locations.">🗺️ Asking for Directions</option>
+            <option value="a1_phone" data-level="A1" data-role="Office Secretary" data-emoji="📞" data-desc="Make a simple phone call to book an appointment in German.">📞 Making an Appointment</option>
+            <option value="a1_introduce" data-level="A1" data-role="New Neighbour" data-emoji="👋" data-desc="Introduce yourself to a new German neighbour. Share your name, country, job, and hobbies.">👋 Introducing Yourself</option>
+            <option value="a1_transport" data-level="A1" data-role="Ticket Office Staff" data-emoji="🚂" data-desc="Buy a train or bus ticket at a German station. Ask about times and prices.">🚂 Buying a Train Ticket</option>
+          </optgroup>
+          <optgroup label="— A2 Scenarios —">
+            <option value="a2_flat" data-level="A2" data-role="Landlord" data-emoji="🏠" data-desc="Discuss renting a flat in Germany. Ask about rent, deposit, and utilities.">🏠 Renting a Flat</option>
+            <option value="a2_job" data-level="A2" data-role="HR Manager" data-emoji="💼" data-desc="Attend a simple job interview. Describe your experience and strengths.">💼 Job Interview</option>
+            <option value="a2_bank" data-level="A2" data-role="Bank Clerk" data-emoji="🏦" data-desc="Open a bank account in Germany. Provide personal details and ask about fees.">🏦 Opening a Bank Account</option>
+            <option value="a2_complaint" data-level="A2" data-role="Shop Manager" data-emoji="⚠️" data-desc="Return a faulty product and make a polite complaint in German.">⚠️ Making a Complaint</option>
+            <option value="a2_party" data-level="A2" data-role="German Friend" data-emoji="🎉" data-desc="Discuss plans for a party. Talk about food, guests, location, and time.">🎉 Planning a Party</option>
+            <option value="a2_health" data-level="A2" data-role="Pharmacist" data-emoji="💊" data-desc="Visit a German pharmacy. Describe symptoms and ask for medication.">💊 At the Pharmacy</option>
+            <option value="a2_school" data-level="A2" data-role="School Administrator" data-emoji="🏫" data-desc="Enrol in a German course. Ask about schedules and fees.">🏫 School Enrolment</option>
+            <option value="a2_travel" data-level="A2" data-role="Travel Agent" data-emoji="✈️" data-desc="Book a holiday package. Discuss destinations, dates, and budget.">✈️ Booking a Holiday</option>
+          </optgroup>
+        </select>
+        <div class="scenario-hint" id="scenario-desc">You're a customer at a German supermarket. Ask for items, quantities, and prices.</div>
+      </div>
+
+      <div class="trial-info-bar" id="trial-bar"></div>
+
+      <button class="speak-start-btn" onclick="startSession()">Begin Conversation →</button>
+    </div>
+
+    <!-- SESSION SCREEN -->
+    <div id="speak-session">
+
+      <!-- Top bar -->
+      <div class="sesh-topbar">
+        <div class="sesh-scenario-info">
+          <div class="sesh-scenario-emoji" id="sesh-emoji">🛒</div>
+          <div>
+            <div class="sesh-scenario-name" id="sesh-title">At the Supermarket</div>
+            <div class="sesh-scenario-meta" id="sesh-subtitle">A1 · Shopkeeper · Live Voice</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="exam-mode-badge">
+            <span>⚖</span> Exam Mode
+          </div>
+          <div class="sesh-timer" id="session-timer">20:00</div>
+        </div>
+      </div>
+
+      <!-- Body grid -->
+      <div class="sesh-body" style="position:relative;">
+
+        <!-- TEIL 2 CARD OVERLAY — shown during 20s prep, hidden once student begins -->
+        <div id="teil2-card-overlay">
+
+          <!-- Task instruction -->
+          <div class="t2-aufgabe">
+            <span class="t2-aufgabe-icon">📋</span>
+            <span class="t2-aufgabe-text">
+              <strong>Aufgabe:</strong> Du bekommst eine Karte mit einem Thema und vier Stichwörtern.
+              Schau dir die Karte in Ruhe an. Dann erzählst du etwas über das Thema — die Karte bleibt sichtbar.
+              Die Prüferin kann dir Fragen stellen.
+            </span>
+          </div>
+
+          <!-- The exam card itself -->
+          <div class="t2-card">
+            <!-- Top bar: cert name + section -->
+            <div class="t2-card-topbar">
+              <span class="t2-card-topbar-left">Goethe-Zertifikat A2 Fit</span>
+              <span class="t2-card-topbar-right">Sprechen Teil 2</span>
+            </div>
+            <!-- Subtitle: the theme / topic label -->
+            <div class="t2-card-subtitle" id="t2-subtitle">von sich erzählen</div>
+            <!-- Corner grid + diagonals + center -->
+            <div class="t2-corners">
+              <div class="t2-corner tl" id="t2-corner-tl">—</div>
+              <div class="t2-corner tr" id="t2-corner-tr">—</div>
+              <div class="t2-corner bl" id="t2-corner-bl">—</div>
+              <div class="t2-corner br" id="t2-corner-br">—</div>
+              <!-- Diagonal X lines — percentage-based so they always hit the center box -->
+              <svg class="t2-lines" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="18" y1="12" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
+                <line x1="82" y1="12" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
+                <line x1="18" y1="88" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
+                <line x1="82" y1="88" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
+              </svg>
+              <!-- Center question box -->
+              <div class="t2-center-box" id="t2-center-question">—</div>
+            </div>
+          </div>
+
+          <!-- 20s countdown -->
+          <div class="t2-countdown-wrap">
+            <div class="t2-countdown-label">
+              <span>Vorbereitungszeit</span>
+              <span class="t2-countdown-secs" id="t2-countdown-num">20</span>
+            </div>
+            <div class="t2-countdown-track">
+              <div class="t2-countdown-fill" id="t2-countdown-fill"></div>
+            </div>
+          </div>
+
+          <p class="t2-instruction">
+            <strong>Lesen Sie die Karte.</strong> Antworten Sie zuerst auf die Hauptfrage,<br>
+            dann auf die vier Punkte. Ziel: 12–15 Sätze.
+          </p>
+        </div>
+
+        <!-- TEIL 1 CARD OVERLAY — four word cards shown during Teil 1 sessions -->
+        <div id="teil1-card-overlay" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;z-index:10;background:var(--snow,#f7f8fa);padding:24px;overflow-y:auto;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:14px;text-align:center;">GOETHE-ZERTIFIKAT A2 &nbsp;·&nbsp; Sprechen Teil 1 &nbsp;·&nbsp; Fragen zur Person</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:480px;margin:0 auto;">
+            <div class="t2-card" id="sess-t1-card-0" style="min-height:120px;"></div>
+            <div class="t2-card" id="sess-t1-card-1" style="min-height:120px;"></div>
+            <div class="t2-card" id="sess-t1-card-2" style="min-height:120px;"></div>
+            <div class="t2-card" id="sess-t1-card-3" style="min-height:120px;"></div>
+          </div>
+          <p style="text-align:center;font-size:13px;color:#6b7280;margin-top:16px;">Stellen Sie für jede Karte eine Frage. Ihr Partner antwortet — dann fragen Sie Ihren Partner zurück.</p>
+        </div>
+
+        <!-- TEIL 3 CALENDAR OVERLAY — calendar shown during Teil 3 sessions -->
+        <div id="teil3-calendar-overlay" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;z-index:10;background:var(--snow,#f7f8fa);padding:24px;overflow-y:auto;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;text-align:center;">GOETHE-ZERTIFIKAT A2 &nbsp;·&nbsp; Sprechen Teil 3</div>
+          <div id="sess-t3-task" style="font-size:14px;color:#374151;margin-bottom:12px;text-align:center;line-height:1.5;font-weight:600;"></div>
+          <div id="sess-t3-day" style="font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;"></div>
+          <div id="sess-t3-grid" style="display:flex;flex-direction:column;gap:3px;max-width:360px;margin:0 auto;"></div>
+          <p style="text-align:center;font-size:13px;color:#6b7280;margin-top:14px;">Finden Sie gemeinsam einen freien Termin. Das ist Ihr Kalender — Ihr Partner hat einen anderen.</p>
+        </div>
+
+        <!-- Left: corrections + word count -->
+        <div class="sesh-left">
+          <div class="board-header">
+            <div class="board-icon">✏️</div>
+            <div class="board-title">Correction Board</div>
+          </div>
+          <div class="blackboard-area" id="blackboard-area">
+            <div class="blackboard-idle" id="board-idle">No corrections yet —<br>keep speaking!</div>
+          </div>
+          <div class="word-counter-card">
+            <div>
+              <div class="wc-num" id="word-count-num">0</div>
+              <div class="wc-label">German words used</div>
+            </div>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style="margin-left:auto;opacity:0.3;">
+              <path d="M4 8h20M4 14h14M4 20h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Center: conversation -->
+        <div class="sesh-center">
+          <div class="convo-area" id="conversation-area">
+            <!-- Practice mode: pinned question card -->
+            <div id="practice-card-pin">
+              <div class="pcp-label">Your Topic</div>
+              <div class="pcp-question" id="pcp-question-text">—</div>
+              <div class="pcp-corners" id="pcp-corners-wrap"></div>
+            </div>
+            <div class="role-intro-strip" id="role-strip">
+              <div class="ris-emoji" id="role-avatar">🛒</div>
+              <div class="ris-info">
+                <h4 id="role-name">The Shopkeeper</h4>
+                <p id="role-description">Speak naturally in German. AURA listens, responds live, and corrects you.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Input desk -->
+          <div class="sesh-desk">
+            <div class="state-pill-row">
+              <div class="aura-state-pill" id="aura-state-pill">
+                <span class="state-dot-ind"></span>
+                <span id="aura-state-text">Ready</span>
+              </div>
+              <div class="word-count-badge" style="font-size:11px;color:var(--mid);display:flex;align-items:center;gap:4px;">
+                <span id="word-count-num-desk" style="font-size:15px;font-weight:700;color:var(--deep);">0</span>
+                <span>words</span>
+              </div>
+            </div>
+            <div id="deepgram-status" style="display:none;margin-top:6px;font-size:11px;color:#b26b00;">
+              Live transcript unavailable · Voice session is still active
+            </div>
+
+            <div class="silence-bar" id="silence-countdown">
+              <span id="silence-countdown-text">30s</span> until auto-pause
+            </div>
+
+            <div class="desk-input-row" id="input-area">
+              <textarea id="msg-input" placeholder="Type in German… or just speak 🎙️" rows="1"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendTextMessage();}"></textarea>
+              <button class="mic-btn-new active" id="mic-btn" onclick="toggleMic()">🎙</button>
+              <button class="send-btn-new" onclick="sendTextMessage()">↑</button>
+            </div>
+
+            <div class="desk-ctrl-row">
+              <button class="ctrl-pill-new" onclick="goBackToSetup()">← Back</button>
+              <button class="ctrl-pill-new" onclick="changeScenario()">↻ New scenario</button>
+              <button class="ctrl-pill-new" id="add-time-btn" onclick="addTime()">+ 10 min</button>
+              <button class="ctrl-pill-new end-pill" onclick="endSession()">■ End &amp; Score</button>
+              <button class="hint-pill" onclick="requestHint()">💡 Hint</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCORE SCREEN -->
+    <div id="speak-score">
+      <div class="score-hd">
+        <h2>Session Complete.</h2>
+        <p id="score-scenario-label" style="letter-spacing:0.04em;text-transform:uppercase;font-size:11px;font-weight:700;">JOB INTERVIEW · A2 · LIVE VOICE</p>
+      </div>
+
+      <!-- EXAM VERDICT — only shown for exam sessions -->
+      <div id="exam-verdict-card" style="display:none;">
+        <div id="exam-verdict-badge"></div>
+        <div id="exam-verdict-text"></div>
+        <div id="exam-verdict-sub"></div>
+      </div>
+
+      <!-- CORNER COVERAGE — only shown for Teil 2 exam sessions -->
+      <div id="exam-corner-coverage" style="display:none;">
+        <div class="sbc-block-label">Corner Coverage</div>
+        <div id="exam-corner-list"></div>
+      </div>
+
+      <div class="score-ring-wrap">
+        <svg class="score-ring-svg-el" viewBox="0 0 160 160">
+          <circle class="score-ring-bg" cx="80" cy="80" r="70"/>
+          <circle class="score-ring-fill" cx="80" cy="80" r="70" id="score-ring-fill"/>
+          <text class="score-ring-num" x="80" y="86" text-anchor="middle" transform="rotate(90,80,80)" id="score-num-inner">—</text>
+          <text class="score-ring-sub" x="80" y="100" text-anchor="middle" transform="rotate(90,80,80)">/100</text>
+        </svg>
+      </div>
+
+      <div class="score-bars-grid">
+        <div class="score-bar-cell">
+          <div class="sbc-label">Vocabulary</div>
+          <div class="sbc-track"><div class="sbc-fill" id="bar-vocab"></div></div>
+          <div class="sbc-val" id="score-vocab">—</div>
+          <div class="sbc-note" id="comment-vocab"></div>
+        </div>
+        <div class="score-bar-cell">
+          <div class="sbc-label">Grammar</div>
+          <div class="sbc-track"><div class="sbc-fill" id="bar-grammar"></div></div>
+          <div class="sbc-val" id="score-grammar">—</div>
+          <div class="sbc-note" id="comment-grammar"></div>
+        </div>
+        <div class="score-bar-cell">
+          <div class="sbc-label">Fluency</div>
+          <div class="sbc-track"><div class="sbc-fill" id="bar-fluency"></div></div>
+          <div class="sbc-val" id="score-fluency">—</div>
+          <div class="sbc-note" id="comment-fluency"></div>
+        </div>
+        <div class="score-bar-cell">
+          <div class="sbc-label">Task Completion</div>
+          <div class="sbc-track"><div class="sbc-fill" id="bar-task"></div></div>
+          <div class="sbc-val" id="score-task">—</div>
+          <div class="sbc-note" id="comment-task"></div>
+        </div>
+      </div>
+
+      <div class="score-block-card">
+        <div class="sbc-block-label">Overall Feedback</div>
+        <div class="sbc-block-text" id="overall-feedback-text">Evaluating your session…</div>
+      </div>
+
+      <div class="score-block-card" id="post-session-coaching" style="display:none;">
+        <div class="sbc-block-label">Coach Summary</div>
+        <div class="coaching-stack" id="post-session-coaching-list"></div>
+      </div>
+
+      <div class="score-block-card" id="next-action-card" style="display:none;">
+        <div class="sbc-block-label">Recommended Next Action</div>
+        <div class="sbc-block-text" id="next-action-title" style="font-weight:600;margin-bottom:4px;"></div>
+        <div class="sbc-block-text" id="next-action-message"></div>
+      </div>
+
+      <div class="score-block-card" id="pronunciation-section" style="display:none;">
+        <div class="sbc-block-label">Pronunciation Guide</div>
+        <div id="pronunciation-tips-list"></div>
+      </div>
+
+      <div class="score-block-card">
+        <div class="sbc-block-label">Grammar Corrections</div>
+        <div id="errors-list"></div>
+      </div>
+
+      <div class="score-actions-row">
+        <button class="score-btn-dark" onclick="practiceAgain()">↻ Practice again</button>
+        <button class="score-btn-ghost" onclick="goBackToHomepage()">← AURA Home</button>
+        <button class="score-btn-ghost" onclick="goToDashboard()">← Dashboard</button>
+      </div>
+    </div>
+
+  </div><!-- /speak-wrap -->
+</div><!-- /speaking-interface -->
+
+<!-- Mobile floating correction -->
+<div id="mobile-correction">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div style="width:6px;height:6px;border-radius:50%;background:#ff3b30;"></div>
+      <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--mid);">Correction</span>
+    </div>
+    <button onclick="document.getElementById('mobile-correction').classList.remove('visible')" style="background:none;border:none;font-size:14px;color:var(--mid);cursor:pointer;">✕</button>
+  </div>
+  <div id="mc-body"></div>
+</div>
+
+<!-- MODALS -->
+<!-- Privacy modal -->
+<div class="modal-overlay" id="privacy-modal">
+  <div class="modal-sheet">
+    <div class="modal-icon-big">🎧</div>
+    <h2>Before we begin</h2>
+    <p>AURA speaks out loud in German, Gujarati, Hindi, and English. In a public place, others will hear.</p>
+    <div class="modal-tip-box">
+      <span>💡</span>
+      <span>Headphones make this significantly better — clearer audio, more private, easier to focus.</span>
+    </div>
+    <p style="font-size:12px;color:var(--mid);">Your microphone will be active. AURA can hear you speak.</p>
+    <div class="modal-btns" style="margin-top:20px;">
+      <button class="mbtn-dark" onclick="confirmPrivacyAndStart()">✓ Start AURA</button>
+      <button class="mbtn-ghost" onclick="document.getElementById('privacy-modal').classList.remove('open')">← Go back</button>
+    </div>
+  </div>
+</div>
+
+<!-- Silence modal -->
+<div class="modal-overlay" id="silence-modal">
+  <div class="modal-sheet">
+    <div class="modal-icon-big">🤫</div>
+    <h2>Still there?</h2>
+    <p>No speech detected for 30 seconds. The session is <strong>paused</strong> to save your time.</p>
+    <div class="modal-btns">
+      <button class="mbtn-dark" onclick="resumeSession()">▶ Resume</button>
+      <button class="mbtn-ghost" onclick="endSession()">End &amp; Score</button>
+    </div>
+  </div>
+</div>
+
+<!-- Trial limit modal -->
+<div class="modal-overlay" id="trial-limit-modal">
+  <div class="modal-sheet">
+    <div class="trial-badge-pill">✦ Free Trial Complete</div>
+    <h2>You've experienced AURA.</h2>
+    <p>Your 2 free conversations are used. Unlock the course for <strong>unlimited AURA conversations</strong>, structured lessons, and exam preparation.</p>
+    <div class="modal-btns" style="margin-top:24px;">
+      <a href="/#courses" class="mbtn-dark" style="text-decoration:none;display:inline-flex;">Unlock Full Access →</a>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app-shell -->
 <!-- ═══════════════════════════════════════════════════════════
      MEMORY HELPERS
 ═══════════════════════════════════════════════════════════ -->
