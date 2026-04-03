@@ -8,31 +8,25 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mona+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap" rel="stylesheet">
 
-<!-- Route guard — runs synchronously before first paint -->
+<!-- Route guard -->
 <script>
 (function(){
   var hash = window.location.hash;
-  var isApp = hash === '#aura' || hash === '#aura/' || (hash.indexOf('#aura') === 0 && hash.length === 5);
+  var isApp = hash === '#aura' || (hash.indexOf('#aura') === 0 && hash.length === 5);
   document.documentElement.setAttribute('data-route', 'landing');
   if (isApp) document.documentElement.setAttribute('data-route-intent', 'app');
 })();
 </script>
 
-<!-- Early stubs — defined before modules load so onclick handlers work immediately -->
+<!-- Stubs: defined before modules so inline onclick handlers never throw -->
 <script>
 (function() {
-  var _queue = [];
-  var _ready = false;
-  window.enterSpeakingInterface = function() {
-    if (!_ready) { _queue.push('enter'); return; }
-    window.__enterSpeakingInterfaceReal && window.__enterSpeakingInterfaceReal();
-  };
-  window.__auraModuleReady = function() {
-    _ready = true;
-    if (_queue.length > 0) {
-      _queue = [];
-      window.__enterSpeakingInterfaceReal && window.__enterSpeakingInterfaceReal();
-    }
+  var _pending = false;
+  // Queues one call until ui.js registers the real function
+  window.enterSpeakingInterface = function() { _pending = true; };
+  window.__uiReady = function() {
+    // Called by ui.js after it registers the real enterSpeakingInterface
+    if (_pending) { _pending = false; window.enterSpeakingInterface(); }
   };
   window.switchAuthTab = function(){};
   window.doEmailLogin  = function(){};
@@ -2029,26 +2023,19 @@
 
 </div><!-- /app-shell -->
 
-<!-- Memory helpers -->
+<!-- Worker helper -->
 <script>
 var WORKER_URL = 'https://aura-token-worker.jeetupadhyay1204.workers.dev';
 var AuraMemory = (function() {
-  function sessionStart(idToken, mode) {
-    return fetch(WORKER_URL + '/session-start', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ idToken: idToken, mode: mode }) })
-      .then(function(r){ return r.ok ? r.json() : { contextBlock:'', memorySnapshot:null }; })
-      .catch(function(){ return { contextBlock:'', memorySnapshot:null }; });
+  function post(path, body) {
+    return fetch(WORKER_URL + path, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+      .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
   }
-  function sessionEnd(idToken, payload) {
-    return fetch(WORKER_URL + '/session-end', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(Object.assign({ idToken: idToken }, payload)) })
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .catch(function(){ return null; });
-  }
-  function onboard(idToken, profile) {
-    return fetch(WORKER_URL + '/onboarding', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(Object.assign({ idToken: idToken }, profile)) })
-      .then(function(r){ return r.ok ? r.json() : { success:false }; })
-      .catch(function(e){ return { success:false, error:e.message }; });
-  }
-  return { sessionStart: sessionStart, sessionEnd: sessionEnd, onboard: onboard };
+  return {
+    sessionStart: function(t, m) { return post('/session-start', { idToken:t, mode:m }) || { contextBlock:'', memorySnapshot:null }; },
+    sessionEnd:   function(t, p) { return post('/session-end',   Object.assign({ idToken:t }, p)); },
+    onboard:      function(t, p) { return post('/onboarding',    Object.assign({ idToken:t }, p)); },
+  };
 })();
 </script>
 
@@ -2063,9 +2050,8 @@ import { initLanding } from '/src/modules/landing.js';
 import '/src/modules/session.js';
 import '/src/modules/mocktest.js';
 
-// Register real enterSpeakingInterface and drain any queued calls
-window.__enterSpeakingInterfaceReal = window.enterSpeakingInterface;
-window.__auraModuleReady();
+// ui.js has now registered the real enterSpeakingInterface — drain any queued call
+window.__uiReady && window.__uiReady();
 
 initLanding();
 initAuthKeyListeners();
