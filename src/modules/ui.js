@@ -602,20 +602,6 @@ function updateTrialBadge() {
 }
 
 // ── NAVIGATION ────────────────────────────────
-window.enterSpeakingInterface = () => {
-  // Navigate to app mode first
-  if (window.location.hash !== '#aura') {
-    window.location.hash = '#aura';
-  }
-  document.documentElement.setAttribute('data-route', 'app');
-  document.body.style.background = 'var(--app-bg)';
-
-  // Phase 6: paywall gate before entering session
-  if (checkPaywallGate()) return;
-
-  // If not logged in, show auth screen
-  if (!currentUser && !profileReady) {
-    const authScreen = document.getElementById('auth-screen');
     const checking = document.getElementById('auth-checking');
     const formWrap = document.getElementById('auth-form-wrap');
     if (authScreen) authScreen.classList.add('active');
@@ -783,3 +769,6 @@ window.enterSpeakingInterface = () => {
     }
   }, 100);
 };
+
+// Signal that the real enterSpeakingInterface is now registered
+window.__uiReady && window.__uiReady();
