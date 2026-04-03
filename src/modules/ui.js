@@ -246,7 +246,7 @@ let silenceTimer=null, silenceCountdownInterval=null;
 
 function syncSetupModeUI() {
   const isA2 = selectedLevel === 'A2';
-  const examActive = isExamModeActive();
+  const examActive = ( typeof isExamModeActive === "function" ? isExamModeActive() : false);
   const programTypeSection = document.getElementById('program-type-section');
   const examControlsSection = document.getElementById('exam-controls-section');
   const scenarioSection = document.getElementById('scenario-select')?.closest('.setup-section');
@@ -273,7 +273,7 @@ window.setProgramType = (value) => {
 
 window.setExamPart = (value) => {
   selectedExamPart = ['teil1','teil2','teil3','full_mock'].includes(value) ? value : 'teil1';
-  const selectedTopic = getExamTopicById(selectedExamTopicId);
+  const selectedTopic = ( typeof getExamTopicById === "function" ? getExamTopicById(selectedExamTopicId) : null);
   if (selectedExamPart === 'full_mock' || !selectedTopic || selectedTopic.part !== selectedExamPart) selectedExamTopicId = null;
   syncSetupModeUI();
 };
@@ -293,7 +293,7 @@ window.setExamTopic = (value) => {
     selectedExamTopicId = null;
     return;
   }
-  const topic = getExamTopicById(value);
+  const topic = ( typeof getExamTopicById === "function" ? getExamTopicById(value) : null);
   selectedExamTopicId = topic && topic.part === selectedExamPart ? topic.topicId : null;
 };
 
@@ -313,7 +313,7 @@ window.setLevel = (l) => {
     t.classList.toggle('active', t.getAttribute('onclick')?.includes("'guided'")));
   if (typeof syncScenarioToLevel === 'function') syncScenarioToLevel(selectedLevel);
   if (typeof syncSetupModeUI === 'function') syncSetupModeUI();
-  if (isExamModeActive() && typeof window.onScenarioChange === 'function') window.onScenarioChange();
+  if (( typeof isExamModeActive === "function" ? isExamModeActive() : false) && typeof window.onScenarioChange === 'function') window.onScenarioChange();
   if (typeof renderSessionLabels === 'function') renderSessionLabels();
   if (typeof updateSessionModeRecommendation === 'function') updateSessionModeRecommendation();
   if (typeof restartSessionIfRunning === 'function') restartSessionIfRunning('level_changed');
@@ -352,7 +352,7 @@ window.onScenarioChange = () => {
   if (!sel || !sel.options?.length) return;
   let selectedOpt = sel.options[sel.selectedIndex];
   if (!selectedOpt) return;
-  if (selectedOpt.dataset.level !== selectedLevel && !isExamModeActive()) {
+  if (selectedOpt.dataset.level !== selectedLevel && !( typeof isExamModeActive === "function" ? isExamModeActive() : false)) {
     const repaired = resolveScenarioForLevel(selectedLevel, selectedOpt.value);
     if (repaired) {
       console.warn('[AURA] scenario/level mismatch auto-repaired', { selectedLevel, scenarioLevel: selectedOpt.dataset.level, requestedScenarioId: selectedOpt.value, repairedScenarioId: repaired.id });
@@ -382,7 +382,7 @@ if (document.readyState === 'loading') {
 } else {
   setupDailyFocusCardInteraction();
 }
-syncSetupModeUI();
+if (typeof syncSetupModeUI === "function") syncSetupModeUI();
 
 
 function getNextRecommendation({ selectedScenario, selectedLevel, selectedMode, userProgressSummary, userSessionHistory, latestSessionResult }) {
