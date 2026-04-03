@@ -50,12 +50,6 @@ function resetSessionState() {
 // The stage engine owns micro state within a live session.
 // Exam sessions bypass the stage engine entirely — their flow is prompt-controlled.
 
-const STAGE = Object.freeze({
-  WARMUP:    'warmup',
-  TASK:      'task',
-  EXPANSION: 'expansion',
-  WRAPUP:    'wrapup',
-});
 
 // Runtime stage state — reset on every session start via initStageEngine()
 let _stage = {
