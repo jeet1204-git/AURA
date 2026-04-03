@@ -1,0 +1,104 @@
+<div id="onboarding-screen">
+  <div class="ob-wrap">
+    <div class="ob-logo">AU<span>RA</span></div>
+    <div class="ob-step-track">
+      <div class="ob-step-dot active" id="ob-dot-0"></div>
+      <div class="ob-step-dot" id="ob-dot-1"></div>
+      <div class="ob-step-dot" id="ob-dot-2"></div>
+      <div class="ob-step-dot" id="ob-dot-3"></div>
+    </div>
+
+    <!-- Step 0: Name -->
+    <div id="ob-step-0" class="ob-step-content">
+      <div class="ob-question">What should AURA call you?</div>
+      <div class="ob-subq">Used to personalise your sessions and memory.</div>
+      <input id="ob-name-input" class="ob-name-input" type="text" placeholder="Your first name…" maxlength="40" autocomplete="given-name" oninput="window.obValidateName&&window.obValidateName()" onkeydown="if(event.key==='Enter')window.obNext&&window.obNext()"/>
+      <button class="ob-next-btn" id="ob-next-0" onclick="obNext()" disabled>Continue →</button>
+    </div>
+
+    <!-- Step 1: Native language -->
+    <div id="ob-step-1" class="ob-step-content" style="display:none">
+      <button class="ob-back-btn" onclick="obBack()">← Back</button>
+      <div class="ob-question">What's your native language?</div>
+      <div class="ob-subq">AURA will explain grammar in this language.</div>
+      <div class="ob-options" id="ob-lang-options">
+        <div class="ob-option" onclick="obSelectLang('english')" data-val="english">
+          <span class="ob-opt-icon">🇬🇧</span>
+          <div><div class="ob-opt-label">English</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectLang('gujarati')" data-val="gujarati">
+          <span class="ob-opt-icon">🇮🇳</span>
+          <div><div class="ob-opt-label">Gujarati</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectLang('hindi')" data-val="hindi">
+          <span class="ob-opt-icon">🇮🇳</span>
+          <div><div class="ob-opt-label">Hindi</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectLang('other')" data-val="other">
+          <span class="ob-opt-icon">🌐</span>
+          <div><div class="ob-opt-label">Other</div></div>
+        </div>
+      </div>
+      <input id="ob-other-lang-input" class="ob-name-input" type="text" placeholder="Type your language…" maxlength="40" style="display:none" oninput="window.obValidateLangOther&&window.obValidateLangOther()"/>
+      <button class="ob-next-btn" id="ob-next-1" onclick="obNext()" disabled>Continue →</button>
+    </div>
+
+    <!-- Step 2: Current level -->
+    <div id="ob-step-2" class="ob-step-content" style="display:none">
+      <button class="ob-back-btn" onclick="obBack()">← Back</button>
+      <div class="ob-question">What's your current German level?</div>
+      <div class="ob-subq">Be honest — AURA will adapt to you.</div>
+      <div class="ob-options" id="ob-level-options">
+        <div class="ob-option" onclick="obSelectLevel('A1')" data-val="A1">
+          <span class="ob-opt-icon">🌱</span>
+          <div><div class="ob-opt-label">A1 — Complete beginner</div><div class="ob-opt-desc">Little to no German yet</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectLevel('A2')" data-val="A2">
+          <span class="ob-opt-icon">🌿</span>
+          <div><div class="ob-opt-label">A2 — Elementary</div><div class="ob-opt-desc">Know basics, building sentences</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectLevel('B1')" data-val="B1">
+          <span class="ob-opt-icon">🌳</span>
+          <div><div class="ob-opt-label">B1 — Intermediate</div><div class="ob-opt-desc">Can hold simple conversations</div></div>
+        </div>
+      </div>
+      <button class="ob-next-btn" id="ob-next-2" onclick="obNext()" disabled>Continue →</button>
+    </div>
+
+    <!-- Step 3: Goal -->
+    <div id="ob-step-3" class="ob-step-content" style="display:none">
+      <button class="ob-back-btn" onclick="obBack()">← Back</button>
+      <div class="ob-question">What's your main goal?</div>
+      <div class="ob-subq">AURA will build your sessions around this.</div>
+      <div class="ob-options" id="ob-goal-options">
+        <div class="ob-option" onclick="obSelectGoal('Pass the A2 Zertifikat exam')" data-val="Pass the A2 Zertifikat exam">
+          <span class="ob-opt-icon">🎓</span>
+          <div><div class="ob-opt-label">Pass the A2 exam</div><div class="ob-opt-desc">Zertifikat Deutsch / Goethe A2</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectGoal('Speak confidently in everyday situations')" data-val="Speak confidently in everyday situations">
+          <span class="ob-opt-icon">💬</span>
+          <div><div class="ob-opt-label">Everyday speaking</div><div class="ob-opt-desc">Shops, transport, work, life in Germany</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectGoal('Improve for work or a job interview')" data-val="Improve for work or a job interview">
+          <span class="ob-opt-icon">💼</span>
+          <div><div class="ob-opt-label">Work / job interview</div><div class="ob-opt-desc">Professional German situations</div></div>
+        </div>
+        <div class="ob-option" onclick="obSelectGoal('General fluency and confidence')" data-val="General fluency and confidence">
+          <span class="ob-opt-icon">✨</span>
+          <div><div class="ob-opt-label">General fluency</div><div class="ob-opt-desc">Just want to get better overall</div></div>
+        </div>
+      </div>
+      <div id="ob-saving" class="ob-saving">
+        <div class="ob-saving-spinner"></div>
+        Setting up your profile…
+      </div>
+      <button class="ob-next-btn" id="ob-next-3" onclick="obFinish()" disabled>Start learning →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PHASE 5 — DASHBOARD SCREEN
+     Shown after onboarding and on return visits.
+     Shows last session summary, Language Island, streak, stats.
+════════════════════════════════════════════════════════════ -->
