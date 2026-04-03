@@ -157,7 +157,6 @@ async function obFinish() {
 
 // ══════════════════════════════════════════════════════════
 // PHASE 5 — DASHBOARD
-// ══════════════════════════════════════════════════════════
 function computeStreak(sessions) {
   if (!sessions || !sessions.length) return 0;
   const today = new Date(); today.setHours(0,0,0,0);
@@ -243,10 +242,9 @@ let currentAiText='', currentAiEntryEl=null;
 let currentUserText='', currentUserEntryEl=null; // input transcription buffer
 let turnCount=0, correctionTimeout=null;
 let silenceTimer=null, silenceCountdownInterval=null;
-
 function syncSetupModeUI() {
   const isA2 = selectedLevel === 'A2';
-  const examActive = ( typeof isExamModeActive === "function" ? isExamModeActive() : false);
+  const examActive = (typeof isExamModeActive === "function" ? isExamModeActive() : false);
   const programTypeSection = document.getElementById('program-type-section');
   const examControlsSection = document.getElementById('exam-controls-section');
   const scenarioSection = document.getElementById('scenario-select')?.closest('.setup-section');
@@ -273,7 +271,7 @@ window.setProgramType = (value) => {
 
 window.setExamPart = (value) => {
   selectedExamPart = ['teil1','teil2','teil3','full_mock'].includes(value) ? value : 'teil1';
-  const selectedTopic = ( typeof getExamTopicById === "function" ? getExamTopicById(selectedExamTopicId) : null);
+  const selectedTopic = (typeof getExamTopicById === "function" ? getExamTopicById(selectedExamTopicId) : null);
   if (selectedExamPart === 'full_mock' || !selectedTopic || selectedTopic.part !== selectedExamPart) selectedExamTopicId = null;
   syncSetupModeUI();
 };
@@ -293,7 +291,7 @@ window.setExamTopic = (value) => {
     selectedExamTopicId = null;
     return;
   }
-  const topic = ( typeof getExamTopicById === "function" ? getExamTopicById(value) : null);
+  const topic = (typeof getExamTopicById === "function" ? getExamTopicById(value) : null);
   selectedExamTopicId = topic && topic.part === selectedExamPart ? topic.topicId : null;
 };
 
@@ -313,7 +311,7 @@ window.setLevel = (l) => {
     t.classList.toggle('active', t.getAttribute('onclick')?.includes("'guided'")));
   if (typeof syncScenarioToLevel === 'function') syncScenarioToLevel(selectedLevel);
   if (typeof syncSetupModeUI === 'function') syncSetupModeUI();
-  if (( typeof isExamModeActive === "function" ? isExamModeActive() : false) && typeof window.onScenarioChange === 'function') window.onScenarioChange();
+  if ((typeof isExamModeActive === "function" ? isExamModeActive() : false) && typeof window.onScenarioChange === 'function') window.onScenarioChange();
   if (typeof renderSessionLabels === 'function') renderSessionLabels();
   if (typeof updateSessionModeRecommendation === 'function') updateSessionModeRecommendation();
   if (typeof restartSessionIfRunning === 'function') restartSessionIfRunning('level_changed');
@@ -352,7 +350,7 @@ window.onScenarioChange = () => {
   if (!sel || !sel.options?.length) return;
   let selectedOpt = sel.options[sel.selectedIndex];
   if (!selectedOpt) return;
-  if (selectedOpt.dataset.level !== selectedLevel && !( typeof isExamModeActive === "function" ? isExamModeActive() : false)) {
+  if (selectedOpt.dataset.level !== selectedLevel && !(typeof isExamModeActive === "function" ? isExamModeActive() : false)) {
     const repaired = resolveScenarioForLevel(selectedLevel, selectedOpt.value);
     if (repaired) {
       console.warn('[AURA] scenario/level mismatch auto-repaired', { selectedLevel, scenarioLevel: selectedOpt.dataset.level, requestedScenarioId: selectedOpt.value, repairedScenarioId: repaired.id });
@@ -383,7 +381,6 @@ if (document.readyState === 'loading') {
   setupDailyFocusCardInteraction();
 }
 if (typeof syncSetupModeUI === "function") syncSetupModeUI();
-
 
 function getNextRecommendation({ selectedScenario, selectedLevel, selectedMode, userProgressSummary, userSessionHistory, latestSessionResult }) {
   const level = selectedLevel || selectedScenario?.level || 'A1';
@@ -596,12 +593,27 @@ window.addEventListener('popstate', (e) => {
   }
 });
 
+function showTrialLimitPopup() { document.getElementById('trial-limit-modal').classList.add('open'); }
 function updateTrialBadge() {
   if (isPaidStudent || !currentUser) return;
   // Legacy badge DOM hooks removed; keep function as intentional no-op callsite.
 }
 
 // ── NAVIGATION ────────────────────────────────
+window.enterSpeakingInterface = () => {
+  // Navigate to app mode first
+  if (window.location.hash !== '#aura') {
+    window.location.hash = '#aura';
+  }
+  document.documentElement.setAttribute('data-route', 'app');
+  document.body.style.background = 'var(--app-bg)';
+
+  // Phase 6: paywall gate before entering session
+  if (checkPaywallGate()) return;
+
+  // If not logged in, show auth screen
+  if (!currentUser && !profileReady) {
+    const authScreen = document.getElementById('auth-screen');
     const checking = document.getElementById('auth-checking');
     const formWrap = document.getElementById('auth-form-wrap');
     if (authScreen) authScreen.classList.add('active');
@@ -671,31 +683,32 @@ function updateTrialBadge() {
   }, 100);
 };
 
+function _showSpeakingInterface(opts = {}) {
+  const skipHistory = opts?.skipHistory === true;
+  const overlay = document.getElementById('auth-overlay');
+  if (overlay) overlay.style.display = 'none';
+  // Hide dashboard if open
+    // Hide whichever page is currently active
+  document.querySelectorAll('.aura-page.active').forEach(p => p.classList.remove('active'));
+  document.getElementById('speaking-interface').style.display = 'block';
+  document.title = 'AURA — German Practice';
+  const navCta = document.querySelector('.gnav-cta');
+  if (navCta) navCta.style.display = 'none';
+  if (!skipHistory && history.state?.aura !== 'speaking') {
+    history.pushState({ aura: 'speaking' }, '', window.location.pathname + '#aura');
+  }
+  updateTrialBadge();
+  onScenarioChange();
+  refreshReadinessMeter(selectedLevel || userProgressSummary?.latestLevel);
+  refreshDailyPracticeFocus().catch(()=>{});
+  renderRecentPractice(userSessionHistory);
+  syncSetupModeUI();
+  updateSessionModeRecommendation();
+};
 
-// ── Window bindings for HTML onclick handlers ─────────────────────────────────
-window.obBack             = obBack;
-window.obNext             = obNext;
-window.obValidateName     = obValidateName;
-window.obSelectLang       = obSelectLang;
-window.obValidateLangOther= obValidateLangOther;
-window.obSelectLevel      = obSelectLevel;
-window.obSelectGoal       = obSelectGoal;
-window.obFinish           = obFinish;
-window.showOnboarding     = showOnboarding;
-window.hideOnboarding     = hideOnboarding;
-window.dashStartSession   = dashStartSession;
-window.showUpgradeModal   = showUpgradeModal;
-window.checkPaywallGate   = checkPaywallGate;
-window.routeAfterAuth     = routeAfterAuth;
-window.updateTrialBadge   = updateTrialBadge;
-window.practiceAgain      = () => { document.getElementById('speak-score').style.display='none'; document.getElementById('speak-setup').style.display=''; };
-window.goToDashboard      = () => { document.getElementById('speak-score').style.display='none'; routeAfterAuth(); };
 
-// ── Exports ───────────────────────────────────────────────────────────────────
-export { showOnboarding, hideOnboarding, routeAfterAuth, checkPaywallGate, showUpgradeModal, dashStartSession, updateTrialBadge };
-
-// ── Daily focus card interaction ──────────────────────────────────────────────
-export function setupDailyFocusCardInteraction() {
+// ── setupDailyFocusCardInteraction ────────────────────────────────────────────
+function setupDailyFocusCardInteraction() {
   const card = document.getElementById('daily-focus-card');
   if (!card || card.dataset.bound === '1') return;
   const activate = () => window.applyTodayFocus && window.applyTodayFocus();
@@ -705,70 +718,33 @@ export function setupDailyFocusCardInteraction() {
   });
   card.dataset.bound = '1';
 }
-
-// Call on load
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', setupDailyFocusCardInteraction, { once: true });
 } else {
   setupDailyFocusCardInteraction();
 }
 
-// ── enterSpeakingInterface — called from landing page buttons ─────────────────
-window.enterSpeakingInterface = () => {
-  if (window.location.hash !== '#aura') window.location.hash = '#aura';
-  document.documentElement.setAttribute('data-route', 'app');
-  document.body.style.background = 'var(--app-bg)';
+// ── Window bindings ───────────────────────────────────────────────────────────
+window.obBack              = obBack;
+window.obNext              = obNext;
+window.obValidateName      = obValidateName;
+window.obSelectLang        = obSelectLang;
+window.obValidateLangOther = obValidateLangOther;
+window.obSelectLevel       = obSelectLevel;
+window.obSelectGoal        = obSelectGoal;
+window.obFinish            = obFinish;
+window.showOnboarding      = showOnboarding;
+window.hideOnboarding      = hideOnboarding;
+window.dashStartSession    = dashStartSession;
+window.showUpgradeModal    = showUpgradeModal;
+window.checkPaywallGate    = checkPaywallGate;
+window.routeAfterAuth      = routeAfterAuth;
+window.updateTrialBadge    = updateTrialBadge;
+window.practiceAgain       = () => { document.getElementById('speak-score').style.display='none'; document.getElementById('speak-setup').style.display=''; };
+window.goToDashboard       = () => { document.getElementById('speak-score').style.display='none'; routeAfterAuth(); };
 
-  const user    = window.__auraUser;
-  const profile = window.__auraProfile;
-  const overlay = document.getElementById('auth-overlay');
+// ── Exports ───────────────────────────────────────────────────────────────────
+export { showOnboarding, hideOnboarding, routeAfterAuth, checkPaywallGate, showUpgradeModal, dashStartSession, updateTrialBadge };
 
-  function showAuth() {
-    const authScreen = document.getElementById('auth-screen');
-    const checking   = document.getElementById('auth-checking');
-    const formWrap   = document.getElementById('auth-form-wrap');
-    if (authScreen) authScreen.classList.add('active');
-    if (checking)   checking.style.display = 'none';
-    if (formWrap)   formWrap.style.display = '';
-  }
-
-  if (!user) { showAuth(); return; }
-
-  if (overlay) overlay.style.display = 'flex';
-
-  // Profile already loaded
-  if (profile !== undefined) {
-    if (overlay) overlay.style.display = 'none';
-    if (!profile?.onboardingComplete) {
-      showOnboarding();
-    } else {
-      routeAfterAuth();
-    }
-    return;
-  }
-
-  // Wait for profile to load (max 8s)
-  let resolved = false;
-  const timeout = setTimeout(() => {
-    if (!resolved) {
-      resolved = true;
-      if (overlay) overlay.style.display = 'none';
-      window.__auraUser ? routeAfterAuth() : showAuth();
-    }
-  }, 8000);
-
-  const poll = setInterval(() => {
-    if (window.__auraProfile !== undefined || resolved) {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timeout);
-        if (overlay) overlay.style.display = 'none';
-        window.__auraUser ? routeAfterAuth() : showAuth();
-      }
-      clearInterval(poll);
-    }
-  }, 100);
-};
-
-// Signal that the real enterSpeakingInterface is now registered
+// ── Signal ready — drains queued enterSpeakingInterface calls ─────────────────
 window.__uiReady && window.__uiReady();
