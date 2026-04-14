@@ -8,7 +8,6 @@
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 
-/* ── TOKENS (exact same as landing) ── */
 :root {
   --bg:#050508; --bg2:#0a0a10; --bg3:#0f0f18;
   --surface:#13131e; --surface2:#1a1a28;
@@ -23,6 +22,7 @@
   --scrollbar-thumb:#1a1a28;
   --glass:rgba(255,255,255,0.04); --glass-border:rgba(255,255,255,0.09);
 }
+
 [data-theme="light"] {
   --bg:#fafafa; --bg2:#f4f4f1; --bg3:#ededea;
   --surface:#e8e8e4; --surface2:#e0e0db;
@@ -40,18 +40,21 @@
 
 html{scroll-behavior:smooth;height:100%;}
 body{
-  background:var(--bg); color:var(--text);
-  font-family:'Inter',sans-serif; font-weight:400;
-  overflow:hidden; height:100vh;
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-weight:400;
+  overflow:hidden;
+  height:100vh;
   -webkit-font-smoothing:antialiased;
   cursor:none;
 }
+
 *{transition:background-color .25s ease,border-color .25s ease,color .15s ease;}
 .no-trans,.wave span,.status-dot,.badge-pulse,.cursor-dot,.cursor-ring{transition:none!important;}
 a{text-decoration:none;color:inherit;}
 button{cursor:none;font-family:'Inter',sans-serif;}
 
-/* ── CUSTOM CURSOR ── */
 .cursor-dot{
   position:fixed;width:6px;height:6px;border-radius:50%;
   background:var(--purple);pointer-events:none;z-index:9999;
@@ -67,19 +70,20 @@ button{cursor:none;font-family:'Inter',sans-serif;}
 .cursor-ring.click{width:20px;height:20px;opacity:.6;}
 body *{cursor:none!important;}
 
-/* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:3px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:2px;}
 
-/* ── NOISE OVERLAY ── */
 body::before{
-  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  content:'';
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   opacity:.4;
 }
 
-/* ── LAYOUT ── */
 .app{
   display:grid;
   grid-template-columns:220px 1fr 288px;
@@ -88,9 +92,6 @@ body::before{
   z-index:1;
 }
 
-/* ─────────────────────────────────────────
-   SIDEBAR
-───────────────────────────────────────── */
 .sidebar{
   background:var(--sb-bg);
   border-right:0.5px solid var(--border);
@@ -108,12 +109,17 @@ body::before{
   display:flex;align-items:center;justify-content:space-between;
   margin-bottom:20px;
 }
+
 .sb-logo{
   font-size:19px;font-weight:700;letter-spacing:-.3px;
   color:var(--text);
 }
+
 .sb-logo span{
-  background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  background:var(--grad);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
 }
 
 .theme-toggle{
@@ -122,6 +128,7 @@ body::before{
   display:flex;align-items:center;justify-content:center;
   font-size:13px;color:var(--muted2);
 }
+
 .theme-toggle:hover{background:var(--surface);}
 
 .sb-user{
@@ -130,12 +137,14 @@ body::before{
   background:var(--surface);
   border:0.5px solid var(--border);
 }
+
 .sb-avatar{
   width:32px;height:32px;border-radius:50%;
   background:var(--grad2);
   display:flex;align-items:center;justify-content:center;
   font-size:12px;color:#fff;font-weight:600;flex-shrink:0;
 }
+
 .sb-user-name{font-size:12.5px;font-weight:500;color:var(--text);line-height:1.2;}
 .sb-user-sub{font-size:10.5px;color:var(--muted);}
 
@@ -153,22 +162,25 @@ body::before{
   font-size:12.5px;color:var(--muted2);
   background:transparent;border:none;width:100%;text-align:left;
   position:relative;
-  transition:background .15s,color .15s!important;
 }
+
 .nav-item:hover{background:var(--surface);color:var(--text);}
 .nav-item.active{
   background:rgba(157,127,255,.12);
   color:var(--purple);
 }
 .nav-item.active::before{
-  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  content:'';
+  position:absolute;left:0;top:50%;transform:translateY(-50%);
   width:3px;height:18px;border-radius:0 2px 2px 0;
   background:var(--purple);
 }
+
 .nav-icon{
   width:18px;height:18px;display:flex;align-items:center;justify-content:center;
   font-size:14px;flex-shrink:0;
 }
+
 .nav-badge{
   margin-left:auto;
   padding:2px 7px;border-radius:100px;
@@ -178,12 +190,12 @@ body::before{
 .nav-badge.red{background:rgba(248,113,113,.15);color:var(--red);}
 .nav-badge.green{background:rgba(74,222,128,.12);color:var(--green);}
 
-/* Lang indicator in nav */
 .sb-current-lang{
   margin:8px 8px;padding:10px 12px;
   border-radius:10px;border:0.5px solid var(--border);
   background:var(--surface);
 }
+
 .scl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
 .scl-label{font-size:9px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);}
 .scl-flag{font-size:16px;}
@@ -192,27 +204,29 @@ body::before{
 .scl-bar{height:3px;background:var(--border2);border-radius:2px;overflow:hidden;}
 .scl-fill{height:3px;border-radius:2px;background:var(--grad);width:68%;}
 
-/* Bottom CTA */
 .sb-bottom{padding:14px 10px;}
+
 .live-session-btn{
   width:100%;padding:13px 16px;border-radius:12px;
   background:var(--grad2);border:none;
   display:flex;align-items:center;gap:10px;
   font-size:13px;font-weight:500;color:#fff;
   position:relative;overflow:hidden;
-  transition:opacity .2s,transform .15s!important;
 }
+
 .live-session-btn::before{
-  content:'';position:absolute;inset:0;
+  content:'';
+  position:absolute;inset:0;
   background:linear-gradient(135deg,rgba(255,255,255,.08),transparent);
 }
-.live-session-btn:hover{opacity:.92;transform:translateY(-1px);}
+
 .live-btn-icon{
   width:28px;height:28px;border-radius:8px;
   background:rgba(255,255,255,.15);
   display:flex;align-items:center;justify-content:center;
   font-size:13px;flex-shrink:0;
 }
+
 .live-btn-text{flex:1;text-align:left;}
 .live-btn-title{font-size:12.5px;font-weight:600;line-height:1;}
 .live-btn-sub{font-size:10px;opacity:.7;margin-top:2px;}
@@ -222,28 +236,29 @@ body::before{
   animation:livePulse 2s ease-in-out infinite;
   flex-shrink:0;
 }
+
 @keyframes livePulse{
   0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5);}
   50%{box-shadow:0 0 0 5px rgba(255,255,255,0);}
 }
 
-/* ─────────────────────────────────────────
-   CENTER — MAIN SESSION
-───────────────────────────────────────── */
 .main{
-  display:flex;flex-direction:column;
+  display:flex;
+  flex-direction:column;
   background:var(--bg);
   overflow:hidden;
+  position:relative;
 }
 
-/* Top bar */
 .main-topbar{
   padding:14px 24px;
   border-bottom:0.5px solid var(--border);
   display:flex;align-items:center;justify-content:space-between;
   flex-shrink:0;
 }
+
 .topbar-left{display:flex;align-items:center;gap:12px;}
+
 .session-status{
   display:flex;align-items:center;gap:7px;
   padding:5px 12px;border-radius:100px;
@@ -251,11 +266,13 @@ body::before{
   border:0.5px solid rgba(74,222,128,.2);
   font-size:11.5px;color:var(--green);
 }
+
 .status-dot{
   width:6px;height:6px;border-radius:50%;
   background:var(--green);
   animation:blink 1.5s ease-in-out infinite;
 }
+
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 
 .session-timer{
@@ -264,18 +281,18 @@ body::before{
 }
 
 .topbar-right{display:flex;align-items:center;gap:8px;}
+
 .tb-btn{
   padding:6px 14px;border-radius:100px;
   background:transparent;border:0.5px solid var(--border2);
   font-size:11.5px;color:var(--muted2);
   display:flex;align-items:center;gap:6px;
-  transition:all .15s!important;
 }
+
 .tb-btn:hover{background:var(--surface);color:var(--text);}
 .tb-btn.end{border-color:rgba(248,113,113,.3);color:var(--red);}
 .tb-btn.end:hover{background:rgba(248,113,113,.08);}
 
-/* Voice area */
 .voice-zone{
   padding:20px 24px 16px;
   border-bottom:0.5px solid var(--border);
@@ -283,9 +300,9 @@ body::before{
   flex-shrink:0;
   background:var(--bg2);
 }
-.aura-orb-wrap{
-  position:relative;flex-shrink:0;
-}
+
+.aura-orb-wrap{position:relative;flex-shrink:0;}
+
 .aura-orb{
   width:52px;height:52px;border-radius:50%;
   background:var(--grad2);
@@ -294,26 +311,31 @@ body::before{
   position:relative;z-index:1;
   box-shadow:0 0 0 0 rgba(124,92,252,.4);
 }
+
 .aura-orb.speaking{
   animation:orbPulse 1.8s ease-in-out infinite;
 }
+
 @keyframes orbPulse{
   0%{box-shadow:0 0 0 0 rgba(124,92,252,.5);}
   70%{box-shadow:0 0 0 14px rgba(124,92,252,0);}
   100%{box-shadow:0 0 0 0 rgba(124,92,252,0);}
 }
+
 .orb-ring{
   position:absolute;inset:-4px;border-radius:50%;
   border:1px solid rgba(157,127,255,.25);
   animation:orbRing 2.5s ease-in-out infinite;
 }
-@keyframes orbRing{0%,100%{opacity:.4;transform:scale(1);}50%{opacity:.8;transform:scale(1.05);}}
+
+@keyframes orbRing{
+  0%,100%{opacity:.4;transform:scale(1);}
+  50%{opacity:.8;transform:scale(1.05);}
+}
 
 .waveform-area{flex:1;}
 .wf-label{font-size:10px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
-.waveform{
-  display:flex;align-items:center;gap:2.5px;height:36px;
-}
+.waveform{display:flex;align-items:center;gap:2.5px;height:36px;}
 .wf-bar{
   width:3px;border-radius:3px;
   background:linear-gradient(180deg,var(--purple),var(--blue));
@@ -324,39 +346,36 @@ body::before{
 @keyframes wfAnim{from{height:3px}to{height:var(--h,18px)}}
 
 .voice-controls{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+
 .vc-btn{
   width:38px;height:38px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
   font-size:14px;border:0.5px solid var(--border2);
   background:var(--surface);color:var(--muted2);
-  transition:all .15s!important;
 }
+
 .vc-btn:hover{background:var(--surface2);color:var(--text);}
 .vc-btn.mic-active{
   background:rgba(157,127,255,.15);
   border-color:rgba(157,127,255,.4);
   color:var(--purple);
 }
-.vc-btn.mic-active .vc-icon{animation:micWiggle .3s ease-in-out 2;}
-@keyframes micWiggle{0%,100%{transform:rotate(0)}50%{transform:rotate(-8deg)}}
 
-.lang-switcher{
-  display:flex;gap:4px;flex-shrink:0;
-}
+.lang-switcher{display:flex;gap:4px;flex-shrink:0;}
+
 .ls-btn{
   padding:4px 10px;border-radius:100px;
   font-size:10.5px;font-weight:500;
   background:var(--surface);border:0.5px solid var(--border);
   color:var(--muted2);
-  transition:all .15s!important;
 }
+
 .ls-btn.active{
   background:rgba(157,127,255,.14);
   border-color:rgba(157,127,255,.35);
   color:var(--purple);
 }
 
-/* Chat messages */
 .messages-wrap{
   flex:1;overflow-y:auto;
   padding:20px 24px;
@@ -370,7 +389,9 @@ body::before{
 .msg-label{font-size:9px;font-weight:500;letter-spacing:.45px;color:var(--muted);text-transform:uppercase;}
 .msg.me .msg-label{text-align:right;}
 
-.bubble{padding:11px 15px;border-radius:14px;font-size:13.5px;line-height:1.58;color:var(--text);}
+.bubble{
+  padding:11px 15px;border-radius:14px;font-size:13.5px;line-height:1.58;color:var(--text);
+}
 .msg.ai .bubble{
   background:var(--chat-ai-bg);
   color:var(--chat-ai-color);
@@ -382,7 +403,6 @@ body::before{
   border-radius:14px 3px 14px 14px;
 }
 
-/* Inline correction blocks */
 .correction-block{
   margin-top:6px;
   padding:9px 13px;border-radius:9px;
@@ -409,12 +429,12 @@ body::before{
   color:rgba(157,127,255,.6);margin-bottom:4px;
 }
 
-/* Typing indicator */
 .typing-indicator{
   display:flex;align-items:center;gap:4px;
   padding:11px 15px;border-radius:3px 14px 14px 14px;
   background:var(--chat-ai-bg);width:fit-content;
 }
+
 .typing-dot{
   width:6px;height:6px;border-radius:50%;
   background:var(--muted2);
@@ -422,21 +442,24 @@ body::before{
 }
 .typing-dot:nth-child(2){animation-delay:.15s;}
 .typing-dot:nth-child(3){animation-delay:.3s;}
-@keyframes typingBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
 
-/* Suggestion chips */
+@keyframes typingBounce{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-5px);}
+}
+
 .suggestions{
   display:flex;gap:7px;flex-wrap:wrap;padding:0 24px 12px;flex-shrink:0;
 }
+
 .sug-chip{
   padding:6px 13px;border-radius:100px;
   font-size:12px;color:var(--muted2);
   background:var(--surface);border:0.5px solid var(--border);
-  transition:all .15s!important;
 }
+
 .sug-chip:hover{border-color:var(--border2);color:var(--text);}
 
-/* Input bar */
 .input-bar{
   padding:14px 20px;
   border-top:0.5px solid var(--border);
@@ -444,13 +467,14 @@ body::before{
   flex-shrink:0;
   background:var(--bg2);
 }
+
 .chat-input{
   flex:1;padding:11px 16px;
   font-size:13px;font-family:'Inter',sans-serif;
   background:var(--inp-bg);border:0.5px solid var(--inp-border);
   border-radius:100px;color:var(--text);outline:none;
-  transition:border-color .2s!important;
 }
+
 .chat-input:focus{border-color:rgba(157,127,255,.4);}
 .chat-input::placeholder{color:var(--muted);}
 
@@ -459,14 +483,10 @@ body::before{
   background:var(--grad2);border:none;
   display:flex;align-items:center;justify-content:center;
   font-size:14px;color:#fff;flex-shrink:0;
-  transition:opacity .2s,transform .15s!important;
 }
-.send-btn:hover{opacity:.85;transform:scale(1.05);}
-.send-btn:disabled{opacity:.3;transform:none;}
 
-/* ─────────────────────────────────────────
-   RIGHT PANEL
-───────────────────────────────────────── */
+.send-btn:disabled{opacity:.3;}
+
 .right-panel{
   background:var(--sb-bg);
   border-left:0.5px solid var(--border);
@@ -482,10 +502,8 @@ body::before{
 }
 .rp-title{font-size:12px;font-weight:600;color:var(--text);}
 .rp-sub{font-size:10.5px;color:var(--muted);margin-top:1px;}
-
 .rp-scroll{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px;}
 
-/* Cards */
 .rp-card{
   background:var(--surface);
   border:0.5px solid var(--border);
@@ -498,7 +516,6 @@ body::before{
   display:flex;align-items:center;justify-content:space-between;
 }
 
-/* Progress bars */
 .prog-row{margin-bottom:12px;}
 .prog-row:last-child{margin-bottom:0;}
 .prog-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
@@ -506,13 +523,7 @@ body::before{
 .prog-pct{font-size:12px;color:var(--muted2);font-variant-numeric:tabular-nums;}
 .prog-track{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
 .prog-fill{height:5px;border-radius:3px;position:relative;}
-.prog-fill::after{
-  content:'';position:absolute;right:0;top:0;bottom:0;
-  width:6px;border-radius:50%;
-  background:inherit;filter:blur(2px);box-shadow:0 0 6px currentColor;
-}
 
-/* Streak */
 .streak-section{
   display:flex;align-items:center;justify-content:space-between;
   padding:12px 0 0;margin-top:8px;
@@ -533,20 +544,14 @@ body::before{
 }
 .wd.on{background:rgba(251,146,60,.2);border-color:rgba(251,146,60,.4);color:rgba(251,146,60,.85);}
 
-/* XP / level */
-.xp-row{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:8px;
-}
+.xp-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .xp-label{font-size:12px;color:var(--muted2);}
 .xp-val{font-size:12px;font-weight:600;color:var(--text);}
 .xp-track{height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;position:relative;}
 .xp-fill{
   height:7px;border-radius:4px;
   background:linear-gradient(90deg,var(--purple),var(--blue));
-  width:62%;
-  position:relative;
-  overflow:hidden;
+  width:62%;position:relative;overflow:hidden;
 }
 .xp-shimmer{
   position:absolute;inset:0;
@@ -556,24 +561,13 @@ body::before{
 }
 @keyframes xpShimmer{0%{background-position:-200%}100%{background-position:200%}}
 
-/* AURA Remembers — memory cards */
 .memory-cards{display:flex;flex-direction:column;gap:8px;margin-top:2px;}
 .mem-item{
   display:flex;align-items:flex-start;gap:9px;
   padding:9px 11px;border-radius:9px;
   background:var(--bg);
   border:0.5px solid var(--border);
-  transition:border-color .15s!important;
 }
-.mem-item:hover{border-color:var(--border2);}
-.mem-dot{
-  width:6px;height:6px;border-radius:50%;flex-shrink:0;
-  margin-top:5px;
-}
-.mem-dot.weak{background:var(--red);}
-.mem-dot.strong{background:var(--green);}
-.mem-dot.goal{background:var(--purple);}
-
 .mem-tag{
   padding:2px 7px;border-radius:100px;
   font-size:9px;font-weight:600;letter-spacing:.3px;
@@ -582,45 +576,42 @@ body::before{
 .mem-tag.weak{background:rgba(248,113,113,.12);color:var(--red);}
 .mem-tag.strong{background:rgba(74,222,128,.1);color:var(--green);}
 .mem-tag.goal{background:rgba(157,127,255,.12);color:var(--purple);}
-
 .mem-body{flex:1;}
 .mem-text{font-size:11.5px;color:var(--muted2);line-height:1.45;}
 .mem-note{font-size:10px;color:var(--muted);margin-top:2px;}
 
-/* Today's goals mini section */
 .goal-row{
   display:flex;align-items:center;gap:10px;
   padding:8px 0;border-bottom:0.5px solid var(--border);
 }
 .goal-row:last-child{border-bottom:none;}
+
 .goal-check{
   width:18px;height:18px;border-radius:5px;
   border:1.5px solid var(--border2);
   display:flex;align-items:center;justify-content:center;
   font-size:10px;flex-shrink:0;
-  transition:all .15s!important;
 }
+
 .goal-check.done{
   background:rgba(74,222,128,.12);
   border-color:rgba(74,222,128,.35);
   color:var(--green);
 }
+
 .goal-text{font-size:12px;color:var(--muted2);}
 .goal-text.done{color:var(--muted);text-decoration:line-through;}
 
-/* Recent corrections log */
 .correction-item{
   display:flex;align-items:flex-start;gap:8px;
   padding:8px 0;border-bottom:0.5px solid var(--border);
 }
 .correction-item:last-child{border-bottom:none;}
 .ci-icon{font-size:13px;flex-shrink:0;margin-top:1px;}
-.ci-body{}
 .ci-wrong{font-size:11.5px;color:var(--red);font-family:monospace;text-decoration:line-through;}
 .ci-right{font-size:11.5px;color:var(--green);font-family:monospace;}
 .ci-note{font-size:10.5px;color:var(--muted);margin-top:2px;}
 
-/* session stats mini */
 .mini-stats{display:flex;gap:8px;}
 .mini-stat{
   flex:1;padding:10px;border-radius:10px;
@@ -630,39 +621,29 @@ body::before{
 .ms-val{font-size:18px;font-weight:700;color:var(--text);line-height:1;}
 .ms-label{font-size:9.5px;color:var(--muted);margin-top:3px;}
 
-/* ── GRID BG on main ── */
 .main::before{
-  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
-  background-image:linear-gradient(var(--grid-color) 1px,transparent 1px),linear-gradient(90deg,var(--grid-color) 1px,transparent 1px);
+  content:'';
+  position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(var(--grid-color) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid-color) 1px,transparent 1px);
   background-size:48px 48px;
   mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,black 10%,transparent 80%);
   opacity:.6;
 }
 .main > *{position:relative;z-index:1;}
 
-/* ── Fade-in animation ── */
-@keyframes fadeSlide{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
-.anim-in{animation:fadeSlide .5s ease forwards;}
-.anim-in-d1{animation-delay:.05s;opacity:0;}
-.anim-in-d2{animation-delay:.1s;opacity:0;}
-.anim-in-d3{animation-delay:.15s;opacity:0;}
-.anim-in-d4{animation-delay:.2s;opacity:0;}
-
-/* ── Responsive placeholder (min 1100px) ── */
 @media(max-width:1100px){
   .app{grid-template-columns:200px 1fr 240px;}
 }
 </style>
 </head>
 <body>
-<!-- Custom cursor -->
 <div class="cursor-dot" id="cursorDot"></div>
 <div class="cursor-ring" id="cursorRing"></div>
 
 <div class="app">
-
-  <!-- ───────────── SIDEBAR ───────────── -->
-  <aside class="sidebar anim-in">
+  <aside class="sidebar">
     <div class="sb-top">
       <div class="sb-logo-row">
         <div class="sb-logo"><span>AURA</span></div>
@@ -720,7 +701,6 @@ body::before{
         Progress
       </button>
 
-      <!-- Current language indicator -->
       <div class="sb-current-lang" style="margin-top:10px;">
         <div class="scl-top">
           <span class="scl-label">Now Learning</span>
@@ -744,36 +724,28 @@ body::before{
     </div>
   </aside>
 
-  <!-- ───────────── MAIN CHAT ───────────── -->
   <main class="main">
-    <!-- Topbar -->
-    <div class="main-topbar anim-in anim-in-d1">
+    <div class="main-topbar">
       <div class="topbar-left">
         <div class="session-status">
-          <div class="status-dot no-trans"></div>
+          <div class="status-dot"></div>
           Session Active
         </div>
         <div class="session-timer" id="sessionTimer">00:18:42</div>
         <div style="font-size:11px;color:var(--muted);margin-left:4px;">· German B1 · Conversation</div>
       </div>
+
       <div class="topbar-right">
-        <button class="tb-btn">
-          <span>🌍</span> Translate
-        </button>
-        <button class="tb-btn">
-          <span>📋</span> Summary
-        </button>
-        <button class="tb-btn end" id="endSessionBtn">
-          ■ End Session
-        </button>
+        <button class="tb-btn"><span>🌍</span> Translate</button>
+        <button class="tb-btn"><span>📋</span> Summary</button>
+        <button class="tb-btn end" id="endSessionBtn">■ End Session</button>
       </div>
     </div>
 
-    <!-- Voice waveform area -->
-    <div class="voice-zone anim-in anim-in-d2">
+    <div class="voice-zone">
       <div class="aura-orb-wrap">
         <div class="aura-orb speaking" id="auraOrb">A</div>
-        <div class="orb-ring no-trans"></div>
+        <div class="orb-ring"></div>
       </div>
 
       <div class="waveform-area">
@@ -791,37 +763,25 @@ body::before{
         <button class="vc-btn mic-active" id="micBtn" title="Microphone">
           <span class="vc-icon">🎙️</span>
         </button>
-        <button class="vc-btn" title="Mute AURA">
-          <span>🔊</span>
-        </button>
-        <button class="vc-btn" title="Settings">
-          <span>⚙️</span>
-        </button>
+        <button class="vc-btn" title="Mute AURA"><span>🔊</span></button>
+        <button class="vc-btn" title="Settings"><span>⚙️</span></button>
       </div>
     </div>
 
-    <!-- Messages -->
     <div class="messages-wrap" id="messagesWrap">
-      <!-- AURA greeting -->
-      <div class="msg ai anim-in anim-in-d3">
+      <div class="msg ai">
         <div class="msg-label">AURA</div>
-        <div class="bubble">
-          Guten Morgen, Priya! Wie war dein Wochenende? Hast du etwas Interessantes gemacht?
-        </div>
+        <div class="bubble">Guten Morgen, Priya! Wie war dein Wochenende? Hast du etwas Interessantes gemacht?</div>
       </div>
 
-      <!-- User response with error -->
       <div class="msg me">
         <div class="msg-label">YOU</div>
         <div class="bubble">Ich bin ins Kino gegangen haben.</div>
       </div>
 
-      <!-- Correction -->
       <div class="msg ai">
         <div class="msg-label">AURA</div>
-        <div class="bubble">
-          Almost perfect! Just one small fix with the verb position.
-        </div>
+        <div class="bubble">Almost perfect! Just one small fix with the verb position.</div>
         <div class="correction-block">
           <div class="correction-label">❌ Correction</div>
           Ich bin ins Kino gegangen <s>haben</s> → <strong>Ich bin ins Kino gegangen.</strong>
@@ -832,35 +792,26 @@ body::before{
         </div>
       </div>
 
-      <!-- User corrected -->
       <div class="msg me">
         <div class="msg-label">YOU</div>
         <div class="bubble">Ich bin ins Kino gegangen. Danke, AURA!</div>
       </div>
 
-      <!-- AURA praise + followup -->
       <div class="msg ai">
         <div class="msg-label">AURA</div>
-        <div class="bubble">
-          Perfekt! 🎉 Das war wirklich gut. Now let's expand — what movie did you watch? In German, can you describe it in two sentences?
-        </div>
+        <div class="bubble">Perfekt! 🎉 Das war wirklich gut. Now let's expand — what movie did you watch? In German, can you describe it in two sentences?</div>
       </div>
 
-      <!-- User -->
       <div class="msg me">
         <div class="msg-label">YOU</div>
         <div class="bubble">Ich habe einen Action-Film gesehen. Es war sehr spannend!</div>
       </div>
 
-      <!-- AURA response -->
-      <div class="msg ai" id="latestAI">
+      <div class="msg ai">
         <div class="msg-label">AURA</div>
-        <div class="bubble" id="auraLatestBubble">
-          Wunderbar! Both sentences are grammatically correct. "Spannend" — great word choice! 🌟 One tiny upgrade: instead of "sehr spannend," try "äußerst spannend" or "richtig spannend" for a more native feel.
-        </div>
+        <div class="bubble">Wunderbar! Both sentences are grammatically correct. "Spannend" is a strong choice. Try "richtig spannend" next time for a more natural tone.</div>
       </div>
 
-      <!-- Typing indicator (hidden) -->
       <div class="typing-indicator" id="typingIndicator" style="display:none;">
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
@@ -868,16 +819,14 @@ body::before{
       </div>
     </div>
 
-    <!-- Quick suggestion chips -->
     <div class="suggestions" id="suggestions">
-      <button class="sug-chip" onclick="insertSuggestion(this)">Wie sagt man "exciting"?</button>
-      <button class="sug-chip" onclick="insertSuggestion(this)">Can you slow down?</button>
-      <button class="sug-chip" onclick="insertSuggestion(this)">Give me another example</button>
-      <button class="sug-chip" onclick="insertSuggestion(this)">Use it in a sentence</button>
+      <button class="sug-chip">Wie sagt man "exciting"?</button>
+      <button class="sug-chip">Can you slow down?</button>
+      <button class="sug-chip">Give me another example</button>
+      <button class="sug-chip">Use it in a sentence</button>
     </div>
 
-    <!-- Input bar -->
-    <div class="input-bar anim-in anim-in-d4">
+    <div class="input-bar">
       <input
         class="chat-input"
         id="chatInput"
@@ -889,8 +838,7 @@ body::before{
     </div>
   </main>
 
-  <!-- ───────────── RIGHT PANEL ───────────── -->
-  <aside class="right-panel anim-in anim-in-d2">
+  <aside class="right-panel">
     <div class="rp-header">
       <div>
         <div class="rp-title">Session Progress</div>
@@ -899,8 +847,6 @@ body::before{
     </div>
 
     <div class="rp-scroll">
-
-      <!-- Mini session stats -->
       <div class="mini-stats">
         <div class="mini-stat">
           <div class="ms-val" id="wordsSpoken">34</div>
@@ -916,7 +862,6 @@ body::before{
         </div>
       </div>
 
-      <!-- Skill progress -->
       <div class="rp-card">
         <div class="rp-card-label">
           Skill Progress
@@ -963,7 +908,6 @@ body::before{
           </div>
         </div>
 
-        <!-- XP to next level -->
         <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);">
           <div class="xp-row">
             <span class="xp-label">XP to B2</span>
@@ -976,7 +920,6 @@ body::before{
           </div>
         </div>
 
-        <!-- Streak -->
         <div class="streak-section">
           <div class="streak-left">
             <div class="streak-flame">🔥</div>
@@ -997,7 +940,6 @@ body::before{
         </div>
       </div>
 
-      <!-- Today's Goals -->
       <div class="rp-card">
         <div class="rp-card-label">Today's Goals</div>
 
@@ -1019,7 +961,6 @@ body::before{
         </div>
       </div>
 
-      <!-- AURA Remembers -->
       <div class="rp-card">
         <div class="rp-card-label">🧠 AURA Remembers</div>
 
@@ -1066,13 +1007,12 @@ body::before{
         </div>
       </div>
 
-      <!-- Recent corrections -->
       <div class="rp-card">
         <div class="rp-card-label">Recent Corrections</div>
 
         <div class="correction-item">
           <div class="ci-icon">→</div>
-          <div class="ci-body">
+          <div>
             <div class="ci-wrong">gegangen haben</div>
             <div class="ci-right">gegangen (drop haben)</div>
             <div class="ci-note">Sein verbs don't take haben in Perfekt</div>
@@ -1081,232 +1021,212 @@ body::before{
 
         <div class="correction-item">
           <div class="ci-icon">→</div>
-          <div class="ci-body">
+          <div>
             <div class="ci-wrong">in dem Kino</div>
             <div class="ci-right">ins Kino (direction = Akkusativ)</div>
             <div class="ci-note">Motion verbs use Akkusativ</div>
           </div>
         </div>
       </div>
-
     </div>
   </aside>
-
-</div><!-- .app -->
+</div>
 
 <script>
-// ── CURSOR ──
 const dot = document.getElementById('cursorDot');
 const ring = document.getElementById('cursorRing');
-let mx=0,my=0,rx=0,ry=0;
-document.addEventListener('mousemove',e=>{
-  mx=e.clientX;my=e.clientY;
-  dot.style.left=mx+'px';dot.style.top=my+'px';
-});
-(function animCursor(){
-  rx+=(mx-rx)*.14; ry+=(my-ry)*.14;
-  ring.style.left=rx+'px'; ring.style.top=ry+'px';
-  requestAnimationFrame(animCursor);
-})();
-document.querySelectorAll('button,a,.sug-chip,.nav-item,.mem-item').forEach(el=>{
-  el.addEventListener('mouseenter',()=>ring.classList.add('hover'));
-  el.addEventListener('mouseleave',()=>ring.classList.remove('hover'));
-});
-document.addEventListener('mousedown',()=>ring.classList.add('click'));
-document.addEventListener('mouseup',()=>ring.classList.remove('click'));
 
-// ── THEME TOGGLE ──
+let mx = 0, my = 0, rx = 0, ry = 0;
+
+document.addEventListener('mousemove', (e) => {
+  mx = e.clientX;
+  my = e.clientY;
+  dot.style.left = mx + 'px';
+  dot.style.top = my + 'px';
+});
+
+(function animateCursor() {
+  rx += (mx - rx) * 0.14;
+  ry += (my - ry) * 0.14;
+  ring.style.left = rx + 'px';
+  ring.style.top = ry + 'px';
+  requestAnimationFrame(animateCursor);
+})();
+
+document.querySelectorAll('button,.sug-chip,.nav-item,.mem-item').forEach(el => {
+  el.addEventListener('mouseenter', () => ring.classList.add('hover'));
+  el.addEventListener('mouseleave', () => ring.classList.remove('hover'));
+});
+document.addEventListener('mousedown', () => ring.classList.add('click'));
+document.addEventListener('mouseup', () => ring.classList.remove('click'));
+
 const themeToggle = document.getElementById('themeToggle');
 let theme = '';
-themeToggle.addEventListener('click',()=>{
-  theme = theme===''?'light':'';
-  document.documentElement.setAttribute('data-theme',theme);
-  themeToggle.textContent = theme==='light'?'🌙':'☀️';
+themeToggle.addEventListener('click', () => {
+  theme = theme === '' ? 'light' : '';
+  document.documentElement.setAttribute('data-theme', theme);
+  themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
 });
 
-// ── SESSION TIMER ──
-let secs = 18*60+42;
+let totalSeconds = (18 * 60) + 42;
 const timerEl = document.getElementById('sessionTimer');
-setInterval(()=>{
-  secs++;
-  const m=String(Math.floor(secs/60)).padStart(2,'0');
-  const s=String(secs%60).padStart(2,'0');
-  timerEl.textContent=`00:${m}:${s}`;
-},1000);
 
-// ── WAVEFORM ──
+setInterval(() => {
+  totalSeconds++;
+  const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+  const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+  const seconds = String(totalSeconds % 60).padStart(2, '0');
+  timerEl.textContent = `${hours}:${minutes}:${seconds}`;
+}, 1000);
+
 const waveform = document.getElementById('waveform');
-const BARS = 38;
-let wfBars = [];
-for(let i=0;i<BARS;i++){
-  const b = document.createElement('div');
-  b.className='wf-bar'+(i>14&&i<24?' active':'');
-  const d = (.8+Math.random()*.8).toFixed(2);
-  const h = (6+Math.random()*24).toFixed(0);
-  b.style.cssText=`--d:${d}s;--h:${h}px;animation-delay:${(Math.random()*.5).toFixed(2)}s`;
-  waveform.appendChild(b);
-  wfBars.push(b);
+const totalBars = 38;
+const bars = [];
+
+for (let i = 0; i < totalBars; i++) {
+  const bar = document.createElement('div');
+  bar.className = 'wf-bar' + (i > 14 && i < 24 ? ' active' : '');
+  bar.style.setProperty('--d', `${(0.8 + Math.random() * 0.8).toFixed(2)}s`);
+  bar.style.setProperty('--h', `${(6 + Math.random() * 24).toFixed(0)}px`);
+  bar.style.animationDelay = `${(Math.random() * 0.5).toFixed(2)}s`;
+  waveform.appendChild(bar);
+  bars.push(bar);
 }
-let wfAnim=true;
-// Periodically re-randomise active bars
-setInterval(()=>{
-  wfBars.forEach((b,i)=>{
-    const active = Math.random()>.45;
-    b.classList.toggle('active',active);
-    b.style.setProperty('--h',(3+Math.random()*26).toFixed(0)+'px');
+
+setInterval(() => {
+  bars.forEach(bar => {
+    bar.classList.toggle('active', Math.random() > 0.45);
+    bar.style.setProperty('--h', `${(3 + Math.random() * 26).toFixed(0)}px`);
   });
-},900);
+}, 900);
 
-// ── MIC BTN ──
-let micOn=true;
-const micBtn=document.getElementById('micBtn');
-micBtn.addEventListener('click',()=>{
-  micOn=!micOn;
-  micBtn.classList.toggle('mic-active',micOn);
-  micBtn.querySelector('.vc-icon').textContent=micOn?'🎙️':'🔇';
+const micBtn = document.getElementById('micBtn');
+let micOn = true;
+
+micBtn.addEventListener('click', () => {
+  micOn = !micOn;
+  micBtn.classList.toggle('mic-active', micOn);
+  micBtn.querySelector('.vc-icon').textContent = micOn ? '🎙️' : '🔇';
 });
 
-// ── ORBS ──
-const auraOrb=document.getElementById('auraOrb');
-let speaking=true;
-auraOrb.addEventListener('click',()=>{
-  speaking=!speaking;
-  auraOrb.classList.toggle('speaking',speaking);
+const auraOrb = document.getElementById('auraOrb');
+let speaking = true;
+
+auraOrb.addEventListener('click', () => {
+  speaking = !speaking;
+  auraOrb.classList.toggle('speaking', speaking);
 });
 
-// ── LANG SWITCHER ──
-const lsBtns=document.querySelectorAll('.ls-btn');
-lsBtns.forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    lsBtns.forEach(b=>b.classList.remove('active'));
+const lsBtns = document.querySelectorAll('.ls-btn');
+lsBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    lsBtns.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   });
 });
 
-// ── NAV ITEMS ──
-document.querySelectorAll('.nav-item').forEach(item=>{
-  item.addEventListener('click',()=>{
-    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     item.classList.add('active');
   });
 });
 
-// ── SUGGESTION CHIPS ──
-function insertSuggestion(el){
-  document.getElementById('chatInput').value=el.textContent;
-  document.getElementById('chatInput').focus();
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+const messagesWrap = document.getElementById('messagesWrap');
+const typingIndicator = document.getElementById('typingIndicator');
+
+function scrollBottom() {
+  messagesWrap.scrollTop = messagesWrap.scrollHeight;
 }
 
-// ── CHAT (live Claude API) ──
-let sending=false;
-const chatInput=document.getElementById('chatInput');
-const sendBtn=document.getElementById('sendBtn');
-const messagesWrap=document.getElementById('messagesWrap');
-const typingIndicator=document.getElementById('typingIndicator');
-
-function scrollBottom(){
-  messagesWrap.scrollTop=messagesWrap.scrollHeight;
-}
-
-function addMsg(role,html){
-  const div=document.createElement('div');
-  div.className='msg '+(role==='ai'?'ai':'me');
-  div.innerHTML=`<div class="msg-label">${role==='ai'?'AURA':'YOU'}</div><div class="bubble">${html}</div>`;
-  messagesWrap.insertBefore(div,typingIndicator);
-  scrollBottom();
-  return div;
-}
-
-async function sendMessage(){
-  if(sending) return;
-  const text=chatInput.value.trim();
-  if(!text) return;
-  sending=true;
-  sendBtn.disabled=true;
-  addMsg('me',text);
-  chatInput.value='';
-  typingIndicator.style.display='flex';
-  scrollBottom();
-
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        system:`You are AURA, a warm AI language tutor. The student is learning German (B1 level). 
-Their native language is Gujarati and they also speak English.
-Reply in max 3-4 sentences. Always:
-- Respond in English with German examples.
-- If they make a grammar error, gently correct it with a short explanation.
-- If they write correctly, praise them and ask a follow-up question to keep conversation going.
-- Occasionally add a short tip in Gujarati (italicized).
-- Be warm, encouraging, and conversational. No bullet points.`,
-        messages:[{role:'user',content:text}]
-      })
-    });
-    const data=await res.json();
-    const reply=data.content?.[0]?.text||'Sehr gut! Keep going — you are doing wonderfully.';
-    typingIndicator.style.display='none';
-    addMsg('ai',reply);
-  }catch(e){
-    typingIndicator.style.display='none';
-    addMsg('ai','Sehr gut! Your German is coming along beautifully. Want to try another sentence?');
-  }
-
-  sending=false;
-  sendBtn.disabled=false;
+function addMessage(role, text) {
+  const message = document.createElement('div');
+  message.className = `msg ${role === 'ai' ? 'ai' : 'me'}`;
+  message.innerHTML = `
+    <div class="msg-label">${role === 'ai' ? 'AURA' : 'YOU'}</div>
+    <div class="bubble">${text}</div>
+  `;
+  messagesWrap.insertBefore(message, typingIndicator);
   scrollBottom();
 }
 
-sendBtn.addEventListener('click',sendMessage);
-chatInput.addEventListener('keydown',e=>{if(e.key==='Enter')sendMessage();});
-
-// ── GOAL CHECKBOXES ──
-document.querySelectorAll('.goal-row').forEach(row=>{
-  row.addEventListener('click',()=>{
-    const check=row.querySelector('.goal-check');
-    const text=row.querySelector('.goal-text');
-    const done=check.classList.toggle('done');
-    check.textContent=done?'✓':'';
-    text.classList.toggle('done',done);
+document.querySelectorAll('.sug-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    chatInput.value = chip.textContent.trim();
+    chatInput.focus();
   });
 });
 
-// ── END SESSION ──
-document.getElementById('endSessionBtn').addEventListener('click',()=>{
-  if(confirm('End this session? Your progress will be saved.')) {
-    auraOrb.classList.remove('speaking');
-    document.querySelector('.session-status').innerHTML='<div class="status-dot no-trans" style="background:var(--muted)"></div> Session Ended';
-    document.querySelector('.session-status').style.background='var(--surface)';
-    document.querySelector('.session-status').style.borderColor='var(--border)';
-    document.querySelector('.session-status').style.color='var(--muted)';
-    addMsg('ai','Great session today, Priya! You used Perfekt correctly 8 times 🎉 See you tomorrow?');
-  }
-});
-
-// ── LIVE SESSION BTN ──
-document.getElementById('liveSessionBtn').addEventListener('click',()=>{
-  addMsg('ai','Connecting to Gemini Live voice session... 🎙️ Say something in German when ready!');
-  auraOrb.classList.add('speaking');
+function simulateReply(userText) {
+  typingIndicator.style.display = 'flex';
   scrollBottom();
+
+  setTimeout(() => {
+    typingIndicator.style.display = 'none';
+    addMessage('ai', `Good attempt. You said: "${userText}". In production, this is where Gemini Live or your backend tutor response should come in.`);
+  }, 900);
+}
+
+function handleSend() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+  addMessage('me', text);
+  chatInput.value = '';
+  simulateReply(text);
+}
+
+sendBtn.addEventListener('click', handleSend);
+chatInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') handleSend();
 });
 
-// ── ANIMATE STATS (subtle count-up) ──
-function countUp(el,target,duration=800){
-  let start=0;const step=target/Math.ceil(duration/16);
-  const timer=setInterval(()=>{
-    start=Math.min(start+step,target);
-    el.textContent=Math.round(start);
-    if(start>=target)clearInterval(timer);
-  },16);
+document.querySelectorAll('.goal-row').forEach(row => {
+  row.addEventListener('click', () => {
+    const check = row.querySelector('.goal-check');
+    const text = row.querySelector('.goal-text');
+    const done = check.classList.toggle('done');
+    check.textContent = done ? '✓' : '';
+    text.classList.toggle('done', done);
+  });
+});
+
+document.getElementById('endSessionBtn').addEventListener('click', () => {
+  const confirmed = window.confirm('End this session? Your progress will be saved.');
+  if (!confirmed) return;
+
+  auraOrb.classList.remove('speaking');
+
+  const status = document.querySelector('.session-status');
+  status.innerHTML = '<div class="status-dot" style="background:var(--muted)"></div> Session Ended';
+  status.style.background = 'var(--surface)';
+  status.style.borderColor = 'var(--border)';
+  status.style.color = 'var(--muted)';
+
+  addMessage('ai', 'Great session today. Your progress has been saved.');
+});
+
+document.getElementById('liveSessionBtn').addEventListener('click', () => {
+  addMessage('ai', 'Connecting to Gemini Live voice session... Say something in German when ready.');
+  auraOrb.classList.add('speaking');
+});
+
+function countUp(el, target, duration = 800) {
+  let start = 0;
+  const step = target / Math.ceil(duration / 16);
+  const timer = setInterval(() => {
+    start = Math.min(start + step, target);
+    el.textContent = Math.round(start);
+    if (start >= target) clearInterval(timer);
+  }, 16);
 }
-setTimeout(()=>{
-  countUp(document.getElementById('wordsSpoken'),34);
-  countUp(document.getElementById('correctCount'),8);
-  countUp(document.getElementById('errCount'),2);
-},400);
+
+setTimeout(() => {
+  countUp(document.getElementById('wordsSpoken'), 34);
+  countUp(document.getElementById('correctCount'), 8);
+  countUp(document.getElementById('errCount'), 2);
+}, 400);
 </script>
 </body>
 </html>
