@@ -1,104 +1,305 @@
-<div id="onboarding-screen">
-  <div class="ob-wrap">
-    <div class="ob-logo">AU<span>RA</span></div>
-    <div class="ob-step-track">
-      <div class="ob-step-dot active" id="ob-dot-0"></div>
-      <div class="ob-step-dot" id="ob-dot-1"></div>
-      <div class="ob-step-dot" id="ob-dot-2"></div>
-      <div class="ob-step-dot" id="ob-dot-3"></div>
-    </div>
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AURA — Onboarding</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#050508; --bg2:#0a0a10; --surface:#13131e; --surface2:#1a1a28;
+      --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
+      --text:#e8e8f2; --muted:rgba(232,232,242,0.55);
+      --purple:#9d7fff; --blue:#5ba3ff; --green:#4ade80;
+      --grad:linear-gradient(135deg,#9d7fff,#5ba3ff);
+      --grad2:linear-gradient(135deg,#7c5cfc,#4b8ef0);
+      --input-bg:rgba(255,255,255,0.04);
+    }
 
-    <!-- Step 0: Name -->
-    <div id="ob-step-0" class="ob-step-content">
-      <div class="ob-question">What should AURA call you?</div>
-      <div class="ob-subq">Used to personalise your sessions and memory.</div>
-      <input id="ob-name-input" class="ob-name-input" type="text" placeholder="Your first name…" maxlength="40" autocomplete="given-name" oninput="window.obValidateName&&window.obValidateName()" onkeydown="if(event.key==='Enter')window.obNext&&window.obNext()"/>
-      <button class="ob-next-btn" id="ob-next-0" onclick="obNext()" disabled>Continue →</button>
-    </div>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      min-height:100vh;
+      font-family:'Inter',sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(91,163,255,0.12), transparent 30%),
+        var(--bg);
+      color:var(--text);
+      padding:24px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
 
-    <!-- Step 1: Native language -->
-    <div id="ob-step-1" class="ob-step-content" style="display:none">
-      <button class="ob-back-btn" onclick="obBack()">← Back</button>
-      <div class="ob-question">What's your native language?</div>
-      <div class="ob-subq">AURA will explain grammar in this language.</div>
-      <div class="ob-options" id="ob-lang-options">
-        <div class="ob-option" onclick="obSelectLang('english')" data-val="english">
-          <span class="ob-opt-icon">🇬🇧</span>
-          <div><div class="ob-opt-label">English</div></div>
-        </div>
-        <div class="ob-option" onclick="obSelectLang('gujarati')" data-val="gujarati">
-          <span class="ob-opt-icon">🇮🇳</span>
-          <div><div class="ob-opt-label">Gujarati</div></div>
-        </div>
-        <div class="ob-option" onclick="obSelectLang('hindi')" data-val="hindi">
-          <span class="ob-opt-icon">🇮🇳</span>
-          <div><div class="ob-opt-label">Hindi</div></div>
-        </div>
-        <div class="ob-option" onclick="obSelectLang('other')" data-val="other">
-          <span class="ob-opt-icon">🌐</span>
-          <div><div class="ob-opt-label">Other</div></div>
+    .wrap{
+      width:100%;
+      max-width:780px;
+    }
+
+    .card{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,0.03);
+      border-radius:24px;
+      padding:32px;
+      backdrop-filter:blur(12px);
+    }
+
+    .top{
+      margin-bottom:28px;
+    }
+
+    .brand{
+      font-size:28px;
+      font-weight:700;
+      letter-spacing:-0.03em;
+      margin-bottom:10px;
+    }
+
+    .brand span{
+      background:var(--grad);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+
+    h1{
+      font-size:34px;
+      line-height:1.1;
+      letter-spacing:-0.04em;
+      margin-bottom:10px;
+    }
+
+    .sub{
+      font-size:15px;
+      line-height:1.6;
+      color:var(--muted);
+      max-width:640px;
+    }
+
+    .progress{
+      display:flex;
+      gap:8px;
+      margin:24px 0 28px;
+    }
+
+    .progress span{
+      height:6px;
+      flex:1;
+      border-radius:999px;
+      background:rgba(255,255,255,0.08);
+    }
+
+    .progress span.active{
+      background:var(--grad);
+    }
+
+    .grid{
+      display:grid;
+      gap:18px;
+      grid-template-columns:1fr 1fr;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .field.full{
+      grid-column:1 / -1;
+    }
+
+    label{
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    input, select, textarea{
+      width:100%;
+      padding:14px 16px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:var(--input-bg);
+      color:var(--text);
+      font:inherit;
+      outline:none;
+    }
+
+    textarea{
+      min-height:110px;
+      resize:vertical;
+    }
+
+    input:focus, select:focus, textarea:focus{
+      border-color:rgba(157,127,255,0.45);
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+
+    .chip{
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--muted);
+      font:inherit;
+      cursor:pointer;
+    }
+
+    .chip.active{
+      background:rgba(157,127,255,0.14);
+      border-color:rgba(157,127,255,0.35);
+      color:var(--text);
+    }
+
+    .actions{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      margin-top:28px;
+    }
+
+    .btn{
+      padding:14px 18px;
+      border-radius:14px;
+      font:inherit;
+      font-weight:600;
+      cursor:pointer;
+      border:none;
+    }
+
+    .btn.secondary{
+      background:transparent;
+      color:var(--text);
+      border:1px solid var(--border);
+    }
+
+    .btn.primary{
+      background:var(--grad2);
+      color:#fff;
+    }
+
+    @media (max-width: 700px){
+      .card{
+        padding:24px 18px;
+      }
+      .grid{
+        grid-template-columns:1fr;
+      }
+      .actions{
+        flex-direction:column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="top">
+        <div class="brand"><span>AURA</span></div>
+        <h1>Let’s set up your learning path</h1>
+        <p class="sub">
+          This helps AURA personalize your sessions, corrections, and progression from the very first conversation.
+        </p>
+
+        <div class="progress">
+          <span class="active"></span>
+          <span class="active"></span>
+          <span></span>
         </div>
       </div>
-      <input id="ob-other-lang-input" class="ob-name-input" type="text" placeholder="Type your language…" maxlength="40" style="display:none" oninput="window.obValidateLangOther&&window.obValidateLangOther()"/>
-      <button class="ob-next-btn" id="ob-next-1" onclick="obNext()" disabled>Continue →</button>
-    </div>
 
-    <!-- Step 2: Current level -->
-    <div id="ob-step-2" class="ob-step-content" style="display:none">
-      <button class="ob-back-btn" onclick="obBack()">← Back</button>
-      <div class="ob-question">What's your current German level?</div>
-      <div class="ob-subq">Be honest — AURA will adapt to you.</div>
-      <div class="ob-options" id="ob-level-options">
-        <div class="ob-option" onclick="obSelectLevel('A1')" data-val="A1">
-          <span class="ob-opt-icon">🌱</span>
-          <div><div class="ob-opt-label">A1 — Complete beginner</div><div class="ob-opt-desc">Little to no German yet</div></div>
-        </div>
-        <div class="ob-option" onclick="obSelectLevel('A2')" data-val="A2">
-          <span class="ob-opt-icon">🌿</span>
-          <div><div class="ob-opt-label">A2 — Elementary</div><div class="ob-opt-desc">Know basics, building sentences</div></div>
-        </div>
-        <div class="ob-option" onclick="obSelectLevel('B1')" data-val="B1">
-          <span class="ob-opt-icon">🌳</span>
-          <div><div class="ob-opt-label">B1 — Intermediate</div><div class="ob-opt-desc">Can hold simple conversations</div></div>
-        </div>
-      </div>
-      <button class="ob-next-btn" id="ob-next-2" onclick="obNext()" disabled>Continue →</button>
-    </div>
+      <form id="onboardingForm">
+        <div class="grid">
+          <div class="field">
+            <label for="targetLanguage">Target language</label>
+            <select id="targetLanguage">
+              <option>German</option>
+              <option>French</option>
+              <option>Japanese</option>
+            </select>
+          </div>
 
-    <!-- Step 3: Goal -->
-    <div id="ob-step-3" class="ob-step-content" style="display:none">
-      <button class="ob-back-btn" onclick="obBack()">← Back</button>
-      <div class="ob-question">What's your main goal?</div>
-      <div class="ob-subq">AURA will build your sessions around this.</div>
-      <div class="ob-options" id="ob-goal-options">
-        <div class="ob-option" onclick="obSelectGoal('Pass the A2 Zertifikat exam')" data-val="Pass the A2 Zertifikat exam">
-          <span class="ob-opt-icon">🎓</span>
-          <div><div class="ob-opt-label">Pass the A2 exam</div><div class="ob-opt-desc">Zertifikat Deutsch / Goethe A2</div></div>
+          <div class="field">
+            <label for="currentLevel">Current level</label>
+            <select id="currentLevel">
+              <option>A1</option>
+              <option>A2</option>
+              <option selected>B1</option>
+              <option>B2</option>
+              <option>C1</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="nativeLanguage">Native language</label>
+            <input id="nativeLanguage" type="text" placeholder="e.g. Gujarati" />
+          </div>
+
+          <div class="field">
+            <label for="supportLanguage">Support language</label>
+            <input id="supportLanguage" type="text" placeholder="e.g. English" />
+          </div>
+
+          <div class="field full">
+            <label>What is your main goal?</label>
+            <div class="chips" id="goalChips">
+              <button type="button" class="chip active">Daily conversation</button>
+              <button type="button" class="chip">Exam preparation</button>
+              <button type="button" class="chip">Grammar accuracy</button>
+              <button type="button" class="chip">Pronunciation</button>
+              <button type="button" class="chip">Job interviews</button>
+            </div>
+          </div>
+
+          <div class="field full">
+            <label for="learningReason">Why are you learning this language?</label>
+            <textarea id="learningReason" placeholder="Write a short reason..."></textarea>
+          </div>
+
+          <div class="field full">
+            <label for="weeklyCommitment">Weekly commitment</label>
+            <select id="weeklyCommitment">
+              <option>3 sessions per week</option>
+              <option selected>5 sessions per week</option>
+              <option>Daily practice</option>
+            </select>
+          </div>
         </div>
-        <div class="ob-option" onclick="obSelectGoal('Speak confidently in everyday situations')" data-val="Speak confidently in everyday situations">
-          <span class="ob-opt-icon">💬</span>
-          <div><div class="ob-opt-label">Everyday speaking</div><div class="ob-opt-desc">Shops, transport, work, life in Germany</div></div>
+
+        <div class="actions">
+          <button type="button" class="btn secondary" id="backToAuth">Back</button>
+          <button type="submit" class="btn primary">Continue to Dashboard</button>
         </div>
-        <div class="ob-option" onclick="obSelectGoal('Improve for work or a job interview')" data-val="Improve for work or a job interview">
-          <span class="ob-opt-icon">💼</span>
-          <div><div class="ob-opt-label">Work / job interview</div><div class="ob-opt-desc">Professional German situations</div></div>
-        </div>
-        <div class="ob-option" onclick="obSelectGoal('General fluency and confidence')" data-val="General fluency and confidence">
-          <span class="ob-opt-icon">✨</span>
-          <div><div class="ob-opt-label">General fluency</div><div class="ob-opt-desc">Just want to get better overall</div></div>
-        </div>
-      </div>
-      <div id="ob-saving" class="ob-saving">
-        <div class="ob-saving-spinner"></div>
-        Setting up your profile…
-      </div>
-      <button class="ob-next-btn" id="ob-next-3" onclick="obFinish()" disabled>Start learning →</button>
+      </form>
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════════════════════
-     PHASE 5 — DASHBOARD SCREEN
-     Shown after onboarding and on return visits.
-     Shows last session summary, Language Island, streak, stats.
-════════════════════════════════════════════════════════════ -->
+  <script>
+    const chips = document.querySelectorAll('.chip');
+    const onboardingForm = document.getElementById('onboardingForm');
+    const backToAuth = document.getElementById('backToAuth');
+
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        chips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+      });
+    });
+
+    backToAuth.addEventListener('click', () => {
+      window.location.href = './auth.html';
+    });
+
+    onboardingForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      window.location.href = './app-screens.html';
+    });
+  </script>
+</body>
+</html>
