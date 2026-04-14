@@ -1,78 +1,361 @@
-<!-- ═══════════════════════════════════════════════════════════
-     SECTION 7: APP SHELL
-     Dark UI application. Hidden when data-route="landing".
-     Contains: Auth, Onboarding, Dashboard, Session, Score
-═══════════════════════════════════════════════════════════ -->
-<div id="app-shell">
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AURA — Auth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#050508; --bg2:#0a0a10; --surface:#13131e; --surface2:#1a1a28;
+      --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
+      --text:#e8e8f2; --muted:rgba(232,232,242,0.55);
+      --purple:#9d7fff; --blue:#5ba3ff;
+      --grad:linear-gradient(135deg,#9d7fff,#5ba3ff);
+      --grad2:linear-gradient(135deg,#7c5cfc,#4b8ef0);
+      --input-bg:rgba(255,255,255,0.04);
+    }
 
-<!-- ── 7A: AUTH SCREEN (NEW) ─────────────────────────────── -->
-<div id="auth-screen" class="app-screen">
-  <div class="auth-container">
-    <div class="auth-logo">AU<span>RA</span></div>
-    <div class="auth-tagline">Immersive Language Intelligence</div>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      min-height:100vh;
+      font-family:'Inter',sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(157,127,255,0.15), transparent 30%),
+        var(--bg);
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
 
-    <div class="auth-loading" id="auth-checking">
-      <div class="auth-spinner"></div>
-      <div class="auth-loading-text">Checking your session...</div>
-    </div>
+    .auth-shell{
+      width:100%;
+      max-width:1080px;
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      border:1px solid var(--border);
+      border-radius:24px;
+      overflow:hidden;
+      background:rgba(255,255,255,0.02);
+      backdrop-filter:blur(12px);
+    }
 
-    <div id="auth-form-wrap" style="display:none;">
-      <div class="auth-tabs">
-        <button class="auth-tab active" id="auth-tab-login" onclick="window.switchAuthTab('login')">Sign in</button>
-        <button class="auth-tab" id="auth-tab-signup" onclick="window.switchAuthTab('signup')">Create account</button>
+    .auth-left{
+      padding:56px;
+      background:
+        linear-gradient(180deg, rgba(157,127,255,0.08), transparent),
+        var(--bg2);
+      border-right:1px solid var(--border);
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+
+    .brand{
+      font-size:32px;
+      font-weight:700;
+      letter-spacing:-0.03em;
+    }
+
+    .brand span{
+      background:var(--grad);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+
+    .hero-copy h1{
+      font-size:42px;
+      line-height:1.08;
+      letter-spacing:-0.04em;
+      margin-bottom:16px;
+      max-width:520px;
+    }
+
+    .hero-copy p{
+      font-size:16px;
+      line-height:1.65;
+      color:var(--muted);
+      max-width:520px;
+    }
+
+    .hero-points{
+      display:grid;
+      gap:12px;
+      margin-top:32px;
+    }
+
+    .hero-point{
+      padding:14px 16px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:rgba(255,255,255,0.03);
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .auth-right{
+      padding:48px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--bg);
+    }
+
+    .auth-card{
+      width:100%;
+      max-width:420px;
+    }
+
+    .auth-card h2{
+      font-size:28px;
+      margin-bottom:10px;
+      letter-spacing:-0.03em;
+    }
+
+    .auth-card p{
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.6;
+      margin-bottom:24px;
+    }
+
+    .tabs{
+      display:flex;
+      gap:8px;
+      margin-bottom:20px;
+    }
+
+    .tab-btn{
+      flex:1;
+      padding:12px 14px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--muted);
+      font:inherit;
+      cursor:pointer;
+    }
+
+    .tab-btn.active{
+      background:rgba(157,127,255,0.14);
+      border-color:rgba(157,127,255,0.35);
+      color:var(--text);
+    }
+
+    .form{
+      display:none;
+      gap:14px;
+      flex-direction:column;
+    }
+
+    .form.active{
+      display:flex;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .field label{
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .field input{
+      width:100%;
+      padding:14px 16px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:var(--input-bg);
+      color:var(--text);
+      font:inherit;
+      outline:none;
+    }
+
+    .field input:focus{
+      border-color:rgba(157,127,255,0.45);
+    }
+
+    .primary-btn, .secondary-btn{
+      width:100%;
+      padding:14px 16px;
+      border:none;
+      border-radius:14px;
+      font:inherit;
+      font-weight:600;
+      cursor:pointer;
+    }
+
+    .primary-btn{
+      background:var(--grad2);
+      color:white;
+      margin-top:6px;
+    }
+
+    .secondary-btn{
+      background:transparent;
+      color:var(--text);
+      border:1px solid var(--border);
+    }
+
+    .links{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      margin-top:14px;
+      font-size:13px;
+    }
+
+    .links a{
+      color:var(--muted);
+      text-decoration:none;
+    }
+
+    .links a:hover{
+      color:var(--text);
+    }
+
+    .divider{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin:20px 0;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .divider::before, .divider::after{
+      content:"";
+      flex:1;
+      height:1px;
+      background:var(--border);
+    }
+
+    @media (max-width: 900px){
+      .auth-shell{
+        grid-template-columns:1fr;
+      }
+      .auth-left{
+        display:none;
+      }
+      .auth-right{
+        padding:32px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-shell">
+    <section class="auth-left">
+      <div class="brand"><span>AURA</span></div>
+
+      <div class="hero-copy">
+        <h1>The tutor that remembers you and knows what to do next.</h1>
+        <p>
+          Practice real speaking, get live corrections, and build momentum with a system designed
+          for structured language growth.
+        </p>
+
+        <div class="hero-points">
+          <div class="hero-point">Personalized speaking sessions</div>
+          <div class="hero-point">Memory-driven corrections and revision</div>
+          <div class="hero-point">Exam-aligned progression from A1 to C1</div>
+        </div>
       </div>
+    </section>
 
-      <div class="auth-error" id="auth-error"></div>
+    <section class="auth-right">
+      <div class="auth-card">
+        <h2>Welcome back</h2>
+        <p>Sign in to continue your learning journey, or create a new account to get started.</p>
 
-      <div class="auth-form" id="auth-form-login">
-        <input class="auth-input" id="auth-email" type="email" placeholder="Email address" autocomplete="email"/>
-        <input class="auth-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password"/>
-        <button class="auth-submit-btn" id="auth-login-btn" onclick="window.doEmailLogin()">Sign in</button>
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="signin">Sign In</button>
+          <button class="tab-btn" data-tab="signup">Create Account</button>
+        </div>
+
+        <form class="form active" id="signinForm">
+          <div class="field">
+            <label for="signinEmail">Email</label>
+            <input id="signinEmail" type="email" placeholder="you@example.com" />
+          </div>
+
+          <div class="field">
+            <label for="signinPassword">Password</label>
+            <input id="signinPassword" type="password" placeholder="Enter your password" />
+          </div>
+
+          <button type="submit" class="primary-btn">Sign In</button>
+
+          <div class="links">
+            <a href="#">Forgot password?</a>
+            <a href="./onboarding.html">First time here?</a>
+          </div>
+        </form>
+
+        <form class="form" id="signupForm">
+          <div class="field">
+            <label for="signupName">Full name</label>
+            <input id="signupName" type="text" placeholder="Your full name" />
+          </div>
+
+          <div class="field">
+            <label for="signupEmail">Email</label>
+            <input id="signupEmail" type="email" placeholder="you@example.com" />
+          </div>
+
+          <div class="field">
+            <label for="signupPassword">Password</label>
+            <input id="signupPassword" type="password" placeholder="Create a password" />
+          </div>
+
+          <button type="submit" class="primary-btn">Create Account</button>
+        </form>
+
+        <div class="divider">or</div>
+
+        <button class="secondary-btn" id="demoBtn">Open Dashboard Demo</button>
       </div>
-
-      <div class="auth-form" id="auth-form-signup" style="display:none;">
-        <input class="auth-input" id="auth-signup-email" type="email" placeholder="Email address" autocomplete="email"/>
-        <input class="auth-input" id="auth-signup-password" type="password" placeholder="Create password (6+ characters)" autocomplete="new-password"/>
-        <button class="auth-submit-btn" id="auth-signup-btn" onclick="window.doEmailSignup()">Create account</button>
-      </div>
-
-      <div class="auth-divider">
-        <div class="auth-divider-line"></div>
-        <div class="auth-divider-text">or</div>
-        <div class="auth-divider-line"></div>
-      </div>
-
-      <button class="auth-google-btn" onclick="window.doGoogleLogin()">
-        <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 2.58 9 3.58z" fill="#EA4335"/></svg>
-        Continue with Google
-      </button>
-
-      <div class="auth-footer">
-        By continuing, you agree to AURA's terms of service.
-      </div>
-    </div>
+    </section>
   </div>
-</div>
 
+  <script>
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const signinForm = document.getElementById('signinForm');
+    const signupForm = document.getElementById('signupForm');
+    const demoBtn = document.getElementById('demoBtn');
 
-<!-- ═══════════════════════════════════════════════
-     SPEAKING INTERFACE
-═══════════════════════════════════════════════ -->
-<!-- ── Auth overlay (loading spinner while checking auth) ── -->
-<div id="auth-overlay">
-  <div class="auth-spinner"></div>
-  <p>Checking access...</p>
-</div>
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
 
-<!-- ── Access denied (shown when no user and not using new auth screen) ── -->
-<div id="access-denied">
-  <h2>No access yet.</h2>
-  <p>AURA is available to German Made Easy students. Sign in or create an account to get started.</p>
-  <a href="#aura" onclick="document.getElementById('access-denied').style.display='none';document.getElementById('auth-screen').classList.add('active');document.getElementById('auth-checking').classList.remove('active');document.getElementById('auth-form-wrap').style.display='';">Sign in to AURA</a>
-</div>
+        const tab = button.dataset.tab;
+        signinForm.classList.toggle('active', tab === 'signin');
+        signupForm.classList.toggle('active', tab === 'signup');
+      });
+    });
 
-<!-- ══════════════════════════════════════════════════════════
-     PHASE 4 -- ONBOARDING SCREEN
-     Shown once when a new user has no profile doc.
-     Calls /onboarding on completion, then shows dashboard.
-════════════════════════════════════════════════════════════ -->
+    signinForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      window.location.href = './app-screens.html';
+    });
+
+    signupForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      window.location.href = './onboarding.html';
+    });
+
+    demoBtn.addEventListener('click', () => {
+      window.location.href = './app-screens.html';
+    });
+  </script>
+</body>
+</html>
