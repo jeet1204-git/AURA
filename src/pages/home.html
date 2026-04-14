@@ -1,153 +1,133 @@
-<div id="page-home" class="aura-page active">
-<div id="homepage">
-<!-- ========== GLOBAL NAV -->
-<nav id="gnav">
-  <div class="gnav-inner">
-    <a class="gnav-logo" href="/ai-partner.html">
-      <div class="gnav-logo-mark">
-        <svg class="aura-logo-svg flower-logo" width="28" height="28" viewBox="0 0 28 28">
-          <path class="logo-ring r1"/><path class="logo-ring r2"/><path class="logo-ring r3"/>
-          <path class="logo-ring r4"/><path class="logo-ring r5"/>
-          <circle class="center-dot" cx="14" cy="14" r="2.2"/>
-        </svg>
-      </div>
-      AURA
-    </a>
-    <div class="gnav-links">
-      <a href="#how-it-works">How it works</a>
-      <a href="#" onclick="navigateTo('features');event.preventDefault();">Features</a>
-      <a href="#" onclick="navigateTo('why');event.preventDefault();">Why AURA</a>
-      <a href="#" onclick="navigateTo('mocktest');event.preventDefault();">Mock Tests</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#" onclick="enterSpeakingInterface();event.preventDefault();" class="gnav-cta">Open AURA ↗</a>
-    </div>
+<!-- CUSTOM CURSOR -->
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">AURA</div>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#institutions">Institutions</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-login">Log in</span>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+    <button class="nav-cta">Try free</button>
   </div>
 </nav>
-<!-- ========== HERO -->
-<section id="hero">
-  <p class="hero-eyebrow">German Speaking Practice — Launching Soon</p>
-  <h1 class="hero-title">Speak German.<br><span class="shimmer-word">Naturally.</span></h1>
-  <p class="hero-sub">Real conversations. Instant feedback. AURA learns how you think — and teaches you how Germans speak.</p>
-  <div class="hero-actions">
-    <a href="#" onclick="enterSpeakingInterface();event.preventDefault();" class="btn-dark">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M6 5.5l4 2.5-4 2.5V5.5z" fill="currentColor"/></svg>
-      Try AURA free
-    </a>
-    <a href="#demo-section" class="btn-ghost">
-      Try a live demo <span style="font-size:12px">↓</span>
-    </a>
-  </div>
-  <div class="hero-visual">
-    <div class="hero-logo-standalone hero-logo-float">
-      <svg class="aura-logo-svg flower-logo" width="140" height="140" viewBox="0 0 140 140">
-        <path class="logo-ring r1"/>
-        <path class="logo-ring r2"/>
-        <path class="logo-ring r3"/>
-        <path class="logo-ring r4"/>
-        <path class="logo-ring r5"/>
-        <circle class="center-dot" cx="70" cy="70" r="11"/>
-      </svg>
-    </div>
-    <div class="hero-wave">
-      <div class="hw"></div><div class="hw"></div><div class="hw"></div>
-      <div class="hw"></div><div class="hw"></div><div class="hw"></div>
-      <div class="hw"></div><div class="hw"></div><div class="hw"></div>
-      <div class="hw"></div><div class="hw"></div>
-    </div>
-  </div>
-  <div class="scroll-cue">
-    <div class="scroll-cue-line"></div>
-    <span class="scroll-cue-txt">Scroll</span>
-  </div>
-</section>
 
-
-<!-- ========== PRODUCT REVEAL — Desktop UI -->
-<section class="neo-sec white" id="product-reveal" style="padding:80px 0 60px;">
-  <div class="neo-inner" style="max-width:920px;margin:0 auto;padding:0 24px;">
-    <p class="neo-label rv" style="text-align:center;margin-bottom:10px;">The product</p>
-    <h2 class="neo-headline rv rv-d1" style="text-align:center;margin-bottom:52px;">This is what a live session<br>actually looks like.</h2>
-
-    <!-- Desktop UI Frame -->
-    <div class="rv rv-d2" style="
-      background:#1a1a2e;
-      border-radius:16px;
-      overflow:hidden;
-      box-shadow:0 32px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.08);
-    ">
-      <!-- macOS titlebar -->
-      <div style="background:#111124;padding:14px 20px;display:flex;align-items:center;gap:0;border-bottom:1px solid rgba(255,255,255,0.06);">
-        <div style="display:flex;gap:7px;margin-right:auto;">
-          <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
-          <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
-          <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
-        </div>
-        <span style="font-size:12px;color:rgba(255,255,255,0.35);font-weight:500;letter-spacing:0.04em;position:absolute;left:50%;transform:translateX(-50%);">AURA — At the Café · A1</span>
-        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
-          <div style="width:7px;height:7px;border-radius:50%;background:#00f5a0;box-shadow:0 0 8px #00f5a0;animation:blink-dot 1.8s ease infinite;"></div>
-          <span style="font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:0.08em;">LIVE</span>
-        </div>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
+  <div class="hero-badge"><div class="badge-pill"><div class="badge-pulse"></div>Early access</div>Now open — auraspeak.in</div>
+  <div class="hero-h1">Speak any language.<br><em>Fluently.</em></div>
+  <p class="hero-sub">AURA is a private tutor that learns you — your weak spots, your goals, your native language. Available at 2am. Costs less than one lesson.</p>
+  <div class="hero-ctas">
+    <button class="btn-primary">Start for free</button>
+    <!-- HEAR AURA SPEAK — plays pre-scripted lines from the visible screen -->
+    <button class="btn-ghost" id="heroVoiceBtn">
+      <div class="play-ring" id="heroPlayRing">▶</div>
+      <span id="heroVoiceBtnText">Hear AURA speak</span>
+      <div class="hero-voice-wave" id="heroVoiceWave" style="display:none;align-items:center;gap:2px;margin-left:4px">
+        <span style="--d:.4s;--h:8px"></span><span style="--d:.6s;--h:14px"></span>
+        <span style="--d:.3s;--h:18px"></span><span style="--d:.5s;--h:12px"></span>
+        <span style="--d:.7s;--h:16px"></span>
       </div>
-
-      <!-- Session body: two columns -->
-      <div style="display:grid;grid-template-columns:260px 1fr;min-height:320px;">
-
-        <!-- Left sidebar -->
-        <div style="background:#13132a;padding:28px 24px;border-right:1px solid rgba(255,255,255,0.05);display:flex;flex-direction:column;gap:24px;">
-          <div>
-            <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px;">Scenario</div>
-            <div style="font-size:13px;color:rgba(255,255,255,0.85);font-weight:500;">☕ At the Café</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:3px;">A1 · Gujarati · Goethe Prep</div>
-          </div>
-          <!-- Animated orb -->
-          <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0;">
-            <div class="pd-orb-live"></div>
-            <div style="font-size:11px;color:rgba(0,245,160,0.7);letter-spacing:0.12em;text-transform:uppercase;">Speaking now</div>
-            <div style="font-size:14px;color:rgba(255,255,255,0.7);font-weight:500;">The Café Waiter</div>
-          </div>
-          <!-- Timer -->
-          <div style="margin-top:auto;text-align:center;">
-            <div style="font-size:28px;font-weight:300;color:rgba(255,255,255,0.9);letter-spacing:0.06em;font-variant-numeric:tabular-nums;">18:42</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.25);letter-spacing:0.12em;text-transform:uppercase;margin-top:2px;">remaining</div>
+    </button>
+  </div>
+  <div class="hero-frame">
+    <div class="chip c1"><span class="chip-icon">🇩🇪</span>B1 German · 68%</div>
+    <div class="chip c2"><span class="chip-icon">🔥</span>14 day streak</div>
+    <div class="chip c3"><span class="chip-icon">✓</span>Goethe B1 ready</div>
+    <div class="chip c4"><span class="chip-icon">🎙</span>Live voice session</div>
+    <div class="frame-glow-outer"></div><div class="frame-rim"></div>
+    <div class="browser-shell">
+      <div class="browser-bar">
+        <div class="traffic-dots"><div class="td td-r"></div><div class="td td-y"></div><div class="td td-g"></div></div>
+        <div class="browser-url">auraspeak.in</div>
+        <div style="width:60px"></div>
+      </div>
+      <div class="app-shell">
+        <div class="sb">
+          <div class="sb-logo">AURA</div>
+          <div class="sb-sec">Learn</div>
+          <div class="sb-row active"><span class="sb-icon">💬</span>Live session<span class="sb-live">Live</span></div>
+          <div class="sb-row"><span class="sb-icon">🗺</span>Journey</div>
+          <div class="sb-row"><span class="sb-icon">📚</span>Vocabulary</div>
+          <div class="sb-sec" style="margin-top:8px">Practice</div>
+          <div class="sb-row"><span class="sb-icon">🎯</span>Exam mode</div>
+          <div class="sb-row"><span class="sb-icon">🎭</span>Scenarios</div>
+          <div class="sb-row"><span class="sb-icon">⚡</span>Goals</div>
+          <div style="margin-top:auto;padding:12px 10px">
+            <div style="padding:8px 10px;border-radius:8px;background:rgba(157,127,255,.1);border:0.5px solid rgba(157,127,255,.25);font-size:11px;color:var(--purple);display:flex;align-items:center;gap:7px">🎙 Live voice session</div>
           </div>
         </div>
-
-        <!-- Right: transcript -->
-        <div style="padding:24px 28px;overflow:hidden;">
-          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:18px;">Conversation</div>
-
-          <!-- AURA turn -->
-          <div style="display:flex;gap:12px;margin-bottom:18px;">
-            <div style="width:30px;height:30px;border-radius:8px;background:rgba(0,245,160,0.12);border:1px solid rgba(0,245,160,0.25);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">✦</div>
-            <div>
-              <div style="font-size:10px;color:rgba(0,245,160,0.5);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:5px;">AURA</div>
-              <div style="font-size:14px;color:rgba(255,255,255,0.8);line-height:1.6;">Guten Tag! <strong style="color:#fff;">Was darf es sein?</strong></div>
-            </div>
-          </div>
-
-          <!-- User turn with correction -->
-          <div style="display:flex;gap:12px;margin-bottom:18px;">
-            <div style="width:30px;height:30px;border-radius:8px;background:rgba(123,97,255,0.12);border:1px solid rgba(123,97,255,0.25);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">👤</div>
-            <div>
-              <div style="font-size:10px;color:rgba(123,97,255,0.5);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:5px;">You</div>
-              <div style="font-size:14px;color:rgba(255,255,255,0.8);line-height:1.6;">Ich möchte <span style="color:#ff8b8b;text-decoration:line-through;text-decoration-color:rgba(255,92,92,0.5);">ein Kaffee</span>... bitte.</div>
-              <!-- inline correction -->
-              <div style="display:inline-flex;align-items:center;gap:8px;margin-top:8px;background:rgba(255,92,92,0.06);border:1px solid rgba(255,92,92,0.2);border-radius:8px;padding:6px 12px;">
-                <span style="font-size:12px;font-family:monospace;color:#ff8b8b;text-decoration:line-through;">ein Kaffee</span>
-                <span style="color:rgba(255,255,255,0.3);font-size:12px;">→</span>
-                <span style="font-size:12px;font-family:monospace;color:#8deeff;">einen Kaffee</span>
-                <span style="font-size:10px;color:rgba(255,255,255,0.3);border-left:1px solid rgba(255,255,255,0.1);padding-left:8px;">Akkusativ · masculine</span>
+        <!-- LIVE INTERACTIVE CHAT COL -->
+        <div class="chat-col">
+          <div class="chat-header">
+            <div class="chat-who">
+              <div class="chat-av">A</div>
+              <div>
+                <div class="chat-name">AURA</div>
+                <div class="chat-status"><div class="status-dot"></div>Live · <span id="heroLangLabel">B1 German</span></div>
               </div>
             </div>
-          </div>
-
-          <!-- AURA response -->
-          <div style="display:flex;gap:12px;">
-            <div style="width:30px;height:30px;border-radius:8px;background:rgba(0,245,160,0.12);border:1px solid rgba(0,245,160,0.25);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">✦</div>
-            <div>
-              <div style="font-size:10px;color:rgba(0,245,160,0.5);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:5px;">AURA</div>
-              <div style="font-size:14px;color:rgba(255,255,255,0.8);line-height:1.6;"><strong style="color:#00f5a0;">Sehr gut!</strong> Akkusativ — bilkul sahi. Aage chalo! ☕</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="display:flex;gap:5px" id="heroLangPicker">
+                <button class="hero-lang-btn active" data-lang="German" data-label="B1 German">🇩🇪</button>
+                <button class="hero-lang-btn" data-lang="French" data-label="A2 French">🇫🇷</button>
+                <button class="hero-lang-btn" data-lang="Japanese" data-label="A1 Japanese">🇯🇵</button>
+              </div>
+              <div class="lang-badge" style="font-size:10px">Teaching in Gujarati</div>
             </div>
+          </div>
+          <div class="msgs" id="heroMsgs" style="flex:1;overflow-y:auto;max-height:300px">
+            <div class="msg ai"><div class="msg-lbl">AURA</div><div class="bubble" id="heroGreeting">Guten Morgen! Wie war dein Wochenende?</div></div>
+            <div class="msg me"><div class="msg-lbl">YOU</div><div class="bubble">Ich bin gegangen ins Kino.</div></div>
+            <div class="msg ai">
+              <div class="msg-lbl">AURA</div>
+              <div class="bubble">Almost! One small fix.</div>
+              <div class="err-box" id="heroErrBox">✗ &nbsp;gegangen ins → ins Kino <strong>gegangen</strong></div>
+              <div class="exp-box"><div class="exp-lbl">GUJARATI EXPLANATION</div><span id="heroExpText">Verb always sentence na end ma aave chhe. "Ich bin ins Kino gegangen" correct chhe.</span></div>
+            </div>
+            <div class="msg me"><div class="msg-lbl">YOU</div><div class="bubble" id="heroCorrected">Ich bin ins Kino gegangen.</div></div>
+            <div class="msg ai"><div class="msg-lbl">AURA</div><div class="bubble">Perfekt. That's exactly it. ✓</div></div>
+          </div>
+          <!-- Typing indicator (hidden by default) -->
+          <div id="heroTyping" style="display:none;padding:8px 18px">
+            <div style="display:flex;align-items:center;gap:4px;padding:8px 12px;border-radius:3px 12px 12px 12px;background:var(--chat-ai-bg);width:fit-content">
+              <span style="width:6px;height:6px;border-radius:50%;background:var(--muted2);animation:typing .8s ease-in-out infinite"></span>
+              <span style="width:6px;height:6px;border-radius:50%;background:var(--muted2);animation:typing .8s .15s ease-in-out infinite"></span>
+              <span style="width:6px;height:6px;border-radius:50%;background:var(--muted2);animation:typing .8s .3s ease-in-out infinite"></span>
+            </div>
+          </div>
+          <!-- Live input row -->
+          <div class="chat-input" style="gap:8px">
+            <input id="heroInput" type="text" placeholder="Ask AURA something..." value="How do I use der, die, das in German?" style="flex:1;padding:7px 13px;background:var(--inp-bg);border:0.5px solid var(--inp-border);border-radius:100px;font-size:12px;color:var(--text);font-family:'Inter',sans-serif;outline:none;" />
+            <button id="heroSendBtn" style="width:28px;height:28px;border-radius:50%;background:var(--grad2);border:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex-shrink:0">↑</button>
+          </div>
+        </div>
+        <div class="right-panel">
+          <div><div class="panel-label">Your progress</div>
+            <div class="stat-card">
+              <div class="stat-row"><span class="stat-key">B1 German</span><span class="stat-val">68%</span></div>
+              <div class="bar-bg"><div class="bar" style="width:68%;background:linear-gradient(90deg,#7c5cfc,#4f9eff)"></div></div>
+              <div class="stat-row" style="margin-top:10px;margin-bottom:7px"><span class="stat-key">Pronunciation</span><span class="stat-val">82%</span></div>
+              <div class="bar-bg"><div class="bar" style="width:82%;background:linear-gradient(90deg,#4ade80,#22c55e)"></div></div>
+              <div class="stat-row" style="margin-top:10px;margin-bottom:7px"><span class="stat-key">Grammar</span><span class="stat-val">54%</span></div>
+              <div class="bar-bg"><div class="bar" style="width:54%;background:linear-gradient(90deg,#fb923c,#f97316)"></div></div>
+              <div class="streak-footer"><div class="streak-l"><span style="font-size:15px">🔥</span><div><div class="streak-num">14</div><div class="streak-txt">day streak</div></div></div><div class="week"><div class="wd on">M</div><div class="wd on">T</div><div class="wd on">W</div><div class="wd on">T</div><div class="wd">F</div><div class="wd">S</div><div class="wd">S</div></div></div>
+            </div>
+          </div>
+          <div><div class="panel-label">AURA remembers</div>
+            <div class="mem-card"><div class="mem-list">
+              <div class="mem-item"><span class="mem-tag t-red">Weak</span><span class="mem-txt">Verb placement in subordinate clauses</span></div>
+              <div class="mem-item"><span class="mem-tag t-green">Strong</span><span class="mem-txt">Pronunciation of ch / sch sounds</span></div>
+              <div class="mem-item"><span class="mem-tag t-purple">Goal</span><span class="mem-txt">Goethe B1 exam · March 2026</span></div>
+            </div></div>
           </div>
         </div>
       </div>
@@ -155,401 +135,455 @@
   </div>
 </section>
 
-<!-- ========== TWO PHONES — Session + Score -->
-<section class="neo-sec snow" id="before-after" style="padding:80px 0;">
-  <div class="neo-inner" style="max-width:860px;margin:0 auto;padding:0 24px;">
-    <p class="neo-label rv" style="text-align:center;margin-bottom:10px;">The full loop</p>
-    <h2 class="neo-headline rv rv-d1" style="text-align:center;margin-bottom:14px;">Speak. Get scored.<br>Improve every session.</h2>
-    <p class="neo-body rv rv-d2" style="text-align:center;max-width:480px;margin:0 auto 56px;">Real evaluation after every conversation — vocabulary, grammar, fluency, task completion. Exactly how Goethe examiners think.</p>
-
-    <div class="rv rv-d3" style="display:flex;align-items:flex-end;justify-content:center;gap:32px;flex-wrap:wrap;">
-
-      <!-- LEFT PHONE — dark session -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
-        <div style="
-          width:220px;height:420px;
-          background:#111124;
-          border-radius:36px;
-          border:8px solid #1e1e3a;
-          box-shadow:0 40px 80px rgba(0,0,0,0.35),inset 0 0 0 1px rgba(255,255,255,0.06);
-          position:relative;overflow:hidden;
-          display:flex;flex-direction:column;
-        ">
-          <!-- notch -->
-          <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:80px;height:26px;background:#111124;border-radius:0 0 16px 16px;z-index:2;"></div>
-          <!-- screen content -->
-          <div style="padding:36px 16px 20px;display:flex;flex-direction:column;align-items:center;flex:1;gap:12px;">
-            <div style="display:flex;align-items:center;gap:6px;align-self:flex-end;">
-              <div style="width:6px;height:6px;border-radius:50%;background:#00f5a0;box-shadow:0 0 8px #00f5a0;"></div>
-              <span style="font-size:10px;color:rgba(255,255,255,0.3);">19:33</span>
-            </div>
-            <!-- orb -->
-            <div style="
-              width:80px;height:80px;border-radius:50%;
-              background:radial-gradient(circle at 35% 35%,rgba(0,245,160,0.6),rgba(0,200,120,0.2));
-              box-shadow:0 0 30px rgba(0,245,160,0.35);
-              margin:8px 0;
-            "></div>
-            <div style="font-size:10px;color:rgba(0,245,160,0.6);letter-spacing:0.12em;text-transform:uppercase;">AURA is speaking</div>
-            <!-- chat lines -->
-            <div style="width:100%;display:flex;flex-direction:column;gap:6px;margin-top:8px;">
-              <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:8px 10px;">
-                <div style="font-size:11px;color:rgba(255,255,255,0.5);font-style:italic;">Was darf es sein?</div>
-              </div>
-              <div style="background:rgba(123,97,255,0.15);border-radius:10px;padding:8px 10px;align-self:flex-end;max-width:90%;">
-                <div style="font-size:11px;color:rgba(255,255,255,0.75);">Einen Kaffee, bitte.</div>
-              </div>
-              <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:8px 10px;">
-                <div style="font-size:11px;color:rgba(0,245,160,0.7);">Perfekt! Sehr gut! ✦</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div style="font-size:13px;color:var(--mid);font-weight:500;">During the session</div>
-      </div>
-
-      <!-- ARROW -->
-      <div style="font-size:28px;color:var(--smoke);padding-bottom:48px;">→</div>
-
-      <!-- RIGHT PHONE — white score -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
-        <div style="
-          width:220px;height:420px;
-          background:#fff;
-          border-radius:36px;
-          border:8px solid #e8e8ed;
-          box-shadow:0 40px 80px rgba(0,0,0,0.12),inset 0 0 0 1px rgba(0,0,0,0.04);
-          position:relative;overflow:hidden;
-          display:flex;flex-direction:column;
-        ">
-          <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:80px;height:26px;background:#fff;border-radius:0 0 16px 16px;z-index:2;border-bottom:1px solid #f0f0f0;"></div>
-          <div style="padding:36px 16px 20px;display:flex;flex-direction:column;align-items:center;flex:1;gap:10px;">
-            <div style="font-size:10px;color:#6e6e73;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;">Session Complete</div>
-            <div style="font-size:15px;font-weight:600;color:#1d1d1f;letter-spacing:-0.02em;">At the Café</div>
-            <!-- ring -->
-            <div style="position:relative;width:90px;height:90px;">
-              <svg width="90" height="90" viewBox="0 0 90 90" style="transform:rotate(-90deg)">
-                <defs><linearGradient id="sg2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#0071e3"/><stop offset="100%" stop-color="#5ac8fa"/></linearGradient></defs>
-                <circle cx="45" cy="45" r="36" fill="none" stroke="#f0f0f5" stroke-width="7"/>
-                <circle cx="45" cy="45" r="36" fill="none" stroke="url(#sg2)" stroke-width="7" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="57"/>
-              </svg>
-              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-                <div style="font-size:22px;font-weight:700;color:#1d1d1f;line-height:1;">75</div>
-                <div style="font-size:10px;color:#6e6e73;">/100</div>
-              </div>
-            </div>
-            <!-- bars -->
-            <div style="width:100%;display:flex;flex-direction:column;gap:7px;">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:10px;color:#6e6e73;width:46px;">Vocab</span>
-                <div style="flex:1;height:4px;background:#f0f0f5;border-radius:2px;overflow:hidden;"><div style="width:82%;height:100%;background:linear-gradient(90deg,#0071e3,#5ac8fa);border-radius:2px;"></div></div>
-                <span style="font-size:10px;font-weight:600;color:#1d1d1f;">82</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:10px;color:#6e6e73;width:46px;">Grammar</span>
-                <div style="flex:1;height:4px;background:#f0f0f5;border-radius:2px;overflow:hidden;"><div style="width:68%;height:100%;background:linear-gradient(90deg,#0071e3,#5ac8fa);border-radius:2px;"></div></div>
-                <span style="font-size:10px;font-weight:600;color:#1d1d1f;">68</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:10px;color:#6e6e73;width:46px;">Fluency</span>
-                <div style="flex:1;height:4px;background:#f0f0f5;border-radius:2px;overflow:hidden;"><div style="width:75%;height:100%;background:linear-gradient(90deg,#0071e3,#5ac8fa);border-radius:2px;"></div></div>
-                <span style="font-size:10px;font-weight:600;color:#1d1d1f;">75</span>
-              </div>
-            </div>
-            <div style="font-size:11px;color:#6e6e73;text-align:center;line-height:1.5;margin-top:4px;">Work on article genders —<br><strong style="color:#1d1d1f;">der/die/das</strong></div>
-          </div>
-        </div>
-        <div style="font-size:13px;color:var(--mid);font-weight:500;">After the session</div>
-      </div>
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="how-inner">
+    <div class="how-header reveal">
+      <div class="eyebrow"><div class="eyebrow-line"></div>How it works</div>
+      <h2 class="sec-h2">Not an app.<br><em>A relationship.</em></h2>
+      <p class="sec-sub">AURA builds a model of you across every session — what you know, what you struggle with, where you're going.</p>
     </div>
-
-    <!-- CTA bridge -->
-    <div style="text-align:center;margin-top:52px;" class="rv rv-d4">
-      <a href="ai-partner-features.html" style="
-        display:inline-flex;align-items:center;gap:8px;
-        font-size:15px;font-weight:500;color:var(--blue);
-        text-decoration:none;
-        border-bottom:1px solid rgba(0,113,227,0.3);
-        padding-bottom:2px;
-      ">See all features →</a>
+    <div class="steps">
+      <div class="step reveal"><div class="step-num">01</div><div class="step-icon">🎯</div><div class="step-title">Set your goal</div><p class="step-body">Tell AURA what you're working toward — a job in Berlin, a Goethe exam, or just ordering coffee in Tokyo.</p></div>
+      <div class="step reveal" style="transition-delay:.1s"><div class="step-num">02</div><div class="step-icon">🗣</div><div class="step-title">Talk every day</div><p class="step-body">Speak naturally. AURA listens, responds, corrects — and explains everything in the language you already think in.</p></div>
+      <div class="step reveal" style="transition-delay:.2s"><div class="step-num">03</div><div class="step-icon">🧠</div><div class="step-title">AURA remembers</div><p class="step-body">Every session builds on the last. AURA tracks exactly where you stumble and focuses there — like a tutor who never forgets.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ========== HOW IT WORKS — 3 STEPS -->
-<section id="how-it-works">
-  <div class="hiw-wrap">
-    <div class="hiw-header rv">
-      <p class="neo-label">How it works</p>
-      <h2 class="hiw-title">Three steps to <em>real</em> fluency.</h2>
-      <p class="hiw-sub">No gamification. No grammar drills. Just real conversation — with instant, expert feedback.</p>
+<!-- LANGUAGES SECTION -->
+<section class="languages" id="languages">
+  <div class="languages-inner">
+    <div class="lang-left reveal">
+      <div class="eyebrow"><div class="eyebrow-line"></div>Languages</div>
+      <h2 class="lang-big-h">90+ languages.<br><em>Taught in yours.</em></h2>
+      <p class="lang-desc">Learn German in Gujarati. French in Hindi. Japanese in Arabic. Any combination. AURA explains in the language you already think in.</p>
     </div>
+    <div class="lang-right reveal" style="transition-delay:.15s">
+      <div class="lang-chips-grid">
+        <a href="/dashboard?lang=de" class="lc">🇩🇪 German</a>
+        <a href="/dashboard?lang=fr" class="lc">🇫🇷 French</a>
+        <a href="/dashboard?lang=ja" class="lc">🇯🇵 Japanese</a>
+        <a href="/dashboard?lang=es" class="lc">🇪🇸 Spanish</a>
+        <a href="/dashboard?lang=it" class="lc">🇮🇹 Italian</a>
+        <a href="/dashboard?lang=pt" class="lc">🇧🇷 Portuguese</a>
+        <a href="/dashboard?lang=ko" class="lc">🇰🇷 Korean</a>
+        <a href="/dashboard?lang=zh" class="lc">🇨🇳 Mandarin</a>
+        <a href="/dashboard?lang=ar" class="lc">🇸🇦 Arabic</a>
+        <a href="/dashboard?lang=ru" class="lc">🇷🇺 Russian</a>
+        <a href="/dashboard?lang=nl" class="lc">🇳🇱 Dutch</a>
+        <a href="/dashboard?lang=sv" class="lc">🇸🇪 Swedish</a>
+        <a href="/dashboard?lang=pl" class="lc">🇵🇱 Polish</a>
+        <a href="/dashboard?lang=tr" class="lc">🇹🇷 Turkish</a>
+        <a href="/dashboard?lang=el" class="lc">🇬🇷 Greek</a>
+        <span class="lc more">+ 75 more</span>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <div class="hiw-steps">
-
-      <!-- Step 1 -->
-      <div class="hiw-step rv rv-d1">
-        <div class="hiw-step-left">
-          <div class="hiw-num">01</div>
-          <div class="hiw-connector"></div>
+<!-- IPHONE MOCKUP SECTION — Memory Feature -->
+<section class="iphone-section">
+  <div class="iphone-section-inner">
+    <div class="iphone-text reveal">
+      <div class="eyebrow"><div class="eyebrow-line"></div>Mobile-first</div>
+      <h2 class="sec-h2">Your tutor,<br><em>in your pocket.</em></h2>
+      <p class="sec-sub" style="margin-bottom:32px">Pull out your phone during a commute. 15 minutes with AURA on the train beats an hour in a classroom. Every correction is remembered. Every session counts.</p>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted2)"><span style="font-size:20px">🎙</span>Voice-first — talk naturally, no typing required</div>
+        <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted2)"><span style="font-size:20px">🌍</span>Switch language mid-session — AURA adapts instantly</div>
+        <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted2)"><span style="font-size:20px">📱</span>Works on any device — no app install needed</div>
+      </div>
+    </div>
+    <div class="iphone-wrap reveal" style="transition-delay:.15s">
+      <!-- Floating stat card -->
+      <div class="iphone-float if-1">
+        <div class="if-title">B1 Progress</div>
+        <div style="margin-bottom:6px">
+          <div style="height:4px;background:var(--surface);border-radius:2px;overflow:hidden;width:140px"><div style="height:4px;width:68%;background:linear-gradient(90deg,#7c5cfc,#4f9eff);border-radius:2px"></div></div>
         </div>
-        <div class="hiw-step-right">
-          <div class="hiw-step-label">Speak freely</div>
-          <h3 class="hiw-step-headline">Just talk.<br>AURA listens.</h3>
-          <p class="hiw-step-body">No typing, no multiple choice. Open your mouth and say whatever comes to mind in German. AURA transcribes every word in real time with 99% accuracy — and responds naturally, just like a native speaker would.</p>
-          <div class="hiw-step-card">
-            <div class="hiw-card-tag"><span class="hiw-live-dot"></span> Live — recording</div>
-            <div class="hiw-wave">
-              <div class="hw" style="height:18px"></div><div class="hw" style="height:38px"></div><div class="hw" style="height:28px"></div><div class="hw" style="height:52px"></div><div class="hw" style="height:22px"></div><div class="hw" style="height:44px"></div><div class="hw" style="height:32px"></div><div class="hw" style="height:56px"></div><div class="hw" style="height:26px"></div><div class="hw" style="height:40px"></div><div class="hw" style="height:18px"></div><div class="hw" style="height:34px"></div>
+        <div class="if-row"><span style="color:var(--text);font-weight:600">68%</span><span style="margin-left:4px;color:var(--muted)">toward B1</span></div>
+      </div>
+      <!-- Floating teaching card -->
+      <div class="iphone-float if-2">
+        <div class="if-title">Teaching in</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span style="padding:3px 9px;border-radius:100px;font-size:10px;border:0.5px solid var(--border2);color:var(--muted2)">Gujarati</span>
+          <span style="padding:3px 9px;border-radius:100px;font-size:10px;border:0.5px solid var(--border2);color:var(--muted2)">Hindi</span>
+          <span style="padding:3px 9px;border-radius:100px;font-size:10px;border:0.5px solid var(--border2);color:var(--muted2)">Arabic</span>
+        </div>
+      </div>
+      <!-- iPhone -->
+      <div class="iphone">
+        <div class="iphone-notch"><div class="iphone-cam"></div><div class="iphone-pill"></div></div>
+        <div class="iphone-screen">
+          <div class="ip-header">
+            <div class="ip-who"><div class="ip-av">A</div><div><div class="ip-name">AURA</div><div class="ip-live">● Live session</div></div></div>
+            <div class="ip-user-av">J</div>
+          </div>
+          <div class="ip-msgs">
+            <div class="ip-msg ai"><div class="ip-lbl">AURA</div><div class="ip-bubble">Guten Morgen! Wie war dein Wochenende?</div></div>
+            <div class="ip-msg me"><div class="ip-lbl">YOU</div><div class="ip-bubble">Ich bin gegangen ins Kino.</div></div>
+            <div class="ip-msg ai">
+              <div class="ip-lbl">AURA</div>
+              <div class="ip-bubble">Almost! Small correction here.</div>
+              <div class="ip-err">✗ gegangen ins → ins Kino gegangen</div>
+              <div class="ip-exp"><div class="ip-exp-lbl">GUJARATI EXPLANATION</div>German ma verb always ane sentence na end ma aave chhe. "Ich bin ins Kino gegangen" correct chhe.</div>
             </div>
-            <p class="hiw-card-text">"Ich möchte bitte ein Kilo Äpfel und etwas Brot."</p>
-            <p class="hiw-card-tr">I'd like a kilo of apples and some bread, please.</p>
+            <div class="ip-msg me"><div class="ip-lbl">YOU</div><div class="ip-bubble">Oh! Ich bin ins Kino gegangen.</div></div>
+            <div class="ip-msg ai">
+              <div class="ip-lbl">AURA</div>
+              <div class="ip-bubble">Perfekt! That's exactly it.</div>
+              <div class="ip-teaching"><span class="ip-tag">Gujarati</span><span class="ip-tag">Hindi</span><span class="ip-tag">Tamil</span><span class="ip-tag">Arabic</span></div>
+            </div>
+          </div>
+          <div class="ip-input"><span>Speak or type...</span><div class="ip-stop">■</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES — GLASS SLIDER -->
+<section class="features" id="features">
+  <div class="features-header reveal">
+    <div class="eyebrow"><div class="eyebrow-line"></div>Features</div>
+    <h2 class="sec-h2">Built different.<br><em>On purpose.</em></h2>
+  </div>
+  <div class="features-track-wrap">
+    <div class="features-track" id="featTrack">
+      <!-- Card 1: Memory -->
+      <div class="feat-card">
+        <div class="feat-num">01 / 05</div>
+        <div class="feat-icon-wrap">🧠</div>
+        <div class="feat-title">Persistent memory across every session</div>
+        <p class="feat-body">AURA remembers your weak spots, your goals, and your history. Pick up exactly where you left off — every time.</p>
+        <div class="feat-visual">
+          <div class="fv-mem">
+            <div class="fv-row"><span class="fv-tag t-red">Weak</span><span class="fv-text">Dative case after "mit" and "bei"</span><span class="fv-time">Yesterday</span></div>
+            <div class="fv-row"><span class="fv-tag t-green">Strong</span><span class="fv-text">Present tense conjugations</span><span class="fv-time">3 days ago</span></div>
+            <div class="fv-row"><span class="fv-tag t-purple">Goal</span><span class="fv-text">Goethe B1 · March 2026</span><span class="fv-time">Active</span></div>
+            <div class="fv-row"><span class="fv-tag" style="background:rgba(91,163,255,.12);color:var(--blue)">Pattern</span><span class="fv-text">Confuses "seit" vs "vor"</span><span class="fv-time">Recurring</span></div>
           </div>
         </div>
       </div>
-
-      <!-- Step 2 -->
-      <div class="hiw-step rv rv-d2">
-        <div class="hiw-step-left">
-          <div class="hiw-num">02</div>
-          <div class="hiw-connector"></div>
-        </div>
-        <div class="hiw-step-right">
-          <div class="hiw-step-label">Get precision feedback</div>
-          <h3 class="hiw-step-headline">Know exactly<br>where to improve.</h3>
-          <p class="hiw-step-body">AURA scores your pronunciation, grammar, and vocabulary in real time. Every insight links directly to a micro-lesson — no guesswork, just clear, actionable progress you can feel.</p>
-          <div class="hiw-step-card">
-            <div class="hiw-card-tag">Feedback — instant</div>
-            <div class="hiw-feedback-rows">
-              <div class="hiw-fb-row">
-                <span class="hiw-fb-label">Pronunciation</span>
-                <div class="hiw-fb-bar"><div class="hiw-fb-fill" style="width:88%"></div></div>
-                <span class="hiw-fb-score">88</span>
-              </div>
-              <div class="hiw-fb-row">
-                <span class="hiw-fb-label">Grammar</span>
-                <div class="hiw-fb-bar"><div class="hiw-fb-fill" style="width:74%"></div></div>
-                <span class="hiw-fb-score">74</span>
-              </div>
-              <div class="hiw-fb-row">
-                <span class="hiw-fb-label">Vocabulary</span>
-                <div class="hiw-fb-bar"><div class="hiw-fb-fill" style="width:91%"></div></div>
-                <span class="hiw-fb-score">91</span>
-              </div>
-            </div>
-            <p class="hiw-fb-tip">💡 Try "Hätten Sie" instead of "Haben Sie" for polite requests.</p>
+      <!-- Card 2: CEFR -->
+      <div class="feat-card">
+        <div class="feat-num">02 / 05</div>
+        <div class="feat-icon-wrap">📊</div>
+        <div class="feat-title">Real-time CEFR progress across 5 dimensions</div>
+        <p class="feat-body">Not a streak counter. Actual proficiency scores across pronunciation, grammar, vocabulary, fluency, and listening.</p>
+        <div class="feat-visual">
+          <div class="fv-score">
+            <div class="fv-sr"><div class="fv-sl"><span>Pronunciation</span><span>82%</span></div><div class="fv-bar"><div class="fv-fill" style="width:82%;background:linear-gradient(90deg,#4ade80,#22c55e)"></div></div></div>
+            <div class="fv-sr"><div class="fv-sl"><span>Vocabulary</span><span>71%</span></div><div class="fv-bar"><div class="fv-fill" style="width:71%;background:linear-gradient(90deg,#7c5cfc,#4f9eff)"></div></div></div>
+            <div class="fv-sr"><div class="fv-sl"><span>Grammar</span><span>54%</span></div><div class="fv-bar"><div class="fv-fill" style="width:54%;background:linear-gradient(90deg,#fb923c,#f97316)"></div></div></div>
+            <div class="fv-sr"><div class="fv-sl"><span>Fluency</span><span>68%</span></div><div class="fv-bar"><div class="fv-fill" style="width:68%;background:linear-gradient(90deg,#7c5cfc,#4f9eff)"></div></div></div>
+            <div class="fv-sr"><div class="fv-sl"><span>Listening</span><span>77%</span></div><div class="fv-bar"><div class="fv-fill" style="width:77%;background:linear-gradient(90deg,#4ade80,#22c55e)"></div></div></div>
           </div>
         </div>
       </div>
-
-      <!-- Step 3 -->
-      <div class="hiw-step rv rv-d3">
-        <div class="hiw-step-left">
-          <div class="hiw-num">03</div>
-        </div>
-        <div class="hiw-step-right">
-          <div class="hiw-step-label">Track your fluency</div>
-          <h3 class="hiw-step-headline">Watch your<br>German level rise.</h3>
-          <p class="hiw-step-body">Your CEFR level updates live after every session. AURA adapts difficulty as you improve — so every session sits at the exact edge of your ability, maximising growth and keeping you engaged.</p>
-          <div class="hiw-step-card">
-            <div class="hiw-card-tag">Your progress</div>
-            <div class="hiw-level-display">
-              <div class="hiw-level-big">B1</div>
-              <div class="hiw-level-sub">Upper Intermediate — achieved in 6 weeks</div>
-            </div>
-            <div class="hiw-level-bars">
-              <div class="hiw-lb-row"><span class="hiw-lb-name">A1</span><div class="hiw-lb-bg"><div class="hiw-lb-fill" style="width:100%;background:var(--deep)"></div></div></div>
-              <div class="hiw-lb-row"><span class="hiw-lb-name">A2</span><div class="hiw-lb-bg"><div class="hiw-lb-fill" style="width:100%;background:var(--deep)"></div></div></div>
-              <div class="hiw-lb-row"><span class="hiw-lb-name">B1</span><div class="hiw-lb-bg"><div class="hiw-lb-fill" style="width:60%;background:var(--blue)"></div></div></div>
-              <div class="hiw-lb-row"><span class="hiw-lb-name">B2</span><div class="hiw-lb-bg"><div class="hiw-lb-fill" style="width:0%"></div></div></div>
+      <!-- Card 3: Exam -->
+      <div class="feat-card">
+        <div class="feat-num">03 / 05</div>
+        <div class="feat-icon-wrap">📝</div>
+        <div class="feat-title">Exam mode — train like an actual examiner</div>
+        <p class="feat-body">CEFR-aligned simulations for Goethe, DELF, and IELTS. AURA grades you and explains every deduction.</p>
+        <div class="feat-visual">
+          <div class="fv-exam">
+            <div class="fv-exam-hdr"><div class="fv-exam-badge">Goethe B1 Sim</div><div class="fv-timer">14:32</div></div>
+            <div class="fv-q">Choose the correct Konjunktiv II structure:</div>
+            <div class="fv-opts">
+              <div class="fv-opt">Wenn ich Zeit hatte, ich gehe ins Kino.</div>
+              <div class="fv-opt correct">✓ Wenn ich Zeit hätte, würde ich ins Kino gehen.</div>
+              <div class="fv-opt">Wenn ich hätte Zeit, gehen würde ich.</div>
             </div>
           </div>
-          <a href="#" onclick="enterSpeakingInterface();event.preventDefault();" class="btn-dark" style="margin-top:32px;display:inline-flex;">Start your first session →</a>
         </div>
       </div>
-
+      <!-- Card 4: Pronunciation -->
+      <div class="feat-card">
+        <div class="feat-num">04 / 05</div>
+        <div class="feat-icon-wrap">🎯</div>
+        <div class="feat-title">Pronunciation clinic — drill what you keep getting wrong</div>
+        <p class="feat-body">AURA identifies your recurring phoneme errors and drills them specifically. You don't have to guess which sounds to practice.</p>
+        <div class="feat-visual">
+          <div class="fv-pron">
+            <div class="fv-word">München</div>
+            <div class="fv-phoneme-row">
+              <div class="fv-ph" style="background:rgba(239,68,68,.1);color:var(--red)">M</div>
+              <div class="fv-ph" style="background:rgba(239,68,68,.1);color:var(--red)">ü</div>
+              <div class="fv-ph" style="background:rgba(74,222,128,.1);color:var(--green)">n</div>
+              <div class="fv-ph" style="background:rgba(239,68,68,.15);color:var(--red);border:1px solid var(--red)">ch</div>
+              <div class="fv-ph" style="background:rgba(74,222,128,.1);color:var(--green)">en</div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:4px">⚠ "ch" sound needs work</div>
+            <div class="fv-waverow">
+              <div class="fv-wb" style="--d:.4s;--h:8px;background:var(--purple);opacity:.6"></div>
+              <div class="fv-wb" style="--d:.6s;--h:18px;background:var(--purple)"></div>
+              <div class="fv-wb" style="--d:.3s;--h:24px;background:var(--purple)"></div>
+              <div class="fv-wb" style="--d:.5s;--h:16px;background:var(--purple)"></div>
+              <div class="fv-wb" style="--d:.7s;--h:28px;background:var(--purple)"></div>
+              <div class="fv-wb" style="--d:.4s;--h:20px;background:var(--purple)"></div>
+              <div class="fv-wb" style="--d:.6s;--h:14px;background:var(--purple)"></div>
+              <div class="fv-wb" style="--d:.35s;--h:8px;background:var(--purple);opacity:.6"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Card 5: Native language -->
+      <div class="feat-card">
+        <div class="feat-num">05 / 05</div>
+        <div class="feat-icon-wrap">🌍</div>
+        <div class="feat-title">Explanations in your native language</div>
+        <p class="feat-body">A tutor who explains German grammar in Gujarati. French vocabulary in Hindi. Any target language, any native language — simultaneously.</p>
+        <div class="feat-visual">
+          <div class="fv-mem" style="gap:9px">
+            <div style="font-size:11px;font-weight:500;color:var(--muted);padding:0 0 4px">Live session · Learning German</div>
+            <div class="fv-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+              <span style="font-size:12px;color:var(--text)">"Der Hund" — masculine noun</span>
+              <span style="font-size:11px;color:var(--purple);font-style:italic">Gujarati: "der" masculine article chhe — jevi rite Hindi ma "वह" hoy</span>
+            </div>
+            <div class="fv-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+              <span style="font-size:12px;color:var(--text)">"Ich bin gegangen" — Perfekt tense</span>
+              <span style="font-size:11px;color:var(--purple);font-style:italic">Hindi: यह past tense hai — "main gaya" jaisi structure</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slider-nav">
+    <button class="slider-btn" id="prevBtn">←</button>
+    <button class="slider-btn" id="nextBtn">→</button>
+    <div class="slider-dots" id="sliderDots">
+      <div class="s-dot active"></div>
+      <div class="s-dot"></div>
+      <div class="s-dot"></div>
+      <div class="s-dot"></div>
+      <div class="s-dot"></div>
     </div>
   </div>
 </section>
 
-<!-- ========== SCENARIOS -->
-<section id="scenarios">
-  <div style="max-width:1080px;margin:0 auto;">
-    <div style="text-align:center;">
-      <p class="neo-label rv">Real-world practice</p>
-      <h2 class="neo-headline rv rv-d1">Every situation.<br>Every dialect.</h2>
-      <p class="neo-body rv rv-d2">AURA drops you into real German life. Choose a scenario and start speaking — no scripts, just real conversation.</p>
+<!-- MODES -->
+<section class="modes" id="modes">
+  <div class="modes-inner">
+    <div class="modes-header reveal">
+      <div class="eyebrow" style="justify-content:center"><div class="eyebrow-line"></div>Four modes<div class="eyebrow-line"></div></div>
+      <h2 class="sec-h2" style="text-align:center">One tutor.<br><em>Every situation.</em></h2>
     </div>
-    <div class="sc-tabs rv rv-d2">
-      <button class="sc-chip sel" data-sc="restaurant">🍽️ Restaurant</button>
-      <button class="sc-chip" data-sc="job">💼 Job Interview</button>
-      <button class="sc-chip" data-sc="doctor">🏥 Doctor's Office</button>
-      <button class="sc-chip" data-sc="travel">🚂 Travel & Transit</button>
-      <button class="sc-chip" data-sc="smalltalk">☕ Small Talk</button>
-    </div>
-    <div class="sc-panel rv rv-d3">
-      <div class="sc-panel-left">
-        <div class="sc-badge"><div class="vm-live-dot"></div> Active scenario</div>
-        <div class="sc-title sc-title-el">Beim Restaurant</div>
-        <div class="sc-sub sc-sub-el">Ordering food, asking questions, paying the bill</div>
-        <div class="sc-sample">
-          <p class="sc-sample-el">"Entschuldigung, haben Sie noch einen Tisch frei? Wir sind zu dritt."</p>
-          <div class="tr sc-tr-el">Excuse me, do you still have a free table? We're a party of three.</div>
-        </div>
-        <a href="#" class="neo-link" style="margin-top:24px;">Start this scenario <span class="arr">→</span></a>
-      </div>
-      <div class="sc-panel-right sc-emoji-el">🍽️</div>
+    <div class="modes-grid">
+      <div class="mode-card reveal"><div class="mode-emoji">🗣</div><div class="mode-name">Free Conversation</div><p class="mode-desc">Talk about anything. AURA keeps up and corrects as you go.</p><div class="mode-tag" style="background:rgba(157,127,255,.1);border:0.5px solid rgba(157,127,255,.2);color:var(--purple)">Always on</div></div>
+      <div class="mode-card reveal" style="transition-delay:.1s"><div class="mode-emoji">🎭</div><div class="mode-name">Scenario Practice</div><p class="mode-desc">Supermarket, job interview, airport. AURA plays the other person.</p><div class="mode-tag" style="background:rgba(91,163,255,.1);border:0.5px solid rgba(91,163,255,.2);color:var(--blue)">Situational</div></div>
+      <div class="mode-card reveal" style="transition-delay:.2s"><div class="mode-emoji">📝</div><div class="mode-name">Exam Coach</div><p class="mode-desc">Timed, evaluated sessions aligned to Goethe, DELF, and IELTS.</p><div class="mode-tag" style="background:rgba(74,222,128,.1);border:0.5px solid rgba(74,222,128,.2);color:var(--green)">CEFR aligned</div></div>
+      <div class="mode-card reveal" style="transition-delay:.3s"><div class="mode-emoji">🎯</div><div class="mode-name">Pronunciation Clinic</div><p class="mode-desc">Targeted drilling on the sounds you keep getting wrong.</p><div class="mode-tag" style="background:rgba(251,146,60,.1);border:0.5px solid rgba(251,146,60,.2);color:var(--amber)">Precision</div></div>
     </div>
   </div>
 </section>
 
-<!-- ========== PRICING -->
-<section id="pricing">
-  <div style="max-width:1080px;margin:0 auto;text-align:center;">
-    <p class="neo-label rv">Planned pricing</p>
-    <h2 class="neo-headline rv rv-d1">Simple plans.<br>No surprises.</h2>
-    <p class="neo-body rv rv-d2" style="margin-bottom:0;">Early access members get a free month of Pro at launch. Join the waitlist above.</p>
-    <div class="pricing-toggle rv rv-d2">
-      <span class="toggle-label">Monthly</span>
-      <button class="toggle-track" id="billingToggle" aria-label="Toggle annual billing">
-        <div class="toggle-thumb"></div>
-      </button>
-      <span class="toggle-label">Annual</span>
-      <span class="toggle-save">Save 40%</span>
-    </div>
-    <div class="pricing-cards rv rv-d2">
-      <div class="price-card">
-        <div class="pc-plan">Free</div>
-        <div class="pc-price"><sup>€</sup>0<sub>/mo</sub></div>
-        <div class="pc-desc">Perfect for getting started</div>
-        <div class="pc-divider"></div>
-        <div class="pc-features">
-          <div class="pc-feat"><div class="pc-check">✓</div> 5 minutes speaking / day</div>
-          <div class="pc-feat"><div class="pc-check">✓</div> 3 real-world scenarios</div>
-          <div class="pc-feat"><div class="pc-check">✓</div> Basic pronunciation score</div>
-          <div class="pc-feat"><div class="pc-check">✓</div> CEFR level tracker</div>
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="pricing-inner">
+    <div class="pricing-header reveal">
+      <div class="eyebrow" style="justify-content:center"><div class="eyebrow-line"></div>Pricing<div class="eyebrow-line"></div></div>
+      <h2 class="sec-h2" style="text-align:center;margin-bottom:12px">Simple, honest pricing.</h2>
+      <p style="font-size:16px;color:var(--muted);text-align:center;margin-bottom:36px">More minutes than you'll ever need. Resets every day.</p>
+      <!-- Monthly / Annual toggle -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:56px">
+        <div style="display:flex;align-items:center;background:var(--surface);border:0.5px solid var(--border2);border-radius:100px;padding:4px;">
+          <button class="billing-toggle active" id="btnMonthly" onclick="setBilling('monthly')">Monthly</button>
+          <button class="billing-toggle" id="btnAnnual" onclick="setBilling('annual')">Annual <span style="padding:2px 8px;border-radius:100px;background:rgba(74,222,128,.15);color:var(--green);font-size:10px;font-weight:600;margin-left:4px">Save 20%</span></button>
         </div>
-        <button class="pc-btn outline">Get started free</button>
-      </div>
-      <div class="price-card pro">
-        <div class="pc-plan">Pro</div>
-        <div class="pc-price" id="priceDisplay"><sup>€</sup>14<sub>/mo</sub></div>
-        <div class="pc-desc" id="priceDesc">Billed monthly · cancel anytime</div>
-        <div class="pc-divider"></div>
-        <div class="pc-features">
-          <div class="pc-feat"><div class="pc-check">✓</div> Unlimited speaking sessions</div>
-          <div class="pc-feat"><div class="pc-check">✓</div> All 120+ scenarios</div>
-          <div class="pc-feat"><div class="pc-check">✓</div> Exam prep (B1, C1, TestDaF)</div>
-          <div class="pc-feat"><div class="pc-check">✓</div> Phoneme-level feedback</div>
-          <div class="pc-feat"><div class="pc-check">✓</div> Progress memory across sessions</div>
-          <div class="pc-feat"><div class="pc-check">✓</div> 12 dialect modes</div>
-        </div>
-        <button class="pc-btn solid">Start Pro — 7 days free</button>
-      </div>
-      <div class="price-card">
-        <div class="pc-plan">Teams</div>
-        <div class="pc-price"><sup>€</sup>9<sub>/user/mo</sub></div>
-        <div class="pc-desc">For companies sending staff to Germany</div>
-        <div class="pc-divider"></div>
-        <div class="pc-features">
-          <div class="pc-feat"><div class="pc-check">✓</div> Everything in Pro</div>
-          <div class="pc-feat"><div class="pc-check">✓</div> Team progress dashboard</div>
-          <div class="pc-feat"><div class="pc-check">✓</div> Custom scenario builder</div>
-          <div class="pc-feat"><div class="pc-check">✓</div> SSO & invoice billing</div>
-        </div>
-        <button class="pc-btn outline">Contact sales →</button>
       </div>
     </div>
-    <p class="pricing-note rv">Pricing finalised at launch. Join the waitlist for a free month of Pro.</p>
+
+    <div class="tiers">
+      <!-- FREE -->
+      <div class="tier reveal">
+        <div class="tier-label">Free</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px">
+          <div class="tier-price"><sup>₹</sup>0</div>
+          <span style="font-size:13px;color:var(--muted)">forever free</span>
+        </div>
+        <div class="tier-divider" style="margin-top:16px"></div>
+        <!-- Minutes block -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:22px;font-weight:700;color:var(--text)">10 min/day</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">regular days</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;opacity:.5">No power days</div>
+        </div>
+        <div class="tier-divider"></div>
+        <div class="tier-feats">
+          <div class="feat-row"><span class="feat-check">✓</span>10 min/day conversation</div>
+          <div class="feat-row"><span class="feat-check">✓</span>Basic German practice</div>
+          <div class="feat-row"><span class="feat-check">✓</span>Resets every 24 hours</div>
+          <div class="feat-row"><span class="feat-check">✓</span>1 account per number</div>
+          <div class="feat-row dim"><span class="feat-check">—</span>All CEFR levels</div>
+          <div class="feat-row dim"><span class="feat-check">—</span>Progress tracking</div>
+        </div>
+        <button class="tier-btn tier-btn-outline">Get started free</button>
+      </div>
+
+      <!-- BASIC -->
+      <div class="tier reveal" style="transition-delay:.1s">
+        <div class="tier-label">Basic</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px">
+          <div class="tier-price"><sup>₹</sup><span class="price-val" data-monthly="299" data-annual="239">299</span></div>
+          <span style="font-size:13px;color:var(--muted)">/&nbsp;mo</span>
+        </div>
+        <div class="tier-divider" style="margin-top:16px"></div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:22px;font-weight:700;color:var(--text)">60 min/day</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">regular days</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;opacity:.5">No power days</div>
+        </div>
+        <div class="tier-divider"></div>
+        <div class="tier-feats">
+          <div class="feat-row"><span class="feat-check">✓</span>60 min/day conversation</div>
+          <div class="feat-row"><span class="feat-check">✓</span>All CEFR levels</div>
+          <div class="feat-row"><span class="feat-check">✓</span>Progress tracking</div>
+          <div class="feat-row dim"><span class="feat-check">—</span>No power days</div>
+          <div class="feat-row dim"><span class="feat-check">—</span>Mock tests & scoring</div>
+          <div class="feat-row dim"><span class="feat-check">—</span>Exam prep mode</div>
+        </div>
+        <button class="tier-btn tier-btn-outline">Start Basic</button>
+      </div>
+
+      <!-- PRO (featured) -->
+      <div class="tier featured reveal" style="transition-delay:.2s">
+        <div class="popular-badge">Most popular</div>
+        <div class="tier-label">Pro</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px">
+          <div class="tier-price"><sup>₹</sup><span class="price-val" data-monthly="599" data-annual="479">599</span></div>
+          <span style="font-size:13px;color:var(--muted)">/&nbsp;mo</span>
+        </div>
+        <div class="tier-divider" style="margin-top:16px"></div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:22px;font-weight:700;color:var(--text)">120 min/day</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">regular days</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+            <div style="font-size:18px;font-weight:700;color:var(--purple)">180 min/day</div>
+            <span style="padding:2px 8px;border-radius:100px;background:rgba(157,127,255,.15);border:0.5px solid rgba(157,127,255,.3);font-size:10px;color:var(--purple);font-weight:500">Power days</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">Mon &amp; Thu</div>
+        </div>
+        <div class="tier-divider"></div>
+        <div class="tier-feats">
+          <div class="feat-row"><span class="feat-check">✓</span>120 min/day conversation</div>
+          <div class="feat-row"><span class="feat-check">✓</span>180 min on power days</div>
+          <div class="feat-row"><span class="feat-check">✓</span>All CEFR levels</div>
+          <div class="feat-row"><span class="feat-check">✓</span>Mock tests &amp; scoring</div>
+          <div class="feat-row"><span class="feat-check">✓</span>Priority support</div>
+          <div class="feat-row dim"><span class="feat-check">—</span>Exam prep mode</div>
+        </div>
+        <button class="tier-btn tier-btn-fill">Start Pro</button>
+      </div>
+
+      <!-- FLUENT -->
+      <div class="tier reveal" style="transition-delay:.3s">
+        <div class="tier-label">Fluent</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px">
+          <div class="tier-price"><sup>₹</sup><span class="price-val" data-monthly="999" data-annual="799">999</span></div>
+          <span style="font-size:13px;color:var(--muted)">/&nbsp;mo</span>
+        </div>
+        <div class="tier-divider" style="margin-top:16px"></div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:22px;font-weight:700;color:var(--text)">240 min/day</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">regular days</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+            <div style="font-size:18px;font-weight:700;color:var(--purple)">300 min/day</div>
+            <span style="padding:2px 8px;border-radius:100px;background:rgba(157,127,255,.15);border:0.5px solid rgba(157,127,255,.3);font-size:10px;color:var(--purple);font-weight:500">Power days</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">Mon &amp; Thu</div>
+        </div>
+        <div class="tier-divider"></div>
+        <div class="tier-feats">
+          <div class="feat-row"><span class="feat-check">✓</span>240 min/day conversation</div>
+          <div class="feat-row"><span class="feat-check">✓</span>300 min on power days</div>
+          <div class="feat-row"><span class="feat-check">✓</span>All CEFR levels</div>
+          <div class="feat-row"><span class="feat-check">✓</span>Mock tests &amp; scoring</div>
+          <div class="feat-row"><span class="feat-check">✓</span>Exam prep mode</div>
+          <div class="feat-row"><span class="feat-check">✓</span>Pronunciation clinic</div>
+        </div>
+        <button class="tier-btn tier-btn-outline">Start Fluent</button>
+      </div>
+    </div>
+
+    <!-- Footnote -->
+    <div style="text-align:center;margin-top:40px;font-size:12px;color:var(--muted);line-height:1.8">
+      One account per mobile number · Resets every 24 hours<br>
+      Power days every Monday &amp; Thursday for Pro and Fluent
+    </div>
   </div>
 </section>
 
-<!-- ========== FINAL CTA -->
-<section id="cta-final">
-  <div class="cta-orb rv">
-    <svg class="aura-logo-svg flower-logo flower-logo-white" width="64" height="64" viewBox="0 0 64 64">
-      <path class="logo-ring r1"/>
-      <path class="logo-ring r2"/>
-      <path class="logo-ring r3"/>
-      <path class="logo-ring r4"/>
-      <path class="logo-ring r5"/>
-      <circle class="center-dot" cx="32" cy="32" r="5"/>
-    </svg>
-  </div>
-  <h2 class="cta-headline rv rv-d1">Your German<br>starts <span>here</span>.</h2>
-  <p class="cta-sub rv rv-d2">AURA is launching soon. Get on the waitlist now and be the first to speak German the way it's meant to be learned.</p>
-  <div class="cta-actions rv rv-d3">
-    <a href="#" onclick="enterSpeakingInterface();event.preventDefault();" class="btn-white">Start speaking now →</a>
-    <a href="#demo-section" class="btn-outline-white">Try the demo first</a>
-  </div>
-  <div class="cta-trust rv rv-d4">
-    <span class="cta-trust-item">✓ Free month of Pro at launch</span>
-    <span class="cta-trust-item">✓ No credit card needed</span>
-    <span class="cta-trust-item">✓ Cancel anytime</span>
-    <span class="cta-trust-item">✓ GDPR compliant</span>
+<!-- B2B -->
+<section class="b2b" id="institutions">
+  <div class="b2b-inner">
+    <div class="reveal">
+      <div class="eyebrow"><div class="eyebrow-line"></div>For institutions</div>
+      <h2 class="b2b-h2">Scale what a great teacher<br><em>can't do alone.</em></h2>
+      <p class="b2b-body">Language schools and corporations can deploy AURA to hundreds of students simultaneously — with full visibility into each learner's progress, gaps, and exam readiness.</p>
+      <div class="b2b-points">
+        <div class="b2b-point"><span style="font-size:16px">📊</span>Teacher dashboard with per-student analytics and cohort comparisons</div>
+        <div class="b2b-point"><span style="font-size:16px">🎓</span>Curriculum alignment to your existing course structure</div>
+        <div class="b2b-point"><span style="font-size:16px">🏢</span>Custom branding and white-label options for enterprise</div>
+        <div class="b2b-point"><span style="font-size:16px">📦</span>Bulk licensing with consolidated invoicing</div>
+      </div>
+      <button class="b2b-cta">Talk to us about institutions →</button>
+    </div>
+    <div class="b2b-visual reveal" style="transition-delay:.15s">
+      <div class="b2b-card">
+        <div class="b2b-card-header"><div class="b2b-card-title">Cohort — B1 German · Spring 2026</div><div style="padding:3px 10px;border-radius:100px;font-size:10px;background:rgba(74,222,128,.1);color:var(--green);border:0.5px solid rgba(74,222,128,.2)">24 students</div></div>
+        <div class="mini-bar-list">
+          <div class="mini-bar-row"><span class="mini-name">Aria K.</span><div class="mini-track"><div class="mini-fill" style="width:88%;background:linear-gradient(90deg,#4ade80,#22c55e)"></div></div><span class="mini-pct">88%</span></div>
+          <div class="mini-bar-row"><span class="mini-name">Marco T.</span><div class="mini-track"><div class="mini-fill" style="width:74%;background:linear-gradient(90deg,#7c5cfc,#4f9eff)"></div></div><span class="mini-pct">74%</span></div>
+          <div class="mini-bar-row"><span class="mini-name">Priya S.</span><div class="mini-track"><div class="mini-fill" style="width:61%;background:linear-gradient(90deg,#7c5cfc,#4f9eff)"></div></div><span class="mini-pct">61%</span></div>
+          <div class="mini-bar-row"><span class="mini-name">James L.</span><div class="mini-track"><div class="mini-fill" style="width:42%;background:linear-gradient(90deg,#fb923c,#f97316)"></div></div><span class="mini-pct">42%</span></div>
+        </div>
+      </div>
+      <div class="b2b-card">
+        <div class="b2b-card-header"><div class="b2b-card-title">Weekly usage · All students</div><div style="font-size:11px;color:var(--muted)">This week</div></div>
+        <div style="display:flex;gap:8px;align-items:flex-end;height:60px">
+          <div style="flex:1;background:rgba(107,70,255,.25);border-radius:4px 4px 0 0;height:45%"></div>
+          <div style="flex:1;background:rgba(107,70,255,.35);border-radius:4px 4px 0 0;height:60%"></div>
+          <div style="flex:1;background:rgba(107,70,255,.5);border-radius:4px 4px 0 0;height:80%"></div>
+          <div style="flex:1;background:rgba(107,70,255,.65);border-radius:4px 4px 0 0;height:100%"></div>
+          <div style="flex:1;background:rgba(107,70,255,.5);border-radius:4px 4px 0 0;height:75%"></div>
+          <div style="flex:1;background:rgba(107,70,255,.3);border-radius:4px 4px 0 0;height:50%"></div>
+          <div style="flex:1;background:var(--surface);border-radius:4px 4px 0 0;height:20%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;color:var(--muted)"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- ========== FOOTER -->
-<footer id="footer">
+<!-- CLOSING CTA -->
+<section class="closing">
+  <div class="closing-orb"></div>
+  <div class="reveal">
+    <div class="closing-eyebrow"><div class="eyebrow-line"></div>Get started today<div class="eyebrow-line"></div></div>
+    <h2 class="closing-h">Your tutor is<br><em>waiting.</em></h2>
+    <p class="closing-sub">10 minutes a day. In any language. Starting now. No credit card, no download, no excuses.</p>
+    <div class="closing-ctas">
+      <button class="cta-big">Start for free</button>
+      <button class="cta-big-ghost">Talk to us →</button>
+    </div>
+    <p class="closing-note">Free plan available · No credit card required · Cancel anytime</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
   <div class="footer-inner">
     <div class="footer-top">
-      <div>
-        <div class="footer-brand">
-          <svg class="aura-logo-svg flower-logo flower-logo-white" width="20" height="20" viewBox="0 0 20 20">
-            <path class="logo-ring r1"/>
-            <path class="logo-ring r2"/>
-            <path class="logo-ring r3"/>
-            <path class="logo-ring r4"/>
-            <path class="logo-ring r5"/>
-            <circle class="center-dot" cx="10" cy="10" r="1.6"/>
-          </svg>
-          <span class="footer-brand-name">AURA</span>
-        </div>
-        <p class="footer-brand-tagline">Speak German. Naturally.<br>AI language coaching for the real world.</p>
-      </div>
-      <div>
-        <div class="footer-col-title">Product</div>
-        <div class="footer-links">
-          <a href="#">How it works</a>
-          <a href="#">Scenarios</a>
-          <a href="#">Exam prep</a>
-          <a href="#">Pricing</a>
-          <a href="#">Download app</a>
-        </div>
-      </div>
-      <div>
-        <div class="footer-col-title">Resources</div>
-        <div class="footer-links">
-          <a href="#">German grammar guide</a>
-          <a href="#">Pronunciation tips</a>
-          <a href="#">CEFR levels explained</a>
-          <a href="#">Blog</a>
-          <a href="#">Community</a>
-        </div>
-      </div>
-      <div>
-        <div class="footer-col-title">Company</div>
-        <div class="footer-links">
-          <a href="#">About</a>
-          <a href="#">Careers</a>
-          <a href="#">Press</a>
-          <a href="#">Contact</a>
-          <a href="#">Partners</a>
-        </div>
-      </div>
+      <div><div class="footer-logo">AURA</div><p class="footer-tagline">Immersive Language Intelligence. A private tutor that never forgets you — in 90+ languages, at ₹299 a month.</p></div>
+      <div><div class="footer-col-title">Product</div><div class="footer-links"><a href="#">How it works</a><a href="#">Features</a><a href="#">Pricing</a><a href="#">Exam modes</a></div></div>
+      <div><div class="footer-col-title">Company</div><div class="footer-links"><a href="#">About</a><a href="#">German Made Easy</a><a href="#">Institutions</a><a href="#">Contact</a></div></div>
+      <div><div class="footer-col-title">Legal</div><div class="footer-links"><a href="#">Privacy policy</a><a href="#">Terms of service</a><a href="#">Cookie policy</a><a href="#">Refund policy</a></div></div>
     </div>
-    <div class="footer-bottom">
-      <span class="footer-copy">© <script>document.write(new Date().getFullYear())</script> AURA Language Ltd. All rights reserved.</span>
-      <div class="footer-legal">
-        <a href="#">Privacy</a>
-        <a href="#">Terms</a>
-        <a href="#">Cookies</a>
-        <a href="#">Imprint</a>
-      </div>
-    </div>
+    <div class="footer-bottom"><span>© 2026 AURA · German Made Easy. All rights reserved.</span><span>auraspeak.in</span></div>
   </div>
 </footer>
-
-</div><!-- /homepage -->
-</div><!-- /page-home -->
