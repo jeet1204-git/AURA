@@ -1,513 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AURA — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 
-<!-- ══════════════════════════════════════════════════════════
-     PHASE 6 — UPGRADE MODAL
-     Shown when free session limit is reached.
-════════════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="upgrade-modal">
-  <div class="modal-sheet">
-    <div class="trial-badge-pill">✦ Free Sessions Used</div>
-    <h2>You've hit your free limit.</h2>
-    <p id="upgrade-modal-body">You've used all <strong>3 free sessions</strong> this month. Upgrade to Pro for unlimited AURA conversations, full memory, and exam prep.</p>
-    <div class="modal-btns" style="margin-top:24px; display:flex; flex-direction:column; gap:10px;">
-      <a href="/#courses" class="mbtn-dark" style="text-decoration:none;display:inline-flex;justify-content:center;">Unlock Full Access →</a>
-      <button onclick="document.getElementById('upgrade-modal').classList.remove('open')" style="background:none;border:none;color:rgba(255,255,255,0.35);font-size:13px;cursor:pointer;font-family:var(--f);padding:8px;">Maybe later</button>
+/* ── TOKENS (exact same as landing) ── */
+:root {
+  --bg:#050508; --bg2:#0a0a10; --bg3:#0f0f18;
+  --surface:#13131e; --surface2:#1a1a28;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
+  --text:#e8e8f2; --muted:rgba(232,232,242,0.38); --muted2:rgba(232,232,242,0.58);
+  --purple:#9d7fff; --blue:#5ba3ff; --green:#4ade80; --amber:#fb923c; --red:#f87171;
+  --grad:linear-gradient(135deg,#9d7fff,#5ba3ff);
+  --grad2:linear-gradient(135deg,#7c5cfc,#4b8ef0);
+  --inp-bg:rgba(255,255,255,0.04); --inp-border:rgba(255,255,255,0.09);
+  --chat-ai-bg:#16162a; --chat-ai-color:rgba(255,255,255,0.82);
+  --sb-bg:#0c0c16; --grid-color:rgba(255,255,255,0.025);
+  --scrollbar-thumb:#1a1a28;
+  --glass:rgba(255,255,255,0.04); --glass-border:rgba(255,255,255,0.09);
+}
+[data-theme="light"] {
+  --bg:#fafafa; --bg2:#f4f4f1; --bg3:#ededea;
+  --surface:#e8e8e4; --surface2:#e0e0db;
+  --border:rgba(0,0,0,0.08); --border2:rgba(0,0,0,0.14);
+  --text:#1a1a1a; --muted:rgba(26,26,26,0.42); --muted2:rgba(26,26,26,0.65);
+  --purple:#6b46ff; --blue:#2563eb; --green:#16a34a; --amber:#d97706; --red:#dc2626;
+  --grad:linear-gradient(135deg,#6b46ff,#2563eb);
+  --grad2:linear-gradient(135deg,#5b35e8,#1d4ed8);
+  --inp-bg:rgba(0,0,0,0.03); --inp-border:rgba(0,0,0,0.1);
+  --chat-ai-bg:#efefef; --chat-ai-color:rgba(26,26,26,0.85);
+  --sb-bg:#f0f0ed; --grid-color:rgba(0,0,0,0.04);
+  --scrollbar-thumb:#d0d0cc;
+  --glass:rgba(255,255,255,0.7); --glass-border:rgba(0,0,0,0.1);
+}
+
+html{scroll-behavior:smooth;height:100%;}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:'Inter',sans-serif; font-weight:400;
+  overflow:hidden; height:100vh;
+  -webkit-font-smoothing:antialiased;
+  cursor:none;
+}
+*{transition:background-color .25s ease,border-color .25s ease,color .15s ease;}
+.no-trans,.wave span,.status-dot,.badge-pulse,.cursor-dot,.cursor-ring{transition:none!important;}
+a{text-decoration:none;color:inherit;}
+button{cursor:none;font-family:'Inter',sans-serif;}
+
+/* ── CUSTOM CURSOR ── */
+.cursor-dot{
+  position:fixed;width:6px;height:6px;border-radius:50%;
+  background:var(--purple);pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);
+}
+.cursor-ring{
+  position:fixed;width:32px;height:32px;border-radius:50%;
+  border:1.5px solid rgba(157,127,255,0.5);pointer-events:none;z-index:9998;
+  transform:translate(-50%,-50%);
+  transition:width .2s ease,height .2s ease,opacity .2s ease,border-color .2s ease!important;
+}
+.cursor-ring.hover{width:48px;height:48px;border-color:var(--purple);}
+.cursor-ring.click{width:20px;height:20px;opacity:.6;}
+body *{cursor:none!important;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:2px;}
+
+/* ── NOISE OVERLAY ── */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity:.4;
+}
+
+/* ── LAYOUT ── */
+.app{
+  display:grid;
+  grid-template-columns:220px 1fr 288px;
+  height:100vh;
+  position:relative;
+  z-index:1;
+}
+
+/* ─────────────────────────────────────────
+   SIDEBAR
+───────────────────────────────────────── */
+.sidebar{
+  background:var(--sb-bg);
+  border-right:0.5px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.sb-top{
+  padding:20px 16px 16px;
+  border-bottom:0.5px solid var(--border);
+}
+
+.sb-logo-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;
+}
+.sb-logo{
+  font-size:19px;font-weight:700;letter-spacing:-.3px;
+  color:var(--text);
+}
+.sb-logo span{
+  background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+
+.theme-toggle{
+  width:28px;height:28px;border-radius:50%;
+  background:transparent;border:0.5px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--muted2);
+}
+.theme-toggle:hover{background:var(--surface);}
+
+.sb-user{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:10px;
+  background:var(--surface);
+  border:0.5px solid var(--border);
+}
+.sb-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--grad2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:#fff;font-weight:600;flex-shrink:0;
+}
+.sb-user-name{font-size:12.5px;font-weight:500;color:var(--text);line-height:1.2;}
+.sb-user-sub{font-size:10.5px;color:var(--muted);}
+
+.sb-nav{flex:1;padding:12px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
+
+.sb-section-label{
+  padding:10px 10px 5px;
+  font-size:9px;font-weight:500;letter-spacing:.7px;
+  text-transform:uppercase;color:var(--muted);
+}
+
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:8px;
+  font-size:12.5px;color:var(--muted2);
+  background:transparent;border:none;width:100%;text-align:left;
+  position:relative;
+  transition:background .15s,color .15s!important;
+}
+.nav-item:hover{background:var(--surface);color:var(--text);}
+.nav-item.active{
+  background:rgba(157,127,255,.12);
+  color:var(--purple);
+}
+.nav-item.active::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:18px;border-radius:0 2px 2px 0;
+  background:var(--purple);
+}
+.nav-icon{
+  width:18px;height:18px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+}
+.nav-badge{
+  margin-left:auto;
+  padding:2px 7px;border-radius:100px;
+  font-size:9px;font-weight:500;
+  background:rgba(157,127,255,.18);color:var(--purple);
+}
+.nav-badge.red{background:rgba(248,113,113,.15);color:var(--red);}
+.nav-badge.green{background:rgba(74,222,128,.12);color:var(--green);}
+
+/* Lang indicator in nav */
+.sb-current-lang{
+  margin:8px 8px;padding:10px 12px;
+  border-radius:10px;border:0.5px solid var(--border);
+  background:var(--surface);
+}
+.scl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.scl-label{font-size:9px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);}
+.scl-flag{font-size:16px;}
+.scl-name{font-size:13px;font-weight:600;color:var(--text);}
+.scl-level{font-size:10.5px;color:var(--muted);margin-bottom:6px;}
+.scl-bar{height:3px;background:var(--border2);border-radius:2px;overflow:hidden;}
+.scl-fill{height:3px;border-radius:2px;background:var(--grad);width:68%;}
+
+/* Bottom CTA */
+.sb-bottom{padding:14px 10px;}
+.live-session-btn{
+  width:100%;padding:13px 16px;border-radius:12px;
+  background:var(--grad2);border:none;
+  display:flex;align-items:center;gap:10px;
+  font-size:13px;font-weight:500;color:#fff;
+  position:relative;overflow:hidden;
+  transition:opacity .2s,transform .15s!important;
+}
+.live-session-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.08),transparent);
+}
+.live-session-btn:hover{opacity:.92;transform:translateY(-1px);}
+.live-btn-icon{
+  width:28px;height:28px;border-radius:8px;
+  background:rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;flex-shrink:0;
+}
+.live-btn-text{flex:1;text-align:left;}
+.live-btn-title{font-size:12.5px;font-weight:600;line-height:1;}
+.live-btn-sub{font-size:10px;opacity:.7;margin-top:2px;}
+.live-pulse{
+  width:8px;height:8px;border-radius:50%;
+  background:#fff;opacity:.9;
+  animation:livePulse 2s ease-in-out infinite;
+  flex-shrink:0;
+}
+@keyframes livePulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5);}
+  50%{box-shadow:0 0 0 5px rgba(255,255,255,0);}
+}
+
+/* ─────────────────────────────────────────
+   CENTER — MAIN SESSION
+───────────────────────────────────────── */
+.main{
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  overflow:hidden;
+}
+
+/* Top bar */
+.main-topbar{
+  padding:14px 24px;
+  border-bottom:0.5px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.session-status{
+  display:flex;align-items:center;gap:7px;
+  padding:5px 12px;border-radius:100px;
+  background:rgba(74,222,128,.08);
+  border:0.5px solid rgba(74,222,128,.2);
+  font-size:11.5px;color:var(--green);
+}
+.status-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--green);
+  animation:blink 1.5s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+.session-timer{
+  font-size:12px;color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.tb-btn{
+  padding:6px 14px;border-radius:100px;
+  background:transparent;border:0.5px solid var(--border2);
+  font-size:11.5px;color:var(--muted2);
+  display:flex;align-items:center;gap:6px;
+  transition:all .15s!important;
+}
+.tb-btn:hover{background:var(--surface);color:var(--text);}
+.tb-btn.end{border-color:rgba(248,113,113,.3);color:var(--red);}
+.tb-btn.end:hover{background:rgba(248,113,113,.08);}
+
+/* Voice area */
+.voice-zone{
+  padding:20px 24px 16px;
+  border-bottom:0.5px solid var(--border);
+  display:flex;align-items:center;gap:16px;
+  flex-shrink:0;
+  background:var(--bg2);
+}
+.aura-orb-wrap{
+  position:relative;flex-shrink:0;
+}
+.aura-orb{
+  width:52px;height:52px;border-radius:50%;
+  background:var(--grad2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;color:#fff;font-weight:700;
+  position:relative;z-index:1;
+  box-shadow:0 0 0 0 rgba(124,92,252,.4);
+}
+.aura-orb.speaking{
+  animation:orbPulse 1.8s ease-in-out infinite;
+}
+@keyframes orbPulse{
+  0%{box-shadow:0 0 0 0 rgba(124,92,252,.5);}
+  70%{box-shadow:0 0 0 14px rgba(124,92,252,0);}
+  100%{box-shadow:0 0 0 0 rgba(124,92,252,0);}
+}
+.orb-ring{
+  position:absolute;inset:-4px;border-radius:50%;
+  border:1px solid rgba(157,127,255,.25);
+  animation:orbRing 2.5s ease-in-out infinite;
+}
+@keyframes orbRing{0%,100%{opacity:.4;transform:scale(1);}50%{opacity:.8;transform:scale(1.05);}}
+
+.waveform-area{flex:1;}
+.wf-label{font-size:10px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.waveform{
+  display:flex;align-items:center;gap:2.5px;height:36px;
+}
+.wf-bar{
+  width:3px;border-radius:3px;
+  background:linear-gradient(180deg,var(--purple),var(--blue));
+  animation:wfAnim var(--d,1.2s) ease-in-out infinite alternate;
+  opacity:.7;
+}
+.wf-bar.active{opacity:1;}
+@keyframes wfAnim{from{height:3px}to{height:var(--h,18px)}}
+
+.voice-controls{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.vc-btn{
+  width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;border:0.5px solid var(--border2);
+  background:var(--surface);color:var(--muted2);
+  transition:all .15s!important;
+}
+.vc-btn:hover{background:var(--surface2);color:var(--text);}
+.vc-btn.mic-active{
+  background:rgba(157,127,255,.15);
+  border-color:rgba(157,127,255,.4);
+  color:var(--purple);
+}
+.vc-btn.mic-active .vc-icon{animation:micWiggle .3s ease-in-out 2;}
+@keyframes micWiggle{0%,100%{transform:rotate(0)}50%{transform:rotate(-8deg)}}
+
+.lang-switcher{
+  display:flex;gap:4px;flex-shrink:0;
+}
+.ls-btn{
+  padding:4px 10px;border-radius:100px;
+  font-size:10.5px;font-weight:500;
+  background:var(--surface);border:0.5px solid var(--border);
+  color:var(--muted2);
+  transition:all .15s!important;
+}
+.ls-btn.active{
+  background:rgba(157,127,255,.14);
+  border-color:rgba(157,127,255,.35);
+  color:var(--purple);
+}
+
+/* Chat messages */
+.messages-wrap{
+  flex:1;overflow-y:auto;
+  padding:20px 24px;
+  display:flex;flex-direction:column;
+  gap:14px;
+}
+
+.msg{display:flex;flex-direction:column;gap:5px;}
+.msg.ai{align-self:flex-start;max-width:82%;}
+.msg.me{align-self:flex-end;max-width:75%;}
+.msg-label{font-size:9px;font-weight:500;letter-spacing:.45px;color:var(--muted);text-transform:uppercase;}
+.msg.me .msg-label{text-align:right;}
+
+.bubble{padding:11px 15px;border-radius:14px;font-size:13.5px;line-height:1.58;color:var(--text);}
+.msg.ai .bubble{
+  background:var(--chat-ai-bg);
+  color:var(--chat-ai-color);
+  border-radius:3px 14px 14px 14px;
+}
+.msg.me .bubble{
+  background:var(--grad2);
+  color:#fff;
+  border-radius:14px 3px 14px 14px;
+}
+
+/* Inline correction blocks */
+.correction-block{
+  margin-top:6px;
+  padding:9px 13px;border-radius:9px;
+  background:rgba(248,113,113,.06);
+  border-left:2.5px solid rgba(248,113,113,.4);
+  font-size:12px;color:var(--red);
+  line-height:1.5;font-family:monospace;
+}
+.correction-label{
+  font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  color:rgba(248,113,113,.6);margin-bottom:4px;font-family:'Inter',sans-serif;
+}
+
+.explanation-block{
+  margin-top:6px;
+  padding:9px 13px;border-radius:9px;
+  background:rgba(157,127,255,.06);
+  border-left:2.5px solid rgba(157,127,255,.35);
+  font-size:12px;color:var(--purple);
+  line-height:1.5;
+}
+.explanation-label{
+  font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  color:rgba(157,127,255,.6);margin-bottom:4px;
+}
+
+/* Typing indicator */
+.typing-indicator{
+  display:flex;align-items:center;gap:4px;
+  padding:11px 15px;border-radius:3px 14px 14px 14px;
+  background:var(--chat-ai-bg);width:fit-content;
+}
+.typing-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--muted2);
+  animation:typingBounce .8s ease-in-out infinite;
+}
+.typing-dot:nth-child(2){animation-delay:.15s;}
+.typing-dot:nth-child(3){animation-delay:.3s;}
+@keyframes typingBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+
+/* Suggestion chips */
+.suggestions{
+  display:flex;gap:7px;flex-wrap:wrap;padding:0 24px 12px;flex-shrink:0;
+}
+.sug-chip{
+  padding:6px 13px;border-radius:100px;
+  font-size:12px;color:var(--muted2);
+  background:var(--surface);border:0.5px solid var(--border);
+  transition:all .15s!important;
+}
+.sug-chip:hover{border-color:var(--border2);color:var(--text);}
+
+/* Input bar */
+.input-bar{
+  padding:14px 20px;
+  border-top:0.5px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+  flex-shrink:0;
+  background:var(--bg2);
+}
+.chat-input{
+  flex:1;padding:11px 16px;
+  font-size:13px;font-family:'Inter',sans-serif;
+  background:var(--inp-bg);border:0.5px solid var(--inp-border);
+  border-radius:100px;color:var(--text);outline:none;
+  transition:border-color .2s!important;
+}
+.chat-input:focus{border-color:rgba(157,127,255,.4);}
+.chat-input::placeholder{color:var(--muted);}
+
+.send-btn{
+  width:38px;height:38px;border-radius:50%;
+  background:var(--grad2);border:none;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:#fff;flex-shrink:0;
+  transition:opacity .2s,transform .15s!important;
+}
+.send-btn:hover{opacity:.85;transform:scale(1.05);}
+.send-btn:disabled{opacity:.3;transform:none;}
+
+/* ─────────────────────────────────────────
+   RIGHT PANEL
+───────────────────────────────────────── */
+.right-panel{
+  background:var(--sb-bg);
+  border-left:0.5px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+.rp-header{
+  padding:16px 18px;
+  border-bottom:0.5px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.rp-title{font-size:12px;font-weight:600;color:var(--text);}
+.rp-sub{font-size:10.5px;color:var(--muted);margin-top:1px;}
+
+.rp-scroll{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px;}
+
+/* Cards */
+.rp-card{
+  background:var(--surface);
+  border:0.5px solid var(--border);
+  border-radius:14px;
+  padding:14px;
+}
+.rp-card-label{
+  font-size:9px;font-weight:500;letter-spacing:.7px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+
+/* Progress bars */
+.prog-row{margin-bottom:12px;}
+.prog-row:last-child{margin-bottom:0;}
+.prog-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+.prog-name{font-size:12.5px;color:var(--text);font-weight:500;}
+.prog-pct{font-size:12px;color:var(--muted2);font-variant-numeric:tabular-nums;}
+.prog-track{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
+.prog-fill{height:5px;border-radius:3px;position:relative;}
+.prog-fill::after{
+  content:'';position:absolute;right:0;top:0;bottom:0;
+  width:6px;border-radius:50%;
+  background:inherit;filter:blur(2px);box-shadow:0 0 6px currentColor;
+}
+
+/* Streak */
+.streak-section{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 0 0;margin-top:8px;
+  border-top:0.5px solid var(--border);
+}
+.streak-left{display:flex;align-items:center;gap:10px;}
+.streak-flame{font-size:24px;line-height:1;}
+.streak-count{font-size:22px;font-weight:700;color:var(--amber);line-height:1;}
+.streak-label{font-size:10.5px;color:var(--muted);margin-top:1px;}
+.week-dots{display:flex;gap:5px;}
+.wd{
+  width:22px;height:22px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;font-weight:500;letter-spacing:.3px;
+  background:rgba(251,146,60,.06);
+  border:0.5px solid rgba(251,146,60,.15);
+  color:rgba(251,146,60,.3);
+}
+.wd.on{background:rgba(251,146,60,.2);border-color:rgba(251,146,60,.4);color:rgba(251,146,60,.85);}
+
+/* XP / level */
+.xp-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;
+}
+.xp-label{font-size:12px;color:var(--muted2);}
+.xp-val{font-size:12px;font-weight:600;color:var(--text);}
+.xp-track{height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;position:relative;}
+.xp-fill{
+  height:7px;border-radius:4px;
+  background:linear-gradient(90deg,var(--purple),var(--blue));
+  width:62%;
+  position:relative;
+  overflow:hidden;
+}
+.xp-shimmer{
+  position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.3) 50%,transparent 100%);
+  animation:xpShimmer 2.2s ease-in-out infinite;
+  background-size:200%;
+}
+@keyframes xpShimmer{0%{background-position:-200%}100%{background-position:200%}}
+
+/* AURA Remembers — memory cards */
+.memory-cards{display:flex;flex-direction:column;gap:8px;margin-top:2px;}
+.mem-item{
+  display:flex;align-items:flex-start;gap:9px;
+  padding:9px 11px;border-radius:9px;
+  background:var(--bg);
+  border:0.5px solid var(--border);
+  transition:border-color .15s!important;
+}
+.mem-item:hover{border-color:var(--border2);}
+.mem-dot{
+  width:6px;height:6px;border-radius:50%;flex-shrink:0;
+  margin-top:5px;
+}
+.mem-dot.weak{background:var(--red);}
+.mem-dot.strong{background:var(--green);}
+.mem-dot.goal{background:var(--purple);}
+
+.mem-tag{
+  padding:2px 7px;border-radius:100px;
+  font-size:9px;font-weight:600;letter-spacing:.3px;
+  text-transform:uppercase;white-space:nowrap;flex-shrink:0;
+}
+.mem-tag.weak{background:rgba(248,113,113,.12);color:var(--red);}
+.mem-tag.strong{background:rgba(74,222,128,.1);color:var(--green);}
+.mem-tag.goal{background:rgba(157,127,255,.12);color:var(--purple);}
+
+.mem-body{flex:1;}
+.mem-text{font-size:11.5px;color:var(--muted2);line-height:1.45;}
+.mem-note{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* Today's goals mini section */
+.goal-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 0;border-bottom:0.5px solid var(--border);
+}
+.goal-row:last-child{border-bottom:none;}
+.goal-check{
+  width:18px;height:18px;border-radius:5px;
+  border:1.5px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;flex-shrink:0;
+  transition:all .15s!important;
+}
+.goal-check.done{
+  background:rgba(74,222,128,.12);
+  border-color:rgba(74,222,128,.35);
+  color:var(--green);
+}
+.goal-text{font-size:12px;color:var(--muted2);}
+.goal-text.done{color:var(--muted);text-decoration:line-through;}
+
+/* Recent corrections log */
+.correction-item{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:8px 0;border-bottom:0.5px solid var(--border);
+}
+.correction-item:last-child{border-bottom:none;}
+.ci-icon{font-size:13px;flex-shrink:0;margin-top:1px;}
+.ci-body{}
+.ci-wrong{font-size:11.5px;color:var(--red);font-family:monospace;text-decoration:line-through;}
+.ci-right{font-size:11.5px;color:var(--green);font-family:monospace;}
+.ci-note{font-size:10.5px;color:var(--muted);margin-top:2px;}
+
+/* session stats mini */
+.mini-stats{display:flex;gap:8px;}
+.mini-stat{
+  flex:1;padding:10px;border-radius:10px;
+  background:var(--bg);border:0.5px solid var(--border);
+  text-align:center;
+}
+.ms-val{font-size:18px;font-weight:700;color:var(--text);line-height:1;}
+.ms-label{font-size:9.5px;color:var(--muted);margin-top:3px;}
+
+/* ── GRID BG on main ── */
+.main::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(var(--grid-color) 1px,transparent 1px),linear-gradient(90deg,var(--grid-color) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,black 10%,transparent 80%);
+  opacity:.6;
+}
+.main > *{position:relative;z-index:1;}
+
+/* ── Fade-in animation ── */
+@keyframes fadeSlide{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+.anim-in{animation:fadeSlide .5s ease forwards;}
+.anim-in-d1{animation-delay:.05s;opacity:0;}
+.anim-in-d2{animation-delay:.1s;opacity:0;}
+.anim-in-d3{animation-delay:.15s;opacity:0;}
+.anim-in-d4{animation-delay:.2s;opacity:0;}
+
+/* ── Responsive placeholder (min 1100px) ── */
+@media(max-width:1100px){
+  .app{grid-template-columns:200px 1fr 240px;}
+}
+</style>
+</head>
+<body>
+<!-- Custom cursor -->
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<div class="app">
+
+  <!-- ───────────── SIDEBAR ───────────── -->
+  <aside class="sidebar anim-in">
+    <div class="sb-top">
+      <div class="sb-logo-row">
+        <div class="sb-logo"><span>AURA</span></div>
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">☀️</button>
+      </div>
+      <div class="sb-user">
+        <div class="sb-avatar">P</div>
+        <div>
+          <div class="sb-user-name">Priya Mehta</div>
+          <div class="sb-user-sub">Pro · 147-day streak 🔥</div>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
-<div id="speaking-interface">
-  <div class="speak-wrap">
+    <nav class="sb-nav">
+      <div class="sb-section-label">Learn</div>
 
-    <!-- SETUP SCREEN -->
-    <div id="speak-setup">
-      <div class="setup-head">
-        <button onclick="auraGoToLanding()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--mid);padding:0 0 16px;display:flex;align-items:center;gap:6px;font-family:var(--f);letter-spacing:-0.01em;">← Back</button>
-        <h1>Start your session.</h1>
-        <p>Choose your scenario, level, and language — then speak freely in German. AURA will guide you.</p>
+      <button class="nav-item active" data-screen="session">
+        <span class="nav-icon">🎙️</span>
+        Live Session
+        <span class="nav-badge">LIVE</span>
+      </button>
+
+      <button class="nav-item" data-screen="journey">
+        <span class="nav-icon">🗺️</span>
+        Journey
+      </button>
+
+      <button class="nav-item" data-screen="vocabulary">
+        <span class="nav-icon">📖</span>
+        Vocabulary
+        <span class="nav-badge red">12</span>
+      </button>
+
+      <button class="nav-item" data-screen="exam">
+        <span class="nav-icon">📝</span>
+        Exam Mode
+      </button>
+
+      <div class="sb-section-label" style="margin-top:6px;">Explore</div>
+
+      <button class="nav-item" data-screen="scenarios">
+        <span class="nav-icon">🏙️</span>
+        Scenarios
+        <span class="nav-badge green">New</span>
+      </button>
+
+      <button class="nav-item" data-screen="goals">
+        <span class="nav-icon">🎯</span>
+        Goals
+      </button>
+
+      <button class="nav-item" data-screen="progress">
+        <span class="nav-icon">📊</span>
+        Progress
+      </button>
+
+      <!-- Current language indicator -->
+      <div class="sb-current-lang" style="margin-top:10px;">
+        <div class="scl-top">
+          <span class="scl-label">Now Learning</span>
+          <span class="scl-flag">🇩🇪</span>
+        </div>
+        <div class="scl-name">German B1</div>
+        <div class="scl-level">Intermediate · 68% to B2</div>
+        <div class="scl-bar"><div class="scl-fill"></div></div>
       </div>
+    </nav>
 
-      <div class="setup-section">
-        <div class="setup-label">Your Level</div>
-        <div class="seg-row">
-          <div class="seg-pill level-tab active" role="button" tabindex="0" onclick="setLevel('A1')" onkeydown="if(event.key==='Enter'||event.key===' ')setLevel('A1')">A1 — Beginner</div>
-          <div class="seg-pill level-tab" role="button" tabindex="0" onclick="setLevel('A2')" onkeydown="if(event.key==='Enter'||event.key===' ')setLevel('A2')">A2 — Elementary</div>
+    <div class="sb-bottom">
+      <button class="live-session-btn" id="liveSessionBtn">
+        <div class="live-btn-icon">🎙️</div>
+        <div class="live-btn-text">
+          <div class="live-btn-title">Start Voice Session</div>
+          <div class="live-btn-sub">Gemini Live · German B1</div>
         </div>
+        <div class="live-pulse"></div>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ───────────── MAIN CHAT ───────────── -->
+  <main class="main">
+    <!-- Topbar -->
+    <div class="main-topbar anim-in anim-in-d1">
+      <div class="topbar-left">
+        <div class="session-status">
+          <div class="status-dot no-trans"></div>
+          Session Active
+        </div>
+        <div class="session-timer" id="sessionTimer">00:18:42</div>
+        <div style="font-size:11px;color:var(--muted);margin-left:4px;">· German B1 · Conversation</div>
       </div>
-
-      <div class="setup-section" id="program-type-section" style="display:none;">
-        <div class="setup-label">A2 Path</div>
-        <div class="seg-row" id="program-type-row">
-          <div class="seg-pill program-type-tab active" role="button" tabindex="0" onclick="setProgramType('general')" onkeydown="if(event.key==='Enter'||event.key===' ')setProgramType('general')">Everyday Speaking</div>
-          <div class="seg-pill program-type-tab" role="button" tabindex="0" onclick="setProgramType('exam')" onkeydown="if(event.key==='Enter'||event.key===' ')setProgramType('exam')">Exam Mode</div>
-        </div>
+      <div class="topbar-right">
+        <button class="tb-btn">
+          <span>🌍</span> Translate
+        </button>
+        <button class="tb-btn">
+          <span>📋</span> Summary
+        </button>
+        <button class="tb-btn end" id="endSessionBtn">
+          ■ End Session
+        </button>
       </div>
-
-      <div class="setup-section" id="exam-controls-section" style="display:none;">
-        <div class="setup-label">Exam Setup</div>
-
-        <div class="setup-subsection">
-          <div class="setup-label">Part</div>
-          <div class="seg-row" id="exam-part-row">
-            <div class="seg-pill exam-part-tab active" role="button" tabindex="0" onclick="setExamPart('teil1')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamPart('teil1')">Teil 1</div>
-            <div class="seg-pill exam-part-tab" role="button" tabindex="0" onclick="setExamPart('teil2')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamPart('teil2')">Teil 2</div>
-            <div class="seg-pill exam-part-tab" role="button" tabindex="0" onclick="setExamPart('teil3')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamPart('teil3')">Teil 3</div>
-            <div class="seg-pill exam-part-tab" role="button" tabindex="0" onclick="setExamPart('full_mock')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamPart('full_mock')">Full Mock</div>
-          </div>
-        </div>
-
-        <div class="setup-subsection">
-          <div class="setup-label">Run Type</div>
-          <div class="seg-row" id="exam-run-type-row">
-            <div class="seg-pill exam-run-type-tab active" role="button" tabindex="0" onclick="setExamRunType('practice')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamRunType('practice')">Practice</div>
-            <div class="seg-pill exam-run-type-tab" role="button" tabindex="0" onclick="setExamRunType('scored')" onkeydown="if(event.key==='Enter'||event.key===' ')setExamRunType('scored')">Scored</div>
-          </div>
-        </div>
-
-        <div class="setup-subsection">
-          <div class="setup-label">Examiner</div>
-          <div class="seg-row" id="examiner-style-row">
-            <div class="seg-pill examiner-style-tab" role="button" tabindex="0" onclick="setExaminerStyle('supportive')" onkeydown="if(event.key==='Enter'||event.key===' ')setExaminerStyle('supportive')">Supportive</div>
-            <div class="seg-pill examiner-style-tab active" role="button" tabindex="0" onclick="setExaminerStyle('standard')" onkeydown="if(event.key==='Enter'||event.key===' ')setExaminerStyle('standard')">Standard</div>
-            <div class="seg-pill examiner-style-tab" role="button" tabindex="0" onclick="setExaminerStyle('strict')" onkeydown="if(event.key==='Enter'||event.key===' ')setExaminerStyle('strict')">Strict</div>
-          </div>
-        </div>
-
-        <div class="setup-subsection" id="exam-topic-section">
-          <div class="setup-label">Topic</div>
-          <select class="scenario-sel" id="exam-topic-select" onchange="setExamTopic(this.value)"></select>
-          <div class="scenario-hint" id="exam-topic-hint">Choose Random for a realistic exam draw, or pick a specific topic.</div>
-        </div>
-      </div>
-
-      <div class="setup-section" id="readiness-meter-wrap">
-        <div class="readiness-meter">
-          <div class="readiness-meter-top">
-            <div class="readiness-meter-label" id="readiness-meter-label">A1 Speaking Readiness</div>
-            <div class="readiness-meter-value" id="readiness-meter-value">0%</div>
-          </div>
-          <div class="readiness-track"><div class="readiness-fill" id="readiness-meter-fill"></div></div>
-          <p class="readiness-note" id="readiness-meter-note">You’re building confidence for real-life conversations.</p>
-        </div>
-      </div>
-
-      <div class="setup-section" id="recent-practice-wrap">
-        <div class="setup-label">Your Progress</div>
-        <div class="recent-practice-card">
-          <div class="recent-practice-list" id="recent-practice-list">
-            <p class="recent-practice-empty">Your recent speaking sessions will appear here.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="setup-section">
-        <div class="setup-label">Today’s Speaking Focus</div>
-        <div class="daily-focus-card" id="daily-focus-card" role="button" tabindex="0" aria-label="Apply today's speaking focus">
-          <p class="daily-focus-title" id="daily-focus-title">Let’s begin with one short roleplay.</p>
-          <p class="daily-focus-message" id="daily-focus-message">Tap to auto-select a focused scenario for today.</p>
-        </div>
-      </div>
-
-      <div class="setup-section">
-        <div class="setup-label">
-          Input Mode
-          <span class="setup-badge-pill">Gemini 2.5 Live</span>
-        </div>
-        <div class="seg-row">
-          <div class="seg-pill mode-tab active" role="button" tabindex="0" onclick="setInputMode('both')" onkeydown="if(event.key==='Enter'||event.key===' ')setInputMode('both')">🎙️ + Type</div>
-          <div class="seg-pill mode-tab" role="button" tabindex="0" onclick="setInputMode('voice')" onkeydown="if(event.key==='Enter'||event.key===' ')setInputMode('voice')">🎙️ Voice only</div>
-          <div class="seg-pill mode-tab" role="button" tabindex="0" onclick="setInputMode('text')" onkeydown="if(event.key==='Enter'||event.key===' ')setInputMode('text')">⌨️ Type only</div>
-        </div>
-      </div>
-
-      <div class="setup-section">
-        <div class="setup-label">Session Mode</div>
-        <div class="session-mode-grid" id="session-mode-group">
-          <div class="seg-pill session-mode-tab active" onclick="setSessionMode('guided')">
-            <span class="session-mode-title">Guided</span>
-            <span class="session-mode-help">More explanation and support</span>
-          </div>
-          <div class="seg-pill session-mode-tab" onclick="setSessionMode('immersion')">
-            <span class="session-mode-title">Immersion</span>
-            <span class="session-mode-help">Mostly German, more realistic practice</span>
-          </div>
-        </div>
-        <p class="lang-note" id="mode-recommendation" style="display:none;margin-top:8px;color:var(--blue);"></p>
-      </div>
-
-      <div class="setup-section">
-        <div class="setup-label">
-          Explanation Language
-          <span class="setup-badge-pill" style="background:rgba(48,209,88,0.1);color:rgba(0,150,60,0.9);border-color:rgba(48,209,88,0.2);">Locked for session</span>
-        </div>
-        <p class="lang-note">AURA explains grammar in this language throughout the session. German pronunciation stays native.</p>
-        <div class="seg-row" id="lang-pref-group">
-          <div class="seg-pill lang-pref-tab active" onclick="setLangPref('Gujarati')">🇮🇳 Gujarati</div>
-          <div class="seg-pill lang-pref-tab" onclick="setLangPref('Hindi')">🇮🇳 Hindi</div>
-          <div class="seg-pill lang-pref-tab" onclick="setLangPref('English')">🇬🇧 English</div>
-          <div class="seg-pill lang-pref-tab" id="other-lang-pill" onclick="toggleOtherLangInput()">🌐 Other</div>
-        </div>
-        <div id="other-lang-wrap">
-          <input type="text" id="other-lang-input" placeholder="e.g. Tamil, Telugu, Marathi, Kannada…" maxlength="32" oninput="applyOtherLang(this.value)" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor=''"/>
-          <p id="other-lang-confirm"></p>
-        </div>
-      </div>
-
-      <div class="setup-section">
-        <div class="setup-label"><span id="scenario-emoji-label">🛒</span> Scenario</div>
-        <select class="scenario-sel" id="scenario-select" onchange="onScenarioChange()">
-          <optgroup label="— A1 Scenarios —">
-            <option value="a1_shop" data-level="A1" data-role="Shopkeeper" data-emoji="🛒" data-desc="You're a customer at a German supermarket. Ask for items, quantities, and prices.">🛒 At the Supermarket</option>
-            <option value="a1_doctor" data-level="A1" data-role="Doctor" data-emoji="🏥" data-desc="You're at a German GP clinic. Describe your symptoms and understand basic advice.">🏥 At the Doctor</option>
-            <option value="a1_hotel" data-level="A1" data-role="Hotel Receptionist" data-emoji="🏨" data-desc="Check into a German hotel. Ask about room types, prices, and breakfast.">🏨 Hotel Check-in</option>
-            <option value="a1_cafe" data-level="A1" data-role="Café Waiter" data-emoji="☕" data-desc="Order food and drinks at a German café. Ask about the menu and pay the bill.">☕ At the Café</option>
-            <option value="a1_directions" data-level="A1" data-role="Passerby" data-emoji="🗺️" data-desc="You're lost in a German city. Ask for directions to key locations.">🗺️ Asking for Directions</option>
-            <option value="a1_phone" data-level="A1" data-role="Office Secretary" data-emoji="📞" data-desc="Make a simple phone call to book an appointment in German.">📞 Making an Appointment</option>
-            <option value="a1_introduce" data-level="A1" data-role="New Neighbour" data-emoji="👋" data-desc="Introduce yourself to a new German neighbour. Share your name, country, job, and hobbies.">👋 Introducing Yourself</option>
-            <option value="a1_transport" data-level="A1" data-role="Ticket Office Staff" data-emoji="🚂" data-desc="Buy a train or bus ticket at a German station. Ask about times and prices.">🚂 Buying a Train Ticket</option>
-          </optgroup>
-          <optgroup label="— A2 Scenarios —">
-            <option value="a2_flat" data-level="A2" data-role="Landlord" data-emoji="🏠" data-desc="Discuss renting a flat in Germany. Ask about rent, deposit, and utilities.">🏠 Renting a Flat</option>
-            <option value="a2_job" data-level="A2" data-role="HR Manager" data-emoji="💼" data-desc="Attend a simple job interview. Describe your experience and strengths.">💼 Job Interview</option>
-            <option value="a2_bank" data-level="A2" data-role="Bank Clerk" data-emoji="🏦" data-desc="Open a bank account in Germany. Provide personal details and ask about fees.">🏦 Opening a Bank Account</option>
-            <option value="a2_complaint" data-level="A2" data-role="Shop Manager" data-emoji="⚠️" data-desc="Return a faulty product and make a polite complaint in German.">⚠️ Making a Complaint</option>
-            <option value="a2_party" data-level="A2" data-role="German Friend" data-emoji="🎉" data-desc="Discuss plans for a party. Talk about food, guests, location, and time.">🎉 Planning a Party</option>
-            <option value="a2_health" data-level="A2" data-role="Pharmacist" data-emoji="💊" data-desc="Visit a German pharmacy. Describe symptoms and ask for medication.">💊 At the Pharmacy</option>
-            <option value="a2_school" data-level="A2" data-role="School Administrator" data-emoji="🏫" data-desc="Enrol in a German course. Ask about schedules and fees.">🏫 School Enrolment</option>
-            <option value="a2_travel" data-level="A2" data-role="Travel Agent" data-emoji="✈️" data-desc="Book a holiday package. Discuss destinations, dates, and budget.">✈️ Booking a Holiday</option>
-          </optgroup>
-        </select>
-        <div class="scenario-hint" id="scenario-desc">You're a customer at a German supermarket. Ask for items, quantities, and prices.</div>
-      </div>
-
-      <div class="trial-info-bar" id="trial-bar"></div>
-
-      <button class="speak-start-btn" onclick="startSession()">Begin Conversation →</button>
     </div>
 
-    <!-- SESSION SCREEN -->
-    <div id="speak-session">
+    <!-- Voice waveform area -->
+    <div class="voice-zone anim-in anim-in-d2">
+      <div class="aura-orb-wrap">
+        <div class="aura-orb speaking" id="auraOrb">A</div>
+        <div class="orb-ring no-trans"></div>
+      </div>
 
-      <!-- Top bar -->
-      <div class="sesh-topbar">
-        <div class="sesh-scenario-info">
-          <div class="sesh-scenario-emoji" id="sesh-emoji">🛒</div>
-          <div>
-            <div class="sesh-scenario-name" id="sesh-title">At the Supermarket</div>
-            <div class="sesh-scenario-meta" id="sesh-subtitle">A1 · Shopkeeper · Live Voice</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="exam-mode-badge">
-            <span>⚖</span> Exam Mode
-          </div>
-          <div class="sesh-timer" id="session-timer">20:00</div>
+      <div class="waveform-area">
+        <div class="wf-label">AURA Speaking</div>
+        <div class="waveform" id="waveform"></div>
+      </div>
+
+      <div class="lang-switcher">
+        <button class="ls-btn active" data-lang="German">DE</button>
+        <button class="ls-btn" data-lang="French">FR</button>
+        <button class="ls-btn" data-lang="Japanese">JA</button>
+      </div>
+
+      <div class="voice-controls">
+        <button class="vc-btn mic-active" id="micBtn" title="Microphone">
+          <span class="vc-icon">🎙️</span>
+        </button>
+        <button class="vc-btn" title="Mute AURA">
+          <span>🔊</span>
+        </button>
+        <button class="vc-btn" title="Settings">
+          <span>⚙️</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages-wrap" id="messagesWrap">
+      <!-- AURA greeting -->
+      <div class="msg ai anim-in anim-in-d3">
+        <div class="msg-label">AURA</div>
+        <div class="bubble">
+          Guten Morgen, Priya! Wie war dein Wochenende? Hast du etwas Interessantes gemacht?
         </div>
       </div>
 
-      <!-- Body grid -->
-      <div class="sesh-body" style="position:relative;">
+      <!-- User response with error -->
+      <div class="msg me">
+        <div class="msg-label">YOU</div>
+        <div class="bubble">Ich bin ins Kino gegangen haben.</div>
+      </div>
 
-        <!-- TEIL 2 CARD OVERLAY — shown during 20s prep, hidden once student begins -->
-        <div id="teil2-card-overlay">
+      <!-- Correction -->
+      <div class="msg ai">
+        <div class="msg-label">AURA</div>
+        <div class="bubble">
+          Almost perfect! Just one small fix with the verb position.
+        </div>
+        <div class="correction-block">
+          <div class="correction-label">❌ Correction</div>
+          Ich bin ins Kino gegangen <s>haben</s> → <strong>Ich bin ins Kino gegangen.</strong>
+        </div>
+        <div class="explanation-block">
+          <div class="explanation-label">💡 AURA Explains — Gujarati</div>
+          "Perfekt" tense માં "haben" અને "sein" — movement verbs "sein" સાથે use થાય. "Ich bin gegangen" bilkul saru chhe!
+        </div>
+      </div>
 
-          <!-- Task instruction -->
-          <div class="t2-aufgabe">
-            <span class="t2-aufgabe-icon">📋</span>
-            <span class="t2-aufgabe-text">
-              <strong>Aufgabe:</strong> Du bekommst eine Karte mit einem Thema und vier Stichwörtern.
-              Schau dir die Karte in Ruhe an. Dann erzählst du etwas über das Thema — die Karte bleibt sichtbar.
-              Die Prüferin kann dir Fragen stellen.
-            </span>
-          </div>
+      <!-- User corrected -->
+      <div class="msg me">
+        <div class="msg-label">YOU</div>
+        <div class="bubble">Ich bin ins Kino gegangen. Danke, AURA!</div>
+      </div>
 
-          <!-- The exam card itself -->
-          <div class="t2-card">
-            <!-- Top bar: cert name + section -->
-            <div class="t2-card-topbar">
-              <span class="t2-card-topbar-left">Goethe-Zertifikat A2 Fit</span>
-              <span class="t2-card-topbar-right">Sprechen Teil 2</span>
-            </div>
-            <!-- Subtitle: the theme / topic label -->
-            <div class="t2-card-subtitle" id="t2-subtitle">von sich erzählen</div>
-            <!-- Corner grid + diagonals + center -->
-            <div class="t2-corners">
-              <div class="t2-corner tl" id="t2-corner-tl">—</div>
-              <div class="t2-corner tr" id="t2-corner-tr">—</div>
-              <div class="t2-corner bl" id="t2-corner-bl">—</div>
-              <div class="t2-corner br" id="t2-corner-br">—</div>
-              <!-- Diagonal X lines — percentage-based so they always hit the center box -->
-              <svg class="t2-lines" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-                <line x1="18" y1="12" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
-                <line x1="82" y1="12" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
-                <line x1="18" y1="88" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
-                <line x1="82" y1="88" x2="50" y2="50" stroke="#c8cdd4" stroke-width="0.8"/>
-              </svg>
-              <!-- Center question box -->
-              <div class="t2-center-box" id="t2-center-question">—</div>
-            </div>
-          </div>
+      <!-- AURA praise + followup -->
+      <div class="msg ai">
+        <div class="msg-label">AURA</div>
+        <div class="bubble">
+          Perfekt! 🎉 Das war wirklich gut. Now let's expand — what movie did you watch? In German, can you describe it in two sentences?
+        </div>
+      </div>
 
-          <!-- 20s countdown -->
-          <div class="t2-countdown-wrap">
-            <div class="t2-countdown-label">
-              <span>Vorbereitungszeit</span>
-              <span class="t2-countdown-secs" id="t2-countdown-num">20</span>
-            </div>
-            <div class="t2-countdown-track">
-              <div class="t2-countdown-fill" id="t2-countdown-fill"></div>
-            </div>
-          </div>
+      <!-- User -->
+      <div class="msg me">
+        <div class="msg-label">YOU</div>
+        <div class="bubble">Ich habe einen Action-Film gesehen. Es war sehr spannend!</div>
+      </div>
 
-          <p class="t2-instruction">
-            <strong>Lesen Sie die Karte.</strong> Antworten Sie zuerst auf die Hauptfrage,<br>
-            dann auf die vier Punkte. Ziel: 12–15 Sätze.
-          </p>
+      <!-- AURA response -->
+      <div class="msg ai" id="latestAI">
+        <div class="msg-label">AURA</div>
+        <div class="bubble" id="auraLatestBubble">
+          Wunderbar! Both sentences are grammatically correct. "Spannend" — great word choice! 🌟 One tiny upgrade: instead of "sehr spannend," try "äußerst spannend" or "richtig spannend" for a more native feel.
+        </div>
+      </div>
+
+      <!-- Typing indicator (hidden) -->
+      <div class="typing-indicator" id="typingIndicator" style="display:none;">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+
+    <!-- Quick suggestion chips -->
+    <div class="suggestions" id="suggestions">
+      <button class="sug-chip" onclick="insertSuggestion(this)">Wie sagt man "exciting"?</button>
+      <button class="sug-chip" onclick="insertSuggestion(this)">Can you slow down?</button>
+      <button class="sug-chip" onclick="insertSuggestion(this)">Give me another example</button>
+      <button class="sug-chip" onclick="insertSuggestion(this)">Use it in a sentence</button>
+    </div>
+
+    <!-- Input bar -->
+    <div class="input-bar anim-in anim-in-d4">
+      <input
+        class="chat-input"
+        id="chatInput"
+        type="text"
+        placeholder="Type in German or English…"
+        autocomplete="off"
+      />
+      <button class="send-btn" id="sendBtn">➤</button>
+    </div>
+  </main>
+
+  <!-- ───────────── RIGHT PANEL ───────────── -->
+  <aside class="right-panel anim-in anim-in-d2">
+    <div class="rp-header">
+      <div>
+        <div class="rp-title">Session Progress</div>
+        <div class="rp-sub">B1 German · Today's session</div>
+      </div>
+    </div>
+
+    <div class="rp-scroll">
+
+      <!-- Mini session stats -->
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="ms-val" id="wordsSpoken">34</div>
+          <div class="ms-label">Words</div>
+        </div>
+        <div class="mini-stat">
+          <div class="ms-val" id="correctCount" style="color:var(--green)">8</div>
+          <div class="ms-label">Correct</div>
+        </div>
+        <div class="mini-stat">
+          <div class="ms-val" id="errCount" style="color:var(--red)">2</div>
+          <div class="ms-label">Errors</div>
+        </div>
+      </div>
+
+      <!-- Skill progress -->
+      <div class="rp-card">
+        <div class="rp-card-label">
+          Skill Progress
+          <span style="font-size:9px;color:var(--muted);">vs last week</span>
         </div>
 
-        <!-- TEIL 1 CARD OVERLAY — four word cards shown during Teil 1 sessions -->
-        <div id="teil1-card-overlay" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;z-index:10;background:var(--snow,#f7f8fa);padding:24px;overflow-y:auto;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:14px;text-align:center;">GOETHE-ZERTIFIKAT A2 &nbsp;·&nbsp; Sprechen Teil 1 &nbsp;·&nbsp; Fragen zur Person</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:480px;margin:0 auto;">
-            <div class="t2-card" id="sess-t1-card-0" style="min-height:120px;"></div>
-            <div class="t2-card" id="sess-t1-card-1" style="min-height:120px;"></div>
-            <div class="t2-card" id="sess-t1-card-2" style="min-height:120px;"></div>
-            <div class="t2-card" id="sess-t1-card-3" style="min-height:120px;"></div>
+        <div class="prog-row">
+          <div class="prog-top">
+            <span class="prog-name">B1 German</span>
+            <span class="prog-pct">68%</span>
           </div>
-          <p style="text-align:center;font-size:13px;color:#6b7280;margin-top:16px;">Stellen Sie für jede Karte eine Frage. Ihr Partner antwortet — dann fragen Sie Ihren Partner zurück.</p>
+          <div class="prog-track">
+            <div class="prog-fill" style="width:68%;background:linear-gradient(90deg,var(--purple),var(--blue));"></div>
+          </div>
         </div>
 
-        <!-- TEIL 3 CALENDAR OVERLAY — calendar shown during Teil 3 sessions -->
-        <div id="teil3-calendar-overlay" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;z-index:10;background:var(--snow,#f7f8fa);padding:24px;overflow-y:auto;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;text-align:center;">GOETHE-ZERTIFIKAT A2 &nbsp;·&nbsp; Sprechen Teil 3</div>
-          <div id="sess-t3-task" style="font-size:14px;color:#374151;margin-bottom:12px;text-align:center;line-height:1.5;font-weight:600;"></div>
-          <div id="sess-t3-day" style="font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;"></div>
-          <div id="sess-t3-grid" style="display:flex;flex-direction:column;gap:3px;max-width:360px;margin:0 auto;"></div>
-          <p style="text-align:center;font-size:13px;color:#6b7280;margin-top:14px;">Finden Sie gemeinsam einen freien Termin. Das ist Ihr Kalender — Ihr Partner hat einen anderen.</p>
+        <div class="prog-row">
+          <div class="prog-top">
+            <span class="prog-name">Pronunciation</span>
+            <span class="prog-pct">82%</span>
+          </div>
+          <div class="prog-track">
+            <div class="prog-fill" style="width:82%;background:linear-gradient(90deg,#4ade80,#22c55e);"></div>
+          </div>
         </div>
 
-        <!-- Left: corrections + word count -->
-        <div class="sesh-left">
-          <div class="board-header">
-            <div class="board-icon">✏️</div>
-            <div class="board-title">Correction Board</div>
+        <div class="prog-row">
+          <div class="prog-top">
+            <span class="prog-name">Grammar</span>
+            <span class="prog-pct">54%</span>
           </div>
-          <div class="blackboard-area" id="blackboard-area">
-            <div class="blackboard-idle" id="board-idle">No corrections yet —<br>keep speaking!</div>
+          <div class="prog-track">
+            <div class="prog-fill" style="width:54%;background:linear-gradient(90deg,var(--amber),#f59e0b);"></div>
           </div>
-          <div class="word-counter-card">
+        </div>
+
+        <div class="prog-row">
+          <div class="prog-top">
+            <span class="prog-name">Vocabulary</span>
+            <span class="prog-pct">71%</span>
+          </div>
+          <div class="prog-track">
+            <div class="prog-fill" style="width:71%;background:linear-gradient(90deg,var(--blue),#38bdf8);"></div>
+          </div>
+        </div>
+
+        <!-- XP to next level -->
+        <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);">
+          <div class="xp-row">
+            <span class="xp-label">XP to B2</span>
+            <span class="xp-val">620 / 1000</span>
+          </div>
+          <div class="xp-track">
+            <div class="xp-fill">
+              <div class="xp-shimmer"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Streak -->
+        <div class="streak-section">
+          <div class="streak-left">
+            <div class="streak-flame">🔥</div>
             <div>
-              <div class="wc-num" id="word-count-num">0</div>
-              <div class="wc-label">German words used</div>
-            </div>
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style="margin-left:auto;opacity:0.3;">
-              <path d="M4 8h20M4 14h14M4 20h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </div>
-        </div>
-
-        <!-- Center: conversation -->
-        <div class="sesh-center">
-          <div class="convo-area" id="conversation-area">
-            <!-- Practice mode: pinned question card -->
-            <div id="practice-card-pin">
-              <div class="pcp-label">Your Topic</div>
-              <div class="pcp-question" id="pcp-question-text">—</div>
-              <div class="pcp-corners" id="pcp-corners-wrap"></div>
-            </div>
-            <div class="role-intro-strip" id="role-strip">
-              <div class="ris-emoji" id="role-avatar">🛒</div>
-              <div class="ris-info">
-                <h4 id="role-name">The Shopkeeper</h4>
-                <p id="role-description">Speak naturally in German. AURA listens, responds live, and corrects you.</p>
-              </div>
+              <div class="streak-count">147</div>
+              <div class="streak-label">day streak</div>
             </div>
           </div>
-
-          <!-- Input desk -->
-          <div class="sesh-desk">
-            <div class="state-pill-row">
-              <div class="aura-state-pill" id="aura-state-pill">
-                <span class="state-dot-ind"></span>
-                <span id="aura-state-text">Ready</span>
-              </div>
-              <div class="word-count-badge" style="font-size:11px;color:var(--mid);display:flex;align-items:center;gap:4px;">
-                <span id="word-count-num-desk" style="font-size:15px;font-weight:700;color:var(--deep);">0</span>
-                <span>words</span>
-              </div>
-            </div>
-            <div id="deepgram-status" style="display:none;margin-top:6px;font-size:11px;color:#b26b00;">
-              Live transcript unavailable · Voice session is still active
-            </div>
-
-            <div class="silence-bar" id="silence-countdown">
-              <span id="silence-countdown-text">30s</span> until auto-pause
-            </div>
-
-            <div class="desk-input-row" id="input-area">
-              <textarea id="msg-input" placeholder="Type in German… or just speak 🎙️" rows="1"
-                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendTextMessage();}"></textarea>
-              <button class="mic-btn-new active" id="mic-btn" onclick="toggleMic()">🎙</button>
-              <button class="send-btn-new" onclick="sendTextMessage()">↑</button>
-            </div>
-
-            <div class="desk-ctrl-row">
-              <button class="ctrl-pill-new" onclick="goBackToSetup()">← Back</button>
-              <button class="ctrl-pill-new" onclick="changeScenario()">↻ New scenario</button>
-              <button class="ctrl-pill-new" id="add-time-btn" onclick="addTime()">+ 10 min</button>
-              <button class="ctrl-pill-new end-pill" onclick="endSession()">■ End &amp; Score</button>
-              <button class="hint-pill" onclick="requestHint()">💡 Hint</button>
-            </div>
+          <div class="week-dots">
+            <div class="wd on">M</div>
+            <div class="wd on">T</div>
+            <div class="wd on">W</div>
+            <div class="wd on">T</div>
+            <div class="wd on">F</div>
+            <div class="wd">S</div>
+            <div class="wd">S</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- SCORE SCREEN -->
-    <div id="speak-score">
-      <div class="score-hd">
-        <h2>Session Complete.</h2>
-        <p id="score-scenario-label" style="letter-spacing:0.04em;text-transform:uppercase;font-size:11px;font-weight:700;">JOB INTERVIEW · A2 · LIVE VOICE</p>
-      </div>
+      <!-- Today's Goals -->
+      <div class="rp-card">
+        <div class="rp-card-label">Today's Goals</div>
 
-      <!-- EXAM VERDICT — only shown for exam sessions -->
-      <div id="exam-verdict-card" style="display:none;">
-        <div id="exam-verdict-badge"></div>
-        <div id="exam-verdict-text"></div>
-        <div id="exam-verdict-sub"></div>
-      </div>
-
-      <!-- CORNER COVERAGE — only shown for Teil 2 exam sessions -->
-      <div id="exam-corner-coverage" style="display:none;">
-        <div class="sbc-block-label">Corner Coverage</div>
-        <div id="exam-corner-list"></div>
-      </div>
-
-      <div class="score-ring-wrap">
-        <svg class="score-ring-svg-el" viewBox="0 0 160 160">
-          <circle class="score-ring-bg" cx="80" cy="80" r="70"/>
-          <circle class="score-ring-fill" cx="80" cy="80" r="70" id="score-ring-fill"/>
-          <text class="score-ring-num" x="80" y="86" text-anchor="middle" transform="rotate(90,80,80)" id="score-num-inner">—</text>
-          <text class="score-ring-sub" x="80" y="100" text-anchor="middle" transform="rotate(90,80,80)">/100</text>
-        </svg>
-      </div>
-
-      <div class="score-bars-grid">
-        <div class="score-bar-cell">
-          <div class="sbc-label">Vocabulary</div>
-          <div class="sbc-track"><div class="sbc-fill" id="bar-vocab"></div></div>
-          <div class="sbc-val" id="score-vocab">—</div>
-          <div class="sbc-note" id="comment-vocab"></div>
+        <div class="goal-row">
+          <div class="goal-check done">✓</div>
+          <div class="goal-text done">20-minute conversation</div>
         </div>
-        <div class="score-bar-cell">
-          <div class="sbc-label">Grammar</div>
-          <div class="sbc-track"><div class="sbc-fill" id="bar-grammar"></div></div>
-          <div class="sbc-val" id="score-grammar">—</div>
-          <div class="sbc-note" id="comment-grammar"></div>
+        <div class="goal-row">
+          <div class="goal-check done">✓</div>
+          <div class="goal-text done">Practice Perfekt tense</div>
         </div>
-        <div class="score-bar-cell">
-          <div class="sbc-label">Fluency</div>
-          <div class="sbc-track"><div class="sbc-fill" id="bar-fluency"></div></div>
-          <div class="sbc-val" id="score-fluency">—</div>
-          <div class="sbc-note" id="comment-fluency"></div>
+        <div class="goal-row">
+          <div class="goal-check"></div>
+          <div class="goal-text">Learn 5 new adjectives</div>
         </div>
-        <div class="score-bar-cell">
-          <div class="sbc-label">Task Completion</div>
-          <div class="sbc-track"><div class="sbc-fill" id="bar-task"></div></div>
-          <div class="sbc-val" id="score-task">—</div>
-          <div class="sbc-note" id="comment-task"></div>
+        <div class="goal-row">
+          <div class="goal-check"></div>
+          <div class="goal-text">Exam-mode: modal verbs</div>
         </div>
       </div>
 
-      <div class="score-block-card">
-        <div class="sbc-block-label">Overall Feedback</div>
-        <div class="sbc-block-text" id="overall-feedback-text">Evaluating your session…</div>
+      <!-- AURA Remembers -->
+      <div class="rp-card">
+        <div class="rp-card-label">🧠 AURA Remembers</div>
+
+        <div class="memory-cards">
+          <div class="mem-item">
+            <div class="mem-tag weak">Weak</div>
+            <div class="mem-body">
+              <div class="mem-text">Verb-second word order (V2 rule)</div>
+              <div class="mem-note">Errors in 3 of last 5 sessions</div>
+            </div>
+          </div>
+
+          <div class="mem-item">
+            <div class="mem-tag weak">Weak</div>
+            <div class="mem-body">
+              <div class="mem-text">Dative vs Accusative with "in"</div>
+              <div class="mem-note">Confused direction vs location</div>
+            </div>
+          </div>
+
+          <div class="mem-item">
+            <div class="mem-tag strong">Strong</div>
+            <div class="mem-body">
+              <div class="mem-text">Perfekt with sein (movement verbs)</div>
+              <div class="mem-note">Consistent since April 3rd</div>
+            </div>
+          </div>
+
+          <div class="mem-item">
+            <div class="mem-tag strong">Strong</div>
+            <div class="mem-body">
+              <div class="mem-text">Cinema vocabulary cluster</div>
+              <div class="mem-note">Film, Kino, Schauspieler mastered</div>
+            </div>
+          </div>
+
+          <div class="mem-item">
+            <div class="mem-tag goal">Goal</div>
+            <div class="mem-body">
+              <div class="mem-text">Reach B2 before June trip to Berlin</div>
+              <div class="mem-note">~47 days remaining</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="score-block-card" id="post-session-coaching" style="display:none;">
-        <div class="sbc-block-label">Coach Summary</div>
-        <div class="coaching-stack" id="post-session-coaching-list"></div>
+      <!-- Recent corrections -->
+      <div class="rp-card">
+        <div class="rp-card-label">Recent Corrections</div>
+
+        <div class="correction-item">
+          <div class="ci-icon">→</div>
+          <div class="ci-body">
+            <div class="ci-wrong">gegangen haben</div>
+            <div class="ci-right">gegangen (drop haben)</div>
+            <div class="ci-note">Sein verbs don't take haben in Perfekt</div>
+          </div>
+        </div>
+
+        <div class="correction-item">
+          <div class="ci-icon">→</div>
+          <div class="ci-body">
+            <div class="ci-wrong">in dem Kino</div>
+            <div class="ci-right">ins Kino (direction = Akkusativ)</div>
+            <div class="ci-note">Motion verbs use Akkusativ</div>
+          </div>
+        </div>
       </div>
 
-      <div class="score-block-card" id="next-action-card" style="display:none;">
-        <div class="sbc-block-label">Recommended Next Action</div>
-        <div class="sbc-block-text" id="next-action-title" style="font-weight:600;margin-bottom:4px;"></div>
-        <div class="sbc-block-text" id="next-action-message"></div>
-      </div>
-
-      <div class="score-block-card" id="pronunciation-section" style="display:none;">
-        <div class="sbc-block-label">Pronunciation Guide</div>
-        <div id="pronunciation-tips-list"></div>
-      </div>
-
-      <div class="score-block-card">
-        <div class="sbc-block-label">Grammar Corrections</div>
-        <div id="errors-list"></div>
-      </div>
-
-      <div class="score-actions-row">
-        <button class="score-btn-dark" onclick="practiceAgain()">↻ Practice again</button>
-        <button class="score-btn-ghost" onclick="goBackToHomepage()">← AURA Home</button>
-        <button class="score-btn-ghost" onclick="goToDashboard()">← Dashboard</button>
-      </div>
     </div>
+  </aside>
 
-  </div><!-- /speak-wrap -->
-</div><!-- /speaking-interface -->
+</div><!-- .app -->
 
-<!-- Mobile floating correction -->
-<div id="mobile-correction">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <div style="display:flex;align-items:center;gap:6px;">
-      <div style="width:6px;height:6px;border-radius:50%;background:#ff3b30;"></div>
-      <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--mid);">Correction</span>
-    </div>
-    <button onclick="document.getElementById('mobile-correction').classList.remove('visible')" style="background:none;border:none;font-size:14px;color:var(--mid);cursor:pointer;">✕</button>
-  </div>
-  <div id="mc-body"></div>
-</div>
+<script>
+// ── CURSOR ──
+const dot = document.getElementById('cursorDot');
+const ring = document.getElementById('cursorRing');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX;my=e.clientY;
+  dot.style.left=mx+'px';dot.style.top=my+'px';
+});
+(function animCursor(){
+  rx+=(mx-rx)*.14; ry+=(my-ry)*.14;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(animCursor);
+})();
+document.querySelectorAll('button,a,.sug-chip,.nav-item,.mem-item').forEach(el=>{
+  el.addEventListener('mouseenter',()=>ring.classList.add('hover'));
+  el.addEventListener('mouseleave',()=>ring.classList.remove('hover'));
+});
+document.addEventListener('mousedown',()=>ring.classList.add('click'));
+document.addEventListener('mouseup',()=>ring.classList.remove('click'));
 
-<!-- MODALS -->
-<!-- Privacy modal -->
-<div class="modal-overlay" id="privacy-modal">
-  <div class="modal-sheet">
-    <div class="modal-icon-big">🎧</div>
-    <h2>Before we begin</h2>
-    <p>AURA speaks out loud in German, Gujarati, Hindi, and English. In a public place, others will hear.</p>
-    <div class="modal-tip-box">
-      <span>💡</span>
-      <span>Headphones make this significantly better — clearer audio, more private, easier to focus.</span>
-    </div>
-    <p style="font-size:12px;color:var(--mid);">Your microphone will be active. AURA can hear you speak.</p>
-    <div class="modal-btns" style="margin-top:20px;">
-      <button class="mbtn-dark" onclick="confirmPrivacyAndStart()">✓ Start AURA</button>
-      <button class="mbtn-ghost" onclick="document.getElementById('privacy-modal').classList.remove('open')">← Go back</button>
-    </div>
-  </div>
-</div>
+// ── THEME TOGGLE ──
+const themeToggle = document.getElementById('themeToggle');
+let theme = '';
+themeToggle.addEventListener('click',()=>{
+  theme = theme===''?'light':'';
+  document.documentElement.setAttribute('data-theme',theme);
+  themeToggle.textContent = theme==='light'?'🌙':'☀️';
+});
 
-<!-- Silence modal -->
-<div class="modal-overlay" id="silence-modal">
-  <div class="modal-sheet">
-    <div class="modal-icon-big">🤫</div>
-    <h2>Still there?</h2>
-    <p>No speech detected for 30 seconds. The session is <strong>paused</strong> to save your time.</p>
-    <div class="modal-btns">
-      <button class="mbtn-dark" onclick="resumeSession()">▶ Resume</button>
-      <button class="mbtn-ghost" onclick="endSession()">End &amp; Score</button>
-    </div>
-  </div>
-</div>
+// ── SESSION TIMER ──
+let secs = 18*60+42;
+const timerEl = document.getElementById('sessionTimer');
+setInterval(()=>{
+  secs++;
+  const m=String(Math.floor(secs/60)).padStart(2,'0');
+  const s=String(secs%60).padStart(2,'0');
+  timerEl.textContent=`00:${m}:${s}`;
+},1000);
 
-<!-- Trial limit modal -->
-<div class="modal-overlay" id="trial-limit-modal">
-  <div class="modal-sheet">
-    <div class="trial-badge-pill">✦ Free Trial Complete</div>
-    <h2>You've experienced AURA.</h2>
-    <p>Your 2 free conversations are used. Unlock the course for <strong>unlimited AURA conversations</strong>, structured lessons, and exam preparation.</p>
-    <div class="modal-btns" style="margin-top:24px;">
-      <a href="/#courses" class="mbtn-dark" style="text-decoration:none;display:inline-flex;">Unlock Full Access →</a>
-    </div>
-  </div>
-</div>
+// ── WAVEFORM ──
+const waveform = document.getElementById('waveform');
+const BARS = 38;
+let wfBars = [];
+for(let i=0;i<BARS;i++){
+  const b = document.createElement('div');
+  b.className='wf-bar'+(i>14&&i<24?' active':'');
+  const d = (.8+Math.random()*.8).toFixed(2);
+  const h = (6+Math.random()*24).toFixed(0);
+  b.style.cssText=`--d:${d}s;--h:${h}px;animation-delay:${(Math.random()*.5).toFixed(2)}s`;
+  waveform.appendChild(b);
+  wfBars.push(b);
+}
+let wfAnim=true;
+// Periodically re-randomise active bars
+setInterval(()=>{
+  wfBars.forEach((b,i)=>{
+    const active = Math.random()>.45;
+    b.classList.toggle('active',active);
+    b.style.setProperty('--h',(3+Math.random()*26).toFixed(0)+'px');
+  });
+},900);
 
-</div><!-- /app-shell -->
+// ── MIC BTN ──
+let micOn=true;
+const micBtn=document.getElementById('micBtn');
+micBtn.addEventListener('click',()=>{
+  micOn=!micOn;
+  micBtn.classList.toggle('mic-active',micOn);
+  micBtn.querySelector('.vc-icon').textContent=micOn?'🎙️':'🔇';
+});
+
+// ── ORBS ──
+const auraOrb=document.getElementById('auraOrb');
+let speaking=true;
+auraOrb.addEventListener('click',()=>{
+  speaking=!speaking;
+  auraOrb.classList.toggle('speaking',speaking);
+});
+
+// ── LANG SWITCHER ──
+const lsBtns=document.querySelectorAll('.ls-btn');
+lsBtns.forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    lsBtns.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// ── NAV ITEMS ──
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+
+// ── SUGGESTION CHIPS ──
+function insertSuggestion(el){
+  document.getElementById('chatInput').value=el.textContent;
+  document.getElementById('chatInput').focus();
+}
+
+// ── CHAT (live Claude API) ──
+let sending=false;
+const chatInput=document.getElementById('chatInput');
+const sendBtn=document.getElementById('sendBtn');
+const messagesWrap=document.getElementById('messagesWrap');
+const typingIndicator=document.getElementById('typingIndicator');
+
+function scrollBottom(){
+  messagesWrap.scrollTop=messagesWrap.scrollHeight;
+}
+
+function addMsg(role,html){
+  const div=document.createElement('div');
+  div.className='msg '+(role==='ai'?'ai':'me');
+  div.innerHTML=`<div class="msg-label">${role==='ai'?'AURA':'YOU'}</div><div class="bubble">${html}</div>`;
+  messagesWrap.insertBefore(div,typingIndicator);
+  scrollBottom();
+  return div;
+}
+
+async function sendMessage(){
+  if(sending) return;
+  const text=chatInput.value.trim();
+  if(!text) return;
+  sending=true;
+  sendBtn.disabled=true;
+  addMsg('me',text);
+  chatInput.value='';
+  typingIndicator.style.display='flex';
+  scrollBottom();
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:`You are AURA, a warm AI language tutor. The student is learning German (B1 level). 
+Their native language is Gujarati and they also speak English.
+Reply in max 3-4 sentences. Always:
+- Respond in English with German examples.
+- If they make a grammar error, gently correct it with a short explanation.
+- If they write correctly, praise them and ask a follow-up question to keep conversation going.
+- Occasionally add a short tip in Gujarati (italicized).
+- Be warm, encouraging, and conversational. No bullet points.`,
+        messages:[{role:'user',content:text}]
+      })
+    });
+    const data=await res.json();
+    const reply=data.content?.[0]?.text||'Sehr gut! Keep going — you are doing wonderfully.';
+    typingIndicator.style.display='none';
+    addMsg('ai',reply);
+  }catch(e){
+    typingIndicator.style.display='none';
+    addMsg('ai','Sehr gut! Your German is coming along beautifully. Want to try another sentence?');
+  }
+
+  sending=false;
+  sendBtn.disabled=false;
+  scrollBottom();
+}
+
+sendBtn.addEventListener('click',sendMessage);
+chatInput.addEventListener('keydown',e=>{if(e.key==='Enter')sendMessage();});
+
+// ── GOAL CHECKBOXES ──
+document.querySelectorAll('.goal-row').forEach(row=>{
+  row.addEventListener('click',()=>{
+    const check=row.querySelector('.goal-check');
+    const text=row.querySelector('.goal-text');
+    const done=check.classList.toggle('done');
+    check.textContent=done?'✓':'';
+    text.classList.toggle('done',done);
+  });
+});
+
+// ── END SESSION ──
+document.getElementById('endSessionBtn').addEventListener('click',()=>{
+  if(confirm('End this session? Your progress will be saved.')) {
+    auraOrb.classList.remove('speaking');
+    document.querySelector('.session-status').innerHTML='<div class="status-dot no-trans" style="background:var(--muted)"></div> Session Ended';
+    document.querySelector('.session-status').style.background='var(--surface)';
+    document.querySelector('.session-status').style.borderColor='var(--border)';
+    document.querySelector('.session-status').style.color='var(--muted)';
+    addMsg('ai','Great session today, Priya! You used Perfekt correctly 8 times 🎉 See you tomorrow?');
+  }
+});
+
+// ── LIVE SESSION BTN ──
+document.getElementById('liveSessionBtn').addEventListener('click',()=>{
+  addMsg('ai','Connecting to Gemini Live voice session... 🎙️ Say something in German when ready!');
+  auraOrb.classList.add('speaking');
+  scrollBottom();
+});
+
+// ── ANIMATE STATS (subtle count-up) ──
+function countUp(el,target,duration=800){
+  let start=0;const step=target/Math.ceil(duration/16);
+  const timer=setInterval(()=>{
+    start=Math.min(start+step,target);
+    el.textContent=Math.round(start);
+    if(start>=target)clearInterval(timer);
+  },16);
+}
+setTimeout(()=>{
+  countUp(document.getElementById('wordsSpoken'),34);
+  countUp(document.getElementById('correctCount'),8);
+  countUp(document.getElementById('errCount'),2);
+},400);
+</script>
+</body>
+</html>
