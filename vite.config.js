@@ -22,6 +22,9 @@ function injectHtmlFragments() {
 
 export default defineConfig({
   plugins: [injectHtmlFragments()],
+  optimizeDeps: {
+    exclude: ['firebase/app', 'firebase/auth']
+  },
   build: {
     outDir: 'dist',
     rollupOptions: {
