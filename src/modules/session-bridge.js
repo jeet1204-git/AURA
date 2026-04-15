@@ -1,55 +1,37 @@
 /**
  * session-bridge.js
- *
- * Minimal Gemini Live session manager wired directly to app-screens.html.
- * Replaces the old session.js for the new dashboard — no blueprint system,
- * no exam mode, no paywall. Just: token → WebSocket → mic → audio → UI.
- *
+ * Minimal Gemini Live session wired to app-screens.html.
  * Drop into src/modules/session-bridge.js
- * Import in ui.js: import { initSession } from './session-bridge.js';
  */
 
 import { WORKER_URL, GEMINI_WS_EPHEMERAL, MODEL } from '../config/constants.js';
 import { getWorkletBlobUrl, createWorklet, ensurePlaybackWorklet, enqueueAudio } from '../audio/worklets.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let ws          = null;
-let micStream   = null;
-let micCtx      = null;
-let audioCtx    = null;
-let workletNode = null;
-let dgWs        = null;
-let dgClosingByApp = false;
+let ws            = null;
+let micStream     = null;
+let micCtx        = null;
+let audioCtx      = null;
+let playbackNode  = null;   // returned by ensurePlaybackWorklet
+let workletNode   = null;   // mic capture node
 
 let sessionActive = false;
 let micMuted      = false;
 
-// ── DOM REFS ──────────────────────────────────────────────────────────────────
-const auraOrb      = () => document.getElementById('auraOrb');
-const messagesWrap = () => document.getElementById('messagesWrap');
-const typingEl     = () => document.getElementById('typingIndicator');
-const statusEl     = () => document.querySelector('.session-status');
-const micBtnEl     = () => document.getElementById('micBtn');
-const liveBtn      = () => document.getElementById('liveSessionBtn');
-const endBtn       = () => document.getElementById('endSessionBtn');
-const chatInput    = () => document.getElementById('chatInput');
-const sendBtn      = () => document.getElementById('sendBtn');
-const timerEl      = () => document.getElementById('sessionTimer');
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
+// ── DOM HELPERS ───────────────────────────────────────────────────────────────
 function addMsg(role, html) {
-  const wrap = messagesWrap();
+  const wrap = document.getElementById('messagesWrap');
   if (!wrap) return;
   const div = document.createElement('div');
   div.className = 'msg ' + (role === 'ai' ? 'ai' : 'me');
   div.innerHTML = `<div class="msg-label">${role === 'ai' ? 'AURA' : 'YOU'}</div><div class="bubble">${html}</div>`;
-  const typing = typingEl();
+  const typing = document.getElementById('typingIndicator');
   typing ? wrap.insertBefore(div, typing) : wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
 }
 
 function setStatus(label, color) {
-  const el = statusEl();
+  const el = document.querySelector('.session-status');
   if (!el) return;
   const dot = el.querySelector('.status-dot');
   if (dot) dot.style.background = color || 'var(--green)';
@@ -59,14 +41,13 @@ function setStatus(label, color) {
 }
 
 function setOrbSpeaking(on) {
-  auraOrb()?.classList.toggle('speaking', on);
+  document.getElementById('auraOrb')?.classList.toggle('speaking', on);
   const wfLabel = document.querySelector('.wf-label');
   if (wfLabel) wfLabel.textContent = on ? 'AURA Speaking' : 'Listening…';
 }
 
 // ── TIMER ─────────────────────────────────────────────────────────────────────
-let timerSeconds = 0;
-let timerInterval = null;
+let timerSeconds = 0, timerInterval = null;
 
 function startTimer() {
   timerSeconds = 0;
@@ -75,7 +56,7 @@ function startTimer() {
     const h = String(Math.floor(timerSeconds / 3600)).padStart(2, '0');
     const m = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
     const s = String(timerSeconds % 60).padStart(2, '0');
-    const el = timerEl();
+    const el = document.getElementById('sessionTimer');
     if (el) el.textContent = `${h}:${m}:${s}`;
   }, 1000);
 }
@@ -90,7 +71,7 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
   if (sessionActive) return;
   if (!idToken) { addMsg('ai', '⚠️ Please sign in to start a session.'); return; }
 
-  const btn = liveBtn();
+  const btn = document.getElementById('liveSessionBtn');
   if (btn) btn.disabled = true;
   setStatus('Connecting…', 'var(--amber)');
   addMsg('ai', '✨ Starting your live session — one moment…');
@@ -107,10 +88,10 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
     });
 
-    // 3. Playback worklet
-    await ensurePlaybackWorklet(audioCtx);
+    // 3. Playback worklet — returns the node we send audio to
+    playbackNode = await ensurePlaybackWorklet(audioCtx);
 
-    // 4. Fetch ephemeral token from Worker
+    // 4. Fetch token from Worker
     const resp = await fetch(`${WORKER_URL}/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -137,7 +118,7 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
     ws.onopen = async () => {
       clearTimeout(wsTimeout);
 
-      // Send setup
+      // Send setup message to Gemini
       ws.send(JSON.stringify({
         setup: {
           model: MODEL,
@@ -151,8 +132,19 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
         }
       }));
 
-      // Start mic worklet
-      workletNode = await createWorklet(micCtx, micStream);
+      // 6. Start mic — send each PCM chunk to Gemini WebSocket
+      workletNode = await createWorklet(micCtx, micStream, {
+        onAudioChunk: (pcmBuffer) => {
+          if (!sessionActive || micMuted) return;
+          if (ws?.readyState !== WebSocket.OPEN) return;
+          const b64 = btoa(String.fromCharCode(...new Uint8Array(pcmBuffer)));
+          ws.send(JSON.stringify({
+            realtimeInput: {
+              mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }]
+            }
+          }));
+        }
+      });
 
       sessionActive = true;
       startTimer();
@@ -161,9 +153,9 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
       if (btn) btn.disabled = false;
       addMsg('ai', `Hey ${userDisplayName}! I'm connected. Say something in German whenever you're ready 🎙️`);
 
-      // Keep-alive ping every 8s
+      // Keep-alive every 8s
       window._keepAlive = setInterval(() => {
-        if (ws && ws.readyState === WebSocket.OPEN && sessionActive) {
+        if (ws?.readyState === WebSocket.OPEN && sessionActive) {
           try { ws.send(JSON.stringify({ realtimeInput: { mediaChunks: [] } })); } catch (e) {}
         } else clearInterval(window._keepAlive);
       }, 8000);
@@ -203,36 +195,31 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
 let currentAiText = '';
 
 function handleServerMessage(msg) {
-  // Setup complete — Gemini is ready
-  if (msg.setupComplete !== undefined) {
-    setStatus('Live · Voice', 'var(--green)');
-  }
-
   if (msg.serverContent) {
     const sc = msg.serverContent;
 
-    // Audio output — play it
+    // Audio — play it via playback worklet
     if (sc.modelTurn?.parts) {
       sc.modelTurn.parts.forEach(part => {
-        if (part.inlineData?.mimeType?.startsWith('audio/')) {
+        if (part.inlineData?.mimeType?.startsWith('audio/') && part.inlineData.data) {
           setOrbSpeaking(true);
-          enqueueAudio(audioCtx, part.inlineData.data);
+          enqueueAudio(playbackNode, part.inlineData.data);
         }
       });
     }
 
-    // AURA's text transcript — accumulate
+    // AURA text transcript — accumulate
     if (sc.outputTranscription?.text) {
       currentAiText += sc.outputTranscription.text;
     }
 
-    // User's speech transcript
+    // User speech transcript
     if (sc.inputTranscription?.isFinal) {
       const text = (sc.inputTranscription.text || '').trim();
       if (text) addMsg('me', text);
     }
 
-    // Turn complete — show AURA's full message
+    // Turn complete — show full AURA message
     if (sc.turnComplete) {
       if (currentAiText.trim()) {
         addMsg('ai', currentAiText.trim());
@@ -252,7 +239,6 @@ function handleServerMessage(msg) {
 // ── END SESSION ───────────────────────────────────────────────────────────────
 export async function endSession() {
   if (!sessionActive) return;
-  addMsg('ai', 'Wrapping up your session…');
   cleanup();
   stopTimer();
   setStatus('Session ended', 'var(--muted)');
@@ -263,7 +249,7 @@ export async function endSession() {
 // ── MIC TOGGLE ────────────────────────────────────────────────────────────────
 export function toggleMic() {
   micMuted = !micMuted;
-  const btn = micBtnEl();
+  const btn  = document.getElementById('micBtn');
   const icon = btn?.querySelector('.vc-icon');
   if (icon) icon.textContent = micMuted ? '🔇' : '🎙️';
   btn?.classList.toggle('mic-active', !micMuted);
@@ -289,12 +275,12 @@ export function getSessionState() {
 function cleanup() {
   sessionActive = false;
   if (window._keepAlive) { clearInterval(window._keepAlive); window._keepAlive = null; }
-  if (dgWs) { dgClosingByApp = true; try { dgWs.close(); } catch (e) {} dgWs = null; }
-  if (workletNode) { try { workletNode.disconnect(); } catch (e) {} workletNode = null; }
-  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
-  if (audioCtx) { try { audioCtx.close(); } catch (e) {} audioCtx = null; }
-  if (micCtx) { try { micCtx.close(); } catch (e) {} micCtx = null; }
-  if (ws) { try { ws.close(); } catch (e) {} ws = null; }
+  if (workletNode)  { try { workletNode.disconnect();  } catch (e) {} workletNode  = null; }
+  if (playbackNode) { try { playbackNode.disconnect(); } catch (e) {} playbackNode = null; }
+  if (micStream)    { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (audioCtx)     { try { audioCtx.close(); } catch (e) {} audioCtx = null; }
+  if (micCtx)       { try { micCtx.close();   } catch (e) {} micCtx   = null; }
+  if (ws)           { try { ws.close();        } catch (e) {} ws       = null; }
   micMuted = false;
 }
 
@@ -312,45 +298,47 @@ Your personality:
 
 Your teaching approach:
 - Respond primarily in English, weaving in German words and examples naturally
-- If the student makes a grammar error, correct it once, clearly, then move on
+- If the student makes a grammar error, correct it once clearly then move on
 - Occasionally say a short encouraging phrase in Gujarati to feel personal
 - Ask follow-up questions to keep the conversation alive
 - Keep each voice turn concise: 2-3 sentences maximum
 
-Start by greeting the student warmly in German, then immediately switch to a mix of English and German for the conversation.`;
+Start by greeting the student warmly in German, then use a natural mix of English and German.`;
 }
 
-// ── INIT — wires all dashboard buttons ───────────────────────────────────────
+// ── INIT — called from ui.js after auth ───────────────────────────────────────
 export function initSession({ getIdToken, getUserDisplayName }) {
-  // Live session button
-  liveBtn()?.addEventListener('click', async () => {
+
+  // Start voice session button
+  document.getElementById('liveSessionBtn')?.addEventListener('click', async () => {
     if (sessionActive) return;
     const idToken = await getIdToken().catch(() => null);
     await startSession({ idToken, userDisplayName: getUserDisplayName() });
   });
 
   // End session button
-  endBtn()?.addEventListener('click', async () => {
+  document.getElementById('endSessionBtn')?.addEventListener('click', async () => {
     if (!sessionActive) return;
     if (!confirm('End this session? Your progress will be saved.')) return;
-    endBtn().disabled = true;
+    const btn = document.getElementById('endSessionBtn');
+    if (btn) btn.disabled = true;
     await endSession();
-    endBtn().disabled = false;
+    if (btn) btn.disabled = false;
   });
 
-  // Mic button
-  micBtnEl()?.addEventListener('click', () => {
+  // Mic toggle
+  document.getElementById('micBtn')?.addEventListener('click', () => {
     if (!sessionActive) return;
     toggleMic();
   });
 
-  // Chat input — routes through live session if active, else REST fallback
+  // Chat input — live session or REST fallback
   let sending = false;
 
   async function handleSend() {
     if (sending) return;
-    const input = chatInput();
-    const text = input?.value.trim();
+    const input = document.getElementById('chatInput');
+    const text  = input?.value.trim();
     if (!text) return;
 
     if (sessionActive) {
@@ -360,13 +348,15 @@ export function initSession({ getIdToken, getUserDisplayName }) {
       return;
     }
 
-    // REST fallback
+    // REST fallback when no live session
     sending = true;
-    if (sendBtn()) sendBtn().disabled = true;
+    const sendBtnEl = document.getElementById('sendBtn');
+    if (sendBtnEl) sendBtnEl.disabled = true;
     addMsg('me', text);
     input.value = '';
-    const typing = typingEl();
-    if (typing) { typing.style.display = 'flex'; messagesWrap().scrollTop = messagesWrap().scrollHeight; }
+    const typing = document.getElementById('typingIndicator');
+    const wrap   = document.getElementById('messagesWrap');
+    if (typing) { typing.style.display = 'flex'; if (wrap) wrap.scrollTop = wrap.scrollHeight; }
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -375,7 +365,7 @@ export function initSession({ getIdToken, getUserDisplayName }) {
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 800,
-          system: `You are AURA, a warm AI language tutor. Student is learning German at B1 level. Native language: Gujarati. Also speaks English. Reply in max 3 sentences. Correct grammar errors gently. Ask a follow-up question if correct. Occasionally add a tip in Gujarati (italicized). No bullet points.`,
+          system: `You are AURA, a warm AI language tutor. Student is learning German at B1. Native language: Gujarati. Also speaks English. Reply in max 3 sentences. Correct grammar errors gently. Ask a follow-up if correct. Occasionally add a tip in Gujarati (italicized). No bullet points.`,
           messages: [{ role: 'user', content: text }]
         })
       });
@@ -388,9 +378,11 @@ export function initSession({ getIdToken, getUserDisplayName }) {
     }
 
     sending = false;
-    if (sendBtn()) sendBtn().disabled = false;
+    if (sendBtnEl) sendBtnEl.disabled = false;
   }
 
-  sendBtn()?.addEventListener('click', handleSend);
-  chatInput()?.addEventListener('keydown', e => { if (e.key === 'Enter') handleSend(); });
+  document.getElementById('sendBtn')?.addEventListener('click', handleSend);
+  document.getElementById('chatInput')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSend();
+  });
 }
