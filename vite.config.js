@@ -29,6 +29,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         dashboard: resolve(__dirname, 'src/app/screens/app-screens.html')
+        auth: resolve(__dirname, 'src/app/screens/auth.html')
       }
     }
   }
