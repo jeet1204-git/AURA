@@ -1,361 +1,210 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AURA — Auth</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root{
-      --bg:#050508; --bg2:#0a0a10; --surface:#13131e; --surface2:#1a1a28;
-      --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
-      --text:#e8e8f2; --muted:rgba(232,232,242,0.55);
-      --purple:#9d7fff; --blue:#5ba3ff;
-      --grad:linear-gradient(135deg,#9d7fff,#5ba3ff);
-      --grad2:linear-gradient(135deg,#7c5cfc,#4b8ef0);
-      --input-bg:rgba(255,255,255,0.04);
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AURA — Sign in</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#050508;--surface:#13131e;--border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.13);--text:#e8e8f2;--muted:rgba(232,232,242,0.45);
+  --purple:#9d7fff;--blue:#5ba3ff;
+  --grad:linear-gradient(135deg,#9d7fff,#5ba3ff);
+  --grad2:linear-gradient(135deg,#7c5cfc,#4b8ef0);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;}
 
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      min-height:100vh;
-      font-family:'Inter',sans-serif;
-      background:
-        radial-gradient(circle at top, rgba(157,127,255,0.15), transparent 30%),
-        var(--bg);
-      color:var(--text);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
-    }
+/* noise */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity:.4;}
 
-    .auth-shell{
-      width:100%;
-      max-width:1080px;
-      display:grid;
-      grid-template-columns:1.1fr .9fr;
-      border:1px solid var(--border);
-      border-radius:24px;
-      overflow:hidden;
-      background:rgba(255,255,255,0.02);
-      backdrop-filter:blur(12px);
-    }
+/* orbs */
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;}
+.orb-1{width:400px;height:400px;background:rgba(124,92,252,.12);top:-100px;right:-100px;}
+.orb-2{width:300px;height:300px;background:rgba(91,163,255,.08);bottom:-80px;left:-80px;}
 
-    .auth-left{
-      padding:56px;
-      background:
-        linear-gradient(180deg, rgba(157,127,255,0.08), transparent),
-        var(--bg2);
-      border-right:1px solid var(--border);
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-    }
+.card{
+  position:relative;z-index:1;
+  width:100%;max-width:400px;margin:20px;
+  background:var(--surface);
+  border:0.5px solid var(--border2);
+  border-radius:20px;
+  padding:40px 36px;
+  box-shadow:0 24px 80px rgba(0,0,0,.4);
+}
 
-    .brand{
-      font-size:32px;
-      font-weight:700;
-      letter-spacing:-0.03em;
-    }
+.logo{
+  font-size:22px;font-weight:700;letter-spacing:-.3px;
+  background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:28px;text-align:center;
+}
 
-    .brand span{
-      background:var(--grad);
-      -webkit-background-clip:text;
-      -webkit-text-fill-color:transparent;
-      background-clip:text;
-    }
+h1{font-size:20px;font-weight:600;color:var(--text);text-align:center;margin-bottom:6px;}
+.sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:32px;line-height:1.5;}
 
-    .hero-copy h1{
-      font-size:42px;
-      line-height:1.08;
-      letter-spacing:-0.04em;
-      margin-bottom:16px;
-      max-width:520px;
-    }
+.google-btn{
+  width:100%;padding:13px 20px;border-radius:12px;
+  background:#fff;border:none;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  font-size:14px;font-weight:500;color:#1a1a1a;
+  cursor:pointer;transition:opacity .15s,transform .15s;
+  margin-bottom:16px;
+}
+.google-btn:hover{opacity:.92;transform:translateY(-1px);}
+.google-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.google-btn svg{width:18px;height:18px;flex-shrink:0;}
 
-    .hero-copy p{
-      font-size:16px;
-      line-height:1.65;
-      color:var(--muted);
-      max-width:520px;
-    }
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;}
+.divider-line{flex:1;height:0.5px;background:var(--border);}
+.divider-text{font-size:11px;color:var(--muted);}
 
-    .hero-points{
-      display:grid;
-      gap:12px;
-      margin-top:32px;
-    }
+.email-field{
+  width:100%;padding:11px 14px;border-radius:10px;
+  background:rgba(255,255,255,0.04);border:0.5px solid var(--border2);
+  color:var(--text);font-size:13px;font-family:'Inter',sans-serif;
+  outline:none;margin-bottom:10px;
+}
+.email-field:focus{border-color:rgba(157,127,255,.5);}
+.email-field::placeholder{color:var(--muted);}
 
-    .hero-point{
-      padding:14px 16px;
-      border:1px solid var(--border);
-      border-radius:14px;
-      background:rgba(255,255,255,0.03);
-      color:var(--muted);
-      font-size:14px;
-    }
+.pass-field{
+  width:100%;padding:11px 14px;border-radius:10px;
+  background:rgba(255,255,255,0.04);border:0.5px solid var(--border2);
+  color:var(--text);font-size:13px;font-family:'Inter',sans-serif;
+  outline:none;margin-bottom:16px;
+}
+.pass-field:focus{border-color:rgba(157,127,255,.5);}
+.pass-field::placeholder{color:var(--muted);}
 
-    .auth-right{
-      padding:48px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:var(--bg);
-    }
+.submit-btn{
+  width:100%;padding:13px;border-radius:12px;
+  background:var(--grad2);border:none;
+  font-size:14px;font-weight:500;color:#fff;
+  cursor:pointer;transition:opacity .15s,transform .15s;
+}
+.submit-btn:hover{opacity:.9;transform:translateY(-1px);}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
 
-    .auth-card{
-      width:100%;
-      max-width:420px;
-    }
+.error-msg{
+  margin-top:12px;padding:10px 14px;border-radius:9px;
+  background:rgba(248,113,113,.08);border:0.5px solid rgba(248,113,113,.3);
+  font-size:12px;color:#f87171;display:none;
+}
 
-    .auth-card h2{
-      font-size:28px;
-      margin-bottom:10px;
-      letter-spacing:-0.03em;
-    }
-
-    .auth-card p{
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.6;
-      margin-bottom:24px;
-    }
-
-    .tabs{
-      display:flex;
-      gap:8px;
-      margin-bottom:20px;
-    }
-
-    .tab-btn{
-      flex:1;
-      padding:12px 14px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:transparent;
-      color:var(--muted);
-      font:inherit;
-      cursor:pointer;
-    }
-
-    .tab-btn.active{
-      background:rgba(157,127,255,0.14);
-      border-color:rgba(157,127,255,0.35);
-      color:var(--text);
-    }
-
-    .form{
-      display:none;
-      gap:14px;
-      flex-direction:column;
-    }
-
-    .form.active{
-      display:flex;
-    }
-
-    .field{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-
-    .field label{
-      font-size:13px;
-      color:var(--muted);
-    }
-
-    .field input{
-      width:100%;
-      padding:14px 16px;
-      border-radius:14px;
-      border:1px solid var(--border);
-      background:var(--input-bg);
-      color:var(--text);
-      font:inherit;
-      outline:none;
-    }
-
-    .field input:focus{
-      border-color:rgba(157,127,255,0.45);
-    }
-
-    .primary-btn, .secondary-btn{
-      width:100%;
-      padding:14px 16px;
-      border:none;
-      border-radius:14px;
-      font:inherit;
-      font-weight:600;
-      cursor:pointer;
-    }
-
-    .primary-btn{
-      background:var(--grad2);
-      color:white;
-      margin-top:6px;
-    }
-
-    .secondary-btn{
-      background:transparent;
-      color:var(--text);
-      border:1px solid var(--border);
-    }
-
-    .links{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      margin-top:14px;
-      font-size:13px;
-    }
-
-    .links a{
-      color:var(--muted);
-      text-decoration:none;
-    }
-
-    .links a:hover{
-      color:var(--text);
-    }
-
-    .divider{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      margin:20px 0;
-      color:var(--muted);
-      font-size:12px;
-    }
-
-    .divider::before, .divider::after{
-      content:"";
-      flex:1;
-      height:1px;
-      background:var(--border);
-    }
-
-    @media (max-width: 900px){
-      .auth-shell{
-        grid-template-columns:1fr;
-      }
-      .auth-left{
-        display:none;
-      }
-      .auth-right{
-        padding:32px 20px;
-      }
-    }
-  </style>
+.footer-note{
+  margin-top:24px;text-align:center;
+  font-size:11.5px;color:var(--muted);
+}
+.footer-note a{color:var(--purple);text-decoration:none;}
+</style>
 </head>
 <body>
-  <div class="auth-shell">
-    <section class="auth-left">
-      <div class="brand"><span>AURA</span></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
 
-      <div class="hero-copy">
-        <h1>The tutor that remembers you and knows what to do next.</h1>
-        <p>
-          Practice real speaking, get live corrections, and build momentum with a system designed
-          for structured language growth.
-        </p>
+<div class="card">
+  <div class="logo">AURA</div>
+  <h1>Welcome back</h1>
+  <p class="sub">Sign in to continue your German learning journey</p>
 
-        <div class="hero-points">
-          <div class="hero-point">Personalized speaking sessions</div>
-          <div class="hero-point">Memory-driven corrections and revision</div>
-          <div class="hero-point">Exam-aligned progression from A1 to C1</div>
-        </div>
-      </div>
-    </section>
+  <!-- Google Sign In -->
+  <button class="google-btn" id="googleBtn">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+    Continue with Google
+  </button>
 
-    <section class="auth-right">
-      <div class="auth-card">
-        <h2>Welcome back</h2>
-        <p>Sign in to continue your learning journey, or create a new account to get started.</p>
-
-        <div class="tabs">
-          <button class="tab-btn active" data-tab="signin">Sign In</button>
-          <button class="tab-btn" data-tab="signup">Create Account</button>
-        </div>
-
-        <form class="form active" id="signinForm">
-          <div class="field">
-            <label for="signinEmail">Email</label>
-            <input id="signinEmail" type="email" placeholder="you@example.com" />
-          </div>
-
-          <div class="field">
-            <label for="signinPassword">Password</label>
-            <input id="signinPassword" type="password" placeholder="Enter your password" />
-          </div>
-
-          <button type="submit" class="primary-btn">Sign In</button>
-
-          <div class="links">
-            <a href="#">Forgot password?</a>
-            <a href="./onboarding.html">First time here?</a>
-          </div>
-        </form>
-
-        <form class="form" id="signupForm">
-          <div class="field">
-            <label for="signupName">Full name</label>
-            <input id="signupName" type="text" placeholder="Your full name" />
-          </div>
-
-          <div class="field">
-            <label for="signupEmail">Email</label>
-            <input id="signupEmail" type="email" placeholder="you@example.com" />
-          </div>
-
-          <div class="field">
-            <label for="signupPassword">Password</label>
-            <input id="signupPassword" type="password" placeholder="Create a password" />
-          </div>
-
-          <button type="submit" class="primary-btn">Create Account</button>
-        </form>
-
-        <div class="divider">or</div>
-
-        <button class="secondary-btn" id="demoBtn">Open Dashboard Demo</button>
-      </div>
-    </section>
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-text">or</div>
+    <div class="divider-line"></div>
   </div>
 
-  <script>
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    const signinForm = document.getElementById('signinForm');
-    const signupForm = document.getElementById('signupForm');
-    const demoBtn = document.getElementById('demoBtn');
+  <!-- Email Sign In -->
+  <input class="email-field" id="emailInput" type="email" placeholder="Email address" autocomplete="email"/>
+  <input class="pass-field" id="passInput" type="password" placeholder="Password" autocomplete="current-password"/>
+  <button class="submit-btn" id="emailBtn">Sign in</button>
 
-    tabButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        tabButtons.forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
+  <div class="error-msg" id="errorMsg"></div>
 
-        const tab = button.dataset.tab;
-        signinForm.classList.toggle('active', tab === 'signin');
-        signupForm.classList.toggle('active', tab === 'signup');
-      });
-    });
+  <p class="footer-note">
+    Don't have an account? <a href="#">Contact us</a> for early access.
+  </p>
+</div>
 
-    signinForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      window.location.href = './app-screens.html';
-    });
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithPopup, signInWithEmailAndPassword, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { FIREBASE_CONFIG } from '/src/config/constants.js';
 
-    signupForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      window.location.href = './onboarding.html';
-    });
+const app      = initializeApp(FIREBASE_CONFIG);
+const auth     = getAuth(app);
+const provider = new GoogleAuthProvider();
 
-    demoBtn.addEventListener('click', () => {
-      window.location.href = './app-screens.html';
-    });
-  </script>
+const googleBtn  = document.getElementById('googleBtn');
+const emailBtn   = document.getElementById('emailBtn');
+const emailInput = document.getElementById('emailInput');
+const passInput  = document.getElementById('passInput');
+const errorMsg   = document.getElementById('errorMsg');
+
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorMsg.style.display = 'block';
+}
+
+function clearError() {
+  errorMsg.style.display = 'none';
+}
+
+function afterSignIn() {
+  window.location.href = '/src/app/screens/app-screens.html';
+}
+
+// Google sign in
+googleBtn.addEventListener('click', async () => {
+  clearError();
+  googleBtn.disabled = true;
+  googleBtn.textContent = 'Signing in…';
+  try {
+    await signInWithPopup(auth, provider);
+    afterSignIn();
+  } catch (err) {
+    showError(err.message || 'Google sign in failed.');
+    googleBtn.disabled = false;
+    googleBtn.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px;flex-shrink:0"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continue with Google`;
+  }
+});
+
+// Email sign in
+emailBtn.addEventListener('click', async () => {
+  clearError();
+  const email = emailInput.value.trim();
+  const pass  = passInput.value;
+  if (!email || !pass) { showError('Please enter your email and password.'); return; }
+  emailBtn.disabled = true;
+  emailBtn.textContent = 'Signing in…';
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+    afterSignIn();
+  } catch (err) {
+    const msg = err.code === 'auth/invalid-credential'
+      ? 'Wrong email or password.'
+      : err.message || 'Sign in failed.';
+    showError(msg);
+    emailBtn.disabled = false;
+    emailBtn.textContent = 'Sign in';
+  }
+});
+
+passInput.addEventListener('keydown', e => { if (e.key === 'Enter') emailBtn.click(); });
+</script>
 </body>
 </html>
