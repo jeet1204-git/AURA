@@ -15,8 +15,8 @@
  * Does NOT own: WebSocket, mic, audio playback — those live in session.js.
  */
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { initializeApp } from 'firebase/app';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { FIREBASE_CONFIG } from '../config/constants.js';
 import { startSession, endSession, toggleMic, sendText, getSessionState } from './session.js';
 
