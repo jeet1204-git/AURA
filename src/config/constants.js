@@ -1,5 +1,5 @@
 // ── Worker endpoints ──────────────────────────────────────────────────────────
-export const WORKER_URL          = 'https://aura-token-worker.jeetupadhyay1204.workers.dev';
+export const WORKER_URL          = 'https://aura-worker.jeetupadhyay1204.workers.dev';
 export const DEEPGRAM_WORKER_URL = 'https://aura-deepgram-worker.jeetupadhyay1204.workers.dev';
 
 // ── Gemini ────────────────────────────────────────────────────────────────────
