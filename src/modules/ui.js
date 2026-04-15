@@ -9,25 +9,26 @@ import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/
 import { FIREBASE_CONFIG } from '../config/constants.js';
 import { initSession } from './session-bridge.js';
 
-// ── FIREBASE AUTH GATE ────────────────────────────────────────────────────────
+// ── FIREBASE AUTH ─────────────────────────────────────────────────────────────
 const app  = initializeApp(FIREBASE_CONFIG);
 const auth = getAuth(app);
 
 let currentUser = null;
 
+// Wire buttons immediately — don't wait for auth
+initSession({
+  getIdToken: () => currentUser ? currentUser.getIdToken() : Promise.resolve(null),
+  getUserDisplayName: () => currentUser?.displayName || currentUser?.email?.split('@')[0] || 'there',
+});
+
 onAuthStateChanged(auth, (user) => {
   if (!user) {
-    // TODO: re-enable auth gate after auth.html is built
+    // Auth gate disabled during development
     // window.location.href = '/src/app/screens/auth.html';
+    return;
   }
   currentUser = user;
   onUserReady(user);
-
-  // Wire session buttons now that we have auth
-  initSession({
-    getIdToken: () => user.getIdToken(),
-    getUserDisplayName: () => user.displayName || user.email?.split('@')[0] || 'there',
-  });
 });
 
 function onUserReady(user) {
