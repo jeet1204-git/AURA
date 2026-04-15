@@ -264,3 +264,8 @@ function setBilling(mode) {
     el.textContent = mode === 'annual' ? el.dataset.annual : el.dataset.monthly;
   });
 }
+document.querySelectorAll('.btn-primary, .nav-cta').forEach(btn => {
+  btn.addEventListener('click', () => {
+    window.location.href = '/src/app/screens/app-screens.html';
+  });
+});
