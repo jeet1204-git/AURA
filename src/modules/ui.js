@@ -17,8 +17,8 @@ let currentUser = null;
 
 onAuthStateChanged(auth, (user) => {
   if (!user) {
-    window.location.href = '/src/app/screens/auth.html';
-    return;
+    // TODO: re-enable auth gate after auth.html is built
+    // window.location.href = '/src/app/screens/auth.html';
   }
   currentUser = user;
   onUserReady(user);
