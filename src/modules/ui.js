@@ -24,7 +24,7 @@ initSession({
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     // Auth gate disabled during development
-   window.location.href = '/src/app/screens/auth.html';
+   //window.location.href = '/src/app/screens/auth.html';
     return;
   }
   currentUser = user;
