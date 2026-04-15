@@ -2,8 +2,6 @@ import { defineConfig } from 'vite';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-// ── HTML fragment injection plugin ────────────────────────────────────────────
-// Replaces <!-- inject: path/to/file.html --> comments with actual file content
 function injectHtmlFragments() {
   return {
     name: 'inject-html-fragments',
@@ -29,7 +27,7 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html')
+        main: resolve(__dirname, 'index.html'),
         dashboard: resolve(__dirname, 'src/app/screens/app-screens.html')
       }
     }
