@@ -48,12 +48,18 @@ async function onUserReady(user) {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   setEl('idleGreeting', `${greeting}, ${displayName.split(' ')[0]}`);
 
-  // Load root user doc + ensure AURA fields exist
+
+// Load root user doc + ensure AURA fields exist
 try {
   await ensureUserDoc(user.uid, { name: user.displayName, email: user.email });
   userDoc = await loadUserProfile(user.uid);
 } catch (e) {}
 
+// If onboarding not complete, send to onboarding
+if (!userDoc?.onboardingComplete) {
+  window.location.href = '/src/app/screens/onboarding.html';
+  return;
+}
 // Migrate / load profiles
 try {
   allProfiles = await migrateUserToProfiles(user.uid, userDoc || {});
