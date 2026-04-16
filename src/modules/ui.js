@@ -1,14 +1,17 @@
 /**
  * ui.js — AURA Dashboard UI controller
  * Handles auth, theme, cursor, waveform, nav, goals.
- * Voice session is owned by session-bridge.js.
+ * Voice session is owned by session.js (full engine).
  */
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { FIREBASE_CONFIG, WORKER_URL } from '../config/constants.js';
 import { loadUserProfile } from './firestore.js';
-import { initSession } from './session-bridge.js';
+
+// Side-effect import — registers window.startSession, window.endSession,
+// window.toggleMic, window.sendTextMessage, and all other session globals.
+import './session.js';
 
 // ── FIREBASE AUTH ─────────────────────────────────────────────────────────────
 const app  = initializeApp(FIREBASE_CONFIG);
@@ -16,18 +19,14 @@ const auth = getAuth(app);
 
 let currentUser = null;
 
-// Wire session buttons immediately — auth state fills in the token later
-initSession({
-  getIdToken:         () => currentUser ? currentUser.getIdToken() : Promise.resolve(null),
-  getUserDisplayName: () => currentUser?.displayName || currentUser?.email?.split('@')[0] || 'there',
-});
-
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = '/src/app/screens/auth.html';
     return;
   }
   currentUser = user;
+  // Push into store.js window proxy so session.js can read it immediately
+  window.currentUser = user;
   onUserReady(user);
 });
 
@@ -43,15 +42,46 @@ async function onUserReady(user) {
   if (avatarEl) avatarEl.textContent = displayName[0].toUpperCase();
 
   // 2. Load Firestore profile for streak, XP, level
+  let profile = null;
   try {
-    const profile = await loadUserProfile(user.uid);
+    profile = await loadUserProfile(user.uid);
     if (profile) renderProfile(profile);
   } catch (e) {
     console.warn('[AURA] Could not load profile:', e?.message);
   }
 
-  // 3. Load memory panel from Worker
+  // 3. Seed store.js globals from profile so session.js has what it needs
+  //    before the user presses Start. Defaults to A2 guided conversation.
+  initSessionState(profile);
+
+  // 4. Load memory panel from Worker
   loadMemoryPanel(user);
+}
+
+// ── SEED SESSION STATE ────────────────────────────────────────────────────────
+// session.js reads selectedLevel, selectedLangPref, selectedScenario etc. from
+// window (proxied by store.js). We set them here from the Firestore profile so
+// the first session is personalised, with safe A2 guided defaults.
+function initSessionState(profile) {
+  window.selectedLevel       = profile?.level            || 'A2';
+  window.selectedLangPref    = profile?.nativeLanguage   || profile?.langPref || 'English';
+  window.selectedSessionMode = profile?.preferredMode    || 'guided';
+  window.selectedProgramType = 'general';
+
+  // Let session.js resolve the actual scenario object on startSession().
+  // resolveScenarioForLevel is exposed on window by session.js after import.
+  if (typeof window.resolveScenarioForLevel === 'function') {
+    window.selectedScenario = window.resolveScenarioForLevel(window.selectedLevel, null) || null;
+  } else {
+    window.selectedScenario = null;
+  }
+
+  console.log('[AURA][ui] session state seeded', {
+    level:    window.selectedLevel,
+    langPref: window.selectedLangPref,
+    mode:     window.selectedSessionMode,
+    scenario: window.selectedScenario?.id || null,
+  });
 }
 
 // ── RENDER PROFILE (streak, XP, level) ───────────────────────────────────────
@@ -91,7 +121,6 @@ function renderWeekDots(streak) {
   const order = [1, 2, 3, 4, 5, 6, 0];
   dots.forEach((dot, i) => {
     const dayIndex = order[i];
-    // Mark days up to and including today as done if streak covers them
     const daysAgo = (today - dayIndex + 7) % 7;
     dot.classList.toggle('on', daysAgo < Math.min(streak, 7));
   });
@@ -180,7 +209,7 @@ function renderCorrections(memory) {
 
   const items = mistakes.slice(0, 3).map(m => `
     <div class="correction-item">
-      <div class="ci-icon">→</div>
+      <div class="ci-icon">&#8594;</div>
       <div>
         <div class="ci-wrong">${escHtml(m)}</div>
         <div class="ci-note">Recurring pattern — keep an eye on this</div>
@@ -269,9 +298,9 @@ document.querySelectorAll('.nav-item').forEach(item => {
 function showComingSoon(label) {
   const existing = document.getElementById('coming-soon-toast');
   if (existing) existing.remove();
-  const toast = document.createElement('div');
-  toast.id = 'coming-soon-toast';
-  toast.style.cssText = `
+  const t = document.createElement('div');
+  t.id = 'coming-soon-toast';
+  t.style.cssText = `
     position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
     background:var(--surface2); border:0.5px solid var(--border2);
     color:var(--text); padding:10px 20px; border-radius:10px;
@@ -279,9 +308,9 @@ function showComingSoon(label) {
     box-shadow:0 8px 32px rgba(0,0,0,0.4);
     animation: fadeInUp .2s ease;
   `;
-  toast.textContent = (label || 'This section') + ' is coming soon';
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
+  t.textContent = (label || 'This section') + ' is coming soon';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
 }
 
 // ── LANGUAGE SWITCHER ─────────────────────────────────────────────────────────
@@ -302,37 +331,3 @@ document.querySelectorAll('.goal-row').forEach(row => {
     text?.classList.toggle('done', done);
   });
 });
-
-// ── SUGGESTION CHIPS ──────────────────────────────────────────────────────────
-document.querySelectorAll('.sug-chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    const input = document.getElementById('chatInput');
-    if (input) { input.value = chip.textContent.trim(); input.focus(); }
-  });
-});
-
-// ── ORB CLICK ─────────────────────────────────────────────────────────────────
-document.getElementById('auraOrb')?.addEventListener('click', () => {
-  document.getElementById('auraOrb').classList.toggle('speaking');
-});
-
-// ── SESSION STATS (updated by session-bridge via events) ──────────────────────
-window.addEventListener('aura:stats', (e) => {
-  const { wordsSpoken, correctCount, errCount } = e.detail || {};
-  const ws = document.getElementById('wordsSpoken');
-  const cc = document.getElementById('correctCount');
-  const ec = document.getElementById('errCount');
-  if (ws && wordsSpoken != null) ws.textContent = wordsSpoken;
-  if (cc && correctCount != null) cc.textContent = correctCount;
-  if (ec && errCount    != null) ec.textContent = errCount;
-});
-
-// ── FADEUP ANIMATION ─────────────────────────────────────────────────────────
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes fadeInUp {
-    from { opacity:0; transform:translate(-50%, 8px); }
-    to   { opacity:1; transform:translate(-50%, 0);   }
-  }
-`;
-document.head.appendChild(style);
