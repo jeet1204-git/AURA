@@ -20,7 +20,6 @@
   --chat-ai-bg:#16162a; --chat-ai-color:rgba(255,255,255,0.82);
   --sb-bg:#0c0c16; --grid-color:rgba(255,255,255,0.025);
   --scrollbar-thumb:#1a1a28;
-  --glass:rgba(255,255,255,0.04); --glass-border:rgba(255,255,255,0.09);
 }
 
 [data-theme="light"] {
@@ -35,37 +34,23 @@
   --chat-ai-bg:#efefef; --chat-ai-color:rgba(26,26,26,0.85);
   --sb-bg:#f0f0ed; --grid-color:rgba(0,0,0,0.04);
   --scrollbar-thumb:#d0d0cc;
-  --glass:rgba(255,255,255,0.7); --glass-border:rgba(0,0,0,0.1);
 }
 
 html{scroll-behavior:smooth;height:100%;}
 body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:'Inter',sans-serif;
-  font-weight:400;
-  overflow:hidden;
-  height:100vh;
-  -webkit-font-smoothing:antialiased;
-  cursor:none;
+  background:var(--bg); color:var(--text);
+  font-family:'Inter',sans-serif; font-weight:400;
+  overflow:hidden; height:100vh;
+  -webkit-font-smoothing:antialiased; cursor:none;
 }
-
 *{transition:background-color .25s ease,border-color .25s ease,color .15s ease;}
-.no-trans,.wave span,.status-dot,.badge-pulse,.cursor-dot,.cursor-ring{transition:none!important;}
+.no-trans,.status-dot,.cursor-dot,.cursor-ring{transition:none!important;}
 a{text-decoration:none;color:inherit;}
 button{cursor:none;font-family:'Inter',sans-serif;}
 
-.cursor-dot{
-  position:fixed;width:6px;height:6px;border-radius:50%;
-  background:var(--purple);pointer-events:none;z-index:9999;
-  transform:translate(-50%,-50%);
-}
-.cursor-ring{
-  position:fixed;width:32px;height:32px;border-radius:50%;
-  border:1.5px solid rgba(157,127,255,0.5);pointer-events:none;z-index:9998;
-  transform:translate(-50%,-50%);
-  transition:width .2s ease,height .2s ease,opacity .2s ease,border-color .2s ease!important;
-}
+/* ── CURSOR ── */
+.cursor-dot{position:fixed;width:6px;height:6px;border-radius:50%;background:var(--purple);pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+.cursor-ring{position:fixed;width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(157,127,255,0.5);pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .2s ease,height .2s ease,opacity .2s ease,border-color .2s ease!important;}
 .cursor-ring.hover{width:48px;height:48px;border-color:var(--purple);}
 .cursor-ring.click{width:20px;height:20px;opacity:.6;}
 body *{cursor:none!important;}
@@ -74,577 +59,237 @@ body *{cursor:none!important;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:2px;}
 
-body::before{
-  content:'';
-  position:fixed;
-  inset:0;
-  z-index:0;
-  pointer-events:none;
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-  opacity:.4;
-}
+  opacity:.4;}
 
-.app{
-  display:grid;
-  grid-template-columns:220px 1fr 288px;
-  height:100vh;
-  position:relative;
-  z-index:1;
-}
+/* ── LAYOUT ── */
+.app{display:grid;grid-template-columns:220px 1fr 288px;height:100vh;position:relative;z-index:1;}
 
-.sidebar{
-  background:var(--sb-bg);
-  border-right:0.5px solid var(--border);
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-}
-
-.sb-top{
-  padding:20px 16px 16px;
-  border-bottom:0.5px solid var(--border);
-}
-
-.sb-logo-row{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:20px;
-}
-
-.sb-logo{
-  font-size:19px;font-weight:700;letter-spacing:-.3px;
-  color:var(--text);
-}
-
-.sb-logo span{
-  background:var(--grad);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  background-clip:text;
-}
-
-.theme-toggle{
-  width:28px;height:28px;border-radius:50%;
-  background:transparent;border:0.5px solid var(--border2);
-  display:flex;align-items:center;justify-content:center;
-  font-size:13px;color:var(--muted2);
-}
-
+/* ── SIDEBAR ── */
+.sidebar{background:var(--sb-bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sb-top{padding:20px 16px 16px;border-bottom:0.5px solid var(--border);}
+.sb-logo-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.sb-logo{font-size:19px;font-weight:700;letter-spacing:-.3px;color:var(--text);}
+.sb-logo span{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.theme-toggle{width:28px;height:28px;border-radius:50%;background:transparent;border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted2);}
 .theme-toggle:hover{background:var(--surface);}
-
-.sb-user{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 12px;border-radius:10px;
-  background:var(--surface);
-  border:0.5px solid var(--border);
-}
-
-.sb-avatar{
-  width:32px;height:32px;border-radius:50%;
-  background:var(--grad2);
-  display:flex;align-items:center;justify-content:center;
-  font-size:12px;color:#fff;font-weight:600;flex-shrink:0;
-}
-
+.sb-user{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--surface);border:0.5px solid var(--border);position:relative;}
+.sb-user:hover{border-color:var(--border2);background:var(--surface2);}
+.sb-avatar{width:32px;height:32px;border-radius:50%;background:var(--grad2);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:600;flex-shrink:0;}
 .sb-user-name{font-size:12.5px;font-weight:500;color:var(--text);line-height:1.2;}
 .sb-user-sub{font-size:10.5px;color:var(--muted);}
 
 .sb-nav{flex:1;padding:12px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
-
-.sb-section-label{
-  padding:10px 10px 5px;
-  font-size:9px;font-weight:500;letter-spacing:.7px;
-  text-transform:uppercase;color:var(--muted);
-}
-
-.nav-item{
-  display:flex;align-items:center;gap:10px;
-  padding:9px 10px;border-radius:8px;
-  font-size:12.5px;color:var(--muted2);
-  background:transparent;border:none;width:100%;text-align:left;
-  position:relative;
-}
-
+.sb-section-label{padding:10px 10px 5px;font-size:9px;font-weight:500;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:12.5px;color:var(--muted2);background:transparent;border:none;width:100%;text-align:left;position:relative;}
 .nav-item:hover{background:var(--surface);color:var(--text);}
-.nav-item.active{
-  background:rgba(157,127,255,.12);
-  color:var(--purple);
-}
-.nav-item.active::before{
-  content:'';
-  position:absolute;left:0;top:50%;transform:translateY(-50%);
-  width:3px;height:18px;border-radius:0 2px 2px 0;
-  background:var(--purple);
-}
-
-.nav-icon{
-  width:18px;height:18px;display:flex;align-items:center;justify-content:center;
-  font-size:14px;flex-shrink:0;
-}
-
-.nav-badge{
-  margin-left:auto;
-  padding:2px 7px;border-radius:100px;
-  font-size:9px;font-weight:500;
-  background:rgba(157,127,255,.18);color:var(--purple);
-}
+.nav-item.active{background:rgba(157,127,255,.12);color:var(--purple);}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;border-radius:0 2px 2px 0;background:var(--purple);}
+.nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.nav-badge{margin-left:auto;padding:2px 7px;border-radius:100px;font-size:9px;font-weight:500;background:rgba(157,127,255,.18);color:var(--purple);}
 .nav-badge.red{background:rgba(248,113,113,.15);color:var(--red);}
 .nav-badge.green{background:rgba(74,222,128,.12);color:var(--green);}
 
-.sb-current-lang{
-  margin:8px 8px;padding:10px 12px;
-  border-radius:10px;border:0.5px solid var(--border);
-  background:var(--surface);
-}
-
+.sb-current-lang{margin:8px 8px;padding:10px 12px;border-radius:10px;border:0.5px solid var(--border);background:var(--surface);}
 .scl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
 .scl-label{font-size:9px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);}
 .scl-flag{font-size:16px;}
 .scl-name{font-size:13px;font-weight:600;color:var(--text);}
 .scl-level{font-size:10.5px;color:var(--muted);margin-bottom:6px;}
 .scl-bar{height:3px;background:var(--border2);border-radius:2px;overflow:hidden;}
-.scl-fill{height:3px;border-radius:2px;background:var(--grad);width:68%;}
+.scl-fill{height:3px;border-radius:2px;background:var(--grad);width:0%;}
 
-.sb-bottom{padding:14px 10px;}
-
-.live-session-btn{
-  width:100%;padding:13px 16px;border-radius:12px;
-  background:var(--grad2);border:none;
-  display:flex;align-items:center;gap:10px;
-  font-size:13px;font-weight:500;color:#fff;
-  position:relative;overflow:hidden;
-}
-
-.live-session-btn::before{
-  content:'';
-  position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(255,255,255,.08),transparent);
-}
-
-.live-btn-icon{
-  width:28px;height:28px;border-radius:8px;
-  background:rgba(255,255,255,.15);
-  display:flex;align-items:center;justify-content:center;
-  font-size:13px;flex-shrink:0;
-}
-
+.sb-bottom{padding:14px 10px;display:flex;flex-direction:column;gap:8px;}
+.logout-btn{width:100%;padding:9px 14px;border-radius:10px;background:transparent;border:0.5px solid var(--border2);display:flex;align-items:center;gap:9px;font-size:12px;font-weight:500;color:var(--muted2);}
+.logout-btn:hover{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.3);color:var(--red);}
+.live-session-btn{width:100%;padding:13px 16px;border-radius:12px;background:var(--grad2);border:none;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;color:#fff;position:relative;overflow:hidden;}
+.live-session-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.08),transparent);}
+.live-btn-icon{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
 .live-btn-text{flex:1;text-align:left;}
 .live-btn-title{font-size:12.5px;font-weight:600;line-height:1;}
-.live-btn-sub{font-size:10px;opacity:.7;margin-top:2px;}
-.live-pulse{
-  width:8px;height:8px;border-radius:50%;
-  background:#fff;opacity:.9;
-  animation:livePulse 2s ease-in-out infinite;
-  flex-shrink:0;
-}
-  
-.logout-btn{
-  width:100%;padding:9px 14px;border-radius:10px;
-  background:transparent;border:0.5px solid var(--border2);
-  display:flex;align-items:center;gap:9px;
-  font-size:12px;font-weight:500;color:var(--muted2);
-  margin-bottom:8px;
-}
-.logout-btn:hover{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.3);color:var(--red);}
-  
-@keyframes livePulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5);}
-  50%{box-shadow:0 0 0 5px rgba(255,255,255,0);}
-}
+.live-btn-sub{font-size:10px;opacity:.7;margin-top:2px;} 
+.live-pulse{width:8px;height:8px;border-radius:50%;background:#fff;opacity:.9;animation:livePulse 2s ease-in-out infinite;flex-shrink:0;}
+@keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5);}50%{box-shadow:0 0 0 5px rgba(255,255,255,0);}}
 
-.main{
-  display:flex;
-  flex-direction:column;
-  background:var(--bg);
-  overflow:hidden;
-  position:relative;
-}
+/* ── MAIN ── */
+.main{display:flex;flex-direction:column;background:var(--bg);overflow:hidden;position:relative;}
+.main::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(var(--grid-color) 1px,transparent 1px),linear-gradient(90deg,var(--grid-color) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,black 10%,transparent 80%);opacity:.6;}
+.main > *{position:relative;z-index:1;}
 
-.main-topbar{
-  padding:14px 24px;
-  border-bottom:0.5px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-  flex-shrink:0;
-}
-
+/* ── TOPBAR ── */
+.main-topbar{padding:14px 24px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .topbar-left{display:flex;align-items:center;gap:12px;}
-
-.session-status{
-  display:flex;align-items:center;gap:7px;
-  padding:5px 12px;border-radius:100px;
-  background:rgba(74,222,128,.08);
-  border:0.5px solid rgba(74,222,128,.2);
-  font-size:11.5px;color:var(--green);
-}
-
-.status-dot{
-  width:6px;height:6px;border-radius:50%;
-  background:var(--green);
-  animation:blink 1.5s ease-in-out infinite;
-}
-
+.session-status{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:100px;background:rgba(74,222,128,.08);border:0.5px solid rgba(74,222,128,.2);font-size:11.5px;color:var(--green);}
+.session-status.idle{background:rgba(255,255,255,.04);border-color:var(--border);color:var(--muted);}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.5s ease-in-out infinite;}
+.session-status.idle .status-dot{background:var(--muted);animation:none;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-
-.session-timer{
-  font-size:12px;color:var(--muted);
-  font-variant-numeric:tabular-nums;
-}
-
+.session-timer{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;}
+.topbar-session-info{font-size:11px;color:var(--muted);}
 .topbar-right{display:flex;align-items:center;gap:8px;}
-
-.tb-btn{
-  padding:6px 14px;border-radius:100px;
-  background:transparent;border:0.5px solid var(--border2);
-  font-size:11.5px;color:var(--muted2);
-  display:flex;align-items:center;gap:6px;
-}
-
+.tb-btn{padding:6px 14px;border-radius:100px;background:transparent;border:0.5px solid var(--border2);font-size:11.5px;color:var(--muted2);display:flex;align-items:center;gap:6px;}
 .tb-btn:hover{background:var(--surface);color:var(--text);}
 .tb-btn.end{border-color:rgba(248,113,113,.3);color:var(--red);}
 .tb-btn.end:hover{background:rgba(248,113,113,.08);}
 
-.voice-zone{
-  padding:20px 24px 16px;
-  border-bottom:0.5px solid var(--border);
-  display:flex;align-items:center;gap:16px;
-  flex-shrink:0;
-  background:var(--bg2);
+/* ── IDLE STATE (shown before session starts) ── */
+#idle-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:32px;overflow-y:auto;}
+.idle-greeting{text-align:center;}
+.idle-greeting h1{font-size:28px;font-weight:600;letter-spacing:-.5px;margin-bottom:8px;}
+.idle-greeting p{font-size:14px;color:var(--muted2);line-height:1.6;max-width:400px;margin:0 auto;}
+.idle-profile-card{
+  width:100%;max-width:440px;
+  background:var(--surface);border:0.5px solid var(--border2);
+  border-radius:16px;padding:20px;
 }
+.ipc-label{font-size:9px;font-weight:500;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+.ipc-main{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.ipc-flag{font-size:36px;line-height:1;}
+.ipc-lang{font-size:22px;font-weight:700;letter-spacing:-.4px;}
+.ipc-level{font-size:13px;color:var(--muted2);margin-top:2px;}
+.ipc-goal{font-size:12px;color:var(--purple);padding:4px 10px;background:rgba(157,127,255,.1);border-radius:100px;display:inline-block;}
+.ipc-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.ipc-chip{font-size:11px;color:var(--muted2);padding:4px 10px;background:var(--bg);border:0.5px solid var(--border);border-radius:100px;}
 
+.idle-start-btn{
+  width:100%;max-width:440px;
+  padding:18px;border-radius:14px;
+  background:var(--grad2);border:none;
+  font-size:16px;font-weight:600;color:#fff;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  position:relative;overflow:hidden;
+}
+.idle-start-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.1),transparent);}
+.idle-start-btn:hover{opacity:.92;}
+
+.idle-recent{width:100%;max-width:440px;}
+.idle-recent-label{font-size:9px;font-weight:500;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.idle-recent-empty{font-size:13px;color:var(--muted);text-align:center;padding:20px 0;}
+.recent-session-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:10px;
+  background:var(--surface);border:0.5px solid var(--border);
+  margin-bottom:6px;
+}
+.rsi-flag{font-size:20px;}
+.rsi-info{flex:1;}
+.rsi-title{font-size:12.5px;font-weight:500;color:var(--text);}
+.rsi-meta{font-size:10.5px;color:var(--muted);margin-top:2px;}
+.rsi-score{font-size:11px;font-weight:600;color:var(--green);}
+
+/* ── SESSION SCREEN (shown while session active) ── */
+#session-screen{flex:1;display:none;flex-direction:column;overflow:hidden;}
+#session-screen.active{display:flex;}
+
+.voice-zone{padding:16px 24px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:16px;flex-shrink:0;background:var(--bg2);}
 .aura-orb-wrap{position:relative;flex-shrink:0;}
-
-.aura-orb{
-  width:52px;height:52px;border-radius:50%;
-  background:var(--grad2);
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;color:#fff;font-weight:700;
-  position:relative;z-index:1;
-  box-shadow:0 0 0 0 rgba(124,92,252,.4);
-}
-
-.aura-orb.speaking{
-  animation:orbPulse 1.8s ease-in-out infinite;
-}
-
-@keyframes orbPulse{
-  0%{box-shadow:0 0 0 0 rgba(124,92,252,.5);}
-  70%{box-shadow:0 0 0 14px rgba(124,92,252,0);}
-  100%{box-shadow:0 0 0 0 rgba(124,92,252,0);}
-}
-
-.orb-ring{
-  position:absolute;inset:-4px;border-radius:50%;
-  border:1px solid rgba(157,127,255,.25);
-  animation:orbRing 2.5s ease-in-out infinite;
-}
-
-@keyframes orbRing{
-  0%,100%{opacity:.4;transform:scale(1);}
-  50%{opacity:.8;transform:scale(1.05);}
-}
-
+.aura-orb{width:52px;height:52px;border-radius:50%;background:var(--grad2);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;font-weight:700;position:relative;z-index:1;box-shadow:0 0 0 0 rgba(124,92,252,.4);}
+.aura-orb.speaking{animation:orbPulse 1.8s ease-in-out infinite;}
+@keyframes orbPulse{0%{box-shadow:0 0 0 0 rgba(124,92,252,.5);}70%{box-shadow:0 0 0 14px rgba(124,92,252,0);}100%{box-shadow:0 0 0 0 rgba(124,92,252,0);}}
+.orb-ring{position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(157,127,255,.25);animation:orbRing 2.5s ease-in-out infinite;}
+@keyframes orbRing{0%,100%{opacity:.4;transform:scale(1);}50%{opacity:.8;transform:scale(1.05);}}
 .waveform-area{flex:1;}
 .wf-label{font-size:10px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
 .waveform{display:flex;align-items:center;gap:2.5px;height:36px;}
-.wf-bar{
-  width:3px;border-radius:3px;
-  background:linear-gradient(180deg,var(--purple),var(--blue));
-  animation:wfAnim var(--d,1.2s) ease-in-out infinite alternate;
-  opacity:.7;
-}
+.wf-bar{width:3px;border-radius:3px;background:linear-gradient(180deg,var(--purple),var(--blue));animation:wfAnim var(--d,1.2s) ease-in-out infinite alternate;opacity:.7;}
 .wf-bar.active{opacity:1;}
 @keyframes wfAnim{from{height:3px}to{height:var(--h,18px)}}
-
 .voice-controls{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-
-.vc-btn{
-  width:38px;height:38px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;border:0.5px solid var(--border2);
-  background:var(--surface);color:var(--muted2);
-}
-
+.vc-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:0.5px solid var(--border2);background:var(--surface);color:var(--muted2);}
 .vc-btn:hover{background:var(--surface2);color:var(--text);}
-.vc-btn.mic-active{
-  background:rgba(157,127,255,.15);
-  border-color:rgba(157,127,255,.4);
-  color:var(--purple);
-}
+.vc-btn.mic-active{background:rgba(157,127,255,.15);border-color:rgba(157,127,255,.4);color:var(--purple);}
 
-.lang-switcher{display:flex;gap:4px;flex-shrink:0;}
-
-.ls-btn{
-  padding:4px 10px;border-radius:100px;
-  font-size:10.5px;font-weight:500;
-  background:var(--surface);border:0.5px solid var(--border);
-  color:var(--muted2);
-}
-
-.ls-btn.active{
-  background:rgba(157,127,255,.14);
-  border-color:rgba(157,127,255,.35);
-  color:var(--purple);
-}
-
-.messages-wrap{
-  flex:1;overflow-y:auto;
-  padding:20px 24px;
-  display:flex;flex-direction:column;
-  gap:14px;
-}
-
+.messages-wrap{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
 .msg{display:flex;flex-direction:column;gap:5px;}
 .msg.ai{align-self:flex-start;max-width:82%;}
 .msg.me{align-self:flex-end;max-width:75%;}
 .msg-label{font-size:9px;font-weight:500;letter-spacing:.45px;color:var(--muted);text-transform:uppercase;}
 .msg.me .msg-label{text-align:right;}
-
-.bubble{
-  padding:11px 15px;border-radius:14px;font-size:13.5px;line-height:1.58;color:var(--text);
-}
-.msg.ai .bubble{
-  background:var(--chat-ai-bg);
-  color:var(--chat-ai-color);
-  border-radius:3px 14px 14px 14px;
-}
-.msg.me .bubble{
-  background:var(--grad2);
-  color:#fff;
-  border-radius:14px 3px 14px 14px;
-}
-
-.correction-block{
-  margin-top:6px;
-  padding:9px 13px;border-radius:9px;
-  background:rgba(248,113,113,.06);
-  border-left:2.5px solid rgba(248,113,113,.4);
-  font-size:12px;color:var(--red);
-  line-height:1.5;font-family:monospace;
-}
-.correction-label{
-  font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
-  color:rgba(248,113,113,.6);margin-bottom:4px;font-family:'Inter',sans-serif;
-}
-
-.explanation-block{
-  margin-top:6px;
-  padding:9px 13px;border-radius:9px;
-  background:rgba(157,127,255,.06);
-  border-left:2.5px solid rgba(157,127,255,.35);
-  font-size:12px;color:var(--purple);
-  line-height:1.5;
-}
-.explanation-label{
-  font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
-  color:rgba(157,127,255,.6);margin-bottom:4px;
-}
-
-.typing-indicator{
-  display:flex;align-items:center;gap:4px;
-  padding:11px 15px;border-radius:3px 14px 14px 14px;
-  background:var(--chat-ai-bg);width:fit-content;
-}
-
-.typing-dot{
-  width:6px;height:6px;border-radius:50%;
-  background:var(--muted2);
-  animation:typingBounce .8s ease-in-out infinite;
-}
+.bubble{padding:11px 15px;border-radius:14px;font-size:13.5px;line-height:1.58;color:var(--text);}
+.msg.ai .bubble{background:var(--chat-ai-bg);color:var(--chat-ai-color);border-radius:3px 14px 14px 14px;}
+.msg.me .bubble{background:var(--grad2);color:#fff;border-radius:14px 14px 3px 14px;}
+.correction-block{padding:9px 13px;border-radius:9px;background:rgba(248,113,113,.06);border-left:2.5px solid rgba(248,113,113,.4);font-size:12px;color:var(--red);line-height:1.5;font-family:monospace;}
+.correction-label{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:rgba(248,113,113,.6);margin-bottom:4px;font-family:'Inter',sans-serif;}
+.explanation-block{padding:9px 13px;border-radius:9px;background:rgba(157,127,255,.06);border-left:2.5px solid rgba(157,127,255,.35);font-size:12px;color:var(--purple);line-height:1.5;}
+.explanation-label{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:rgba(157,127,255,.6);margin-bottom:4px;}
+.typing-indicator{display:flex;align-items:center;gap:4px;padding:11px 15px;border-radius:3px 14px 14px 14px;background:var(--chat-ai-bg);width:fit-content;}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--muted2);animation:typingBounce .8s ease-in-out infinite;}
 .typing-dot:nth-child(2){animation-delay:.15s;}
 .typing-dot:nth-child(3){animation-delay:.3s;}
+@keyframes typingBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
 
-@keyframes typingBounce{
-  0%,100%{transform:translateY(0);}
-  50%{transform:translateY(-5px);}
-}
-
-.suggestions{
-  display:flex;gap:7px;flex-wrap:wrap;padding:0 24px 12px;flex-shrink:0;
-}
-
-.sug-chip{
-  padding:6px 13px;border-radius:100px;
-  font-size:12px;color:var(--muted2);
-  background:var(--surface);border:0.5px solid var(--border);
-}
-
+.suggestions{display:flex;gap:7px;flex-wrap:wrap;padding:0 24px 12px;flex-shrink:0;}
+.sug-chip{padding:6px 13px;border-radius:100px;font-size:12px;color:var(--muted2);background:var(--surface);border:0.5px solid var(--border);}
 .sug-chip:hover{border-color:var(--border2);color:var(--text);}
-
-.input-bar{
-  padding:14px 20px;
-  border-top:0.5px solid var(--border);
-  display:flex;align-items:center;gap:10px;
-  flex-shrink:0;
-  background:var(--bg2);
-}
-
-.chat-input{
-  flex:1;padding:11px 16px;
-  font-size:13px;font-family:'Inter',sans-serif;
-  background:var(--inp-bg);border:0.5px solid var(--inp-border);
-  border-radius:100px;color:var(--text);outline:none;
-}
-
+.input-bar{padding:14px 20px;border-top:0.5px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--bg2);}
+.chat-input{flex:1;padding:11px 16px;font-size:13px;font-family:'Inter',sans-serif;background:var(--inp-bg);border:0.5px solid var(--inp-border);border-radius:100px;color:var(--text);outline:none;}
 .chat-input:focus{border-color:rgba(157,127,255,.4);}
 .chat-input::placeholder{color:var(--muted);}
-
-.send-btn{
-  width:38px;height:38px;border-radius:50%;
-  background:var(--grad2);border:none;
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;color:#fff;flex-shrink:0;
-}
-
+.send-btn{width:38px;height:38px;border-radius:50%;background:var(--grad2);border:none;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;flex-shrink:0;}
 .send-btn:disabled{opacity:.3;}
 
-.right-panel{
-  background:var(--sb-bg);
-  border-left:0.5px solid var(--border);
-  display:flex;flex-direction:column;
-  overflow:hidden;
-}
-
-.rp-header{
-  padding:16px 18px;
-  border-bottom:0.5px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-  flex-shrink:0;
-}
+/* ── RIGHT PANEL ── */
+.right-panel{background:var(--sb-bg);border-left:0.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.rp-header{padding:16px 18px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .rp-title{font-size:12px;font-weight:600;color:var(--text);}
 .rp-sub{font-size:10.5px;color:var(--muted);margin-top:1px;}
 .rp-scroll{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px;}
+.rp-card{background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:14px;}
+.rp-card-label{font-size:9px;font-weight:500;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
 
-.rp-card{
-  background:var(--surface);
-  border:0.5px solid var(--border);
-  border-radius:14px;
-  padding:14px;
-}
-.rp-card-label{
-  font-size:9px;font-weight:500;letter-spacing:.7px;
-  text-transform:uppercase;color:var(--muted);margin-bottom:12px;
-  display:flex;align-items:center;justify-content:space-between;
-}
+/* Mini stats */
+.mini-stats{display:flex;gap:8px;}
+.mini-stat{flex:1;padding:10px;border-radius:10px;background:var(--bg);border:0.5px solid var(--border);text-align:center;}
+.ms-val{font-size:18px;font-weight:700;color:var(--text);line-height:1;}
+.ms-label{font-size:9.5px;color:var(--muted);margin-top:3px;}
 
-.prog-row{margin-bottom:12px;}
-.prog-row:last-child{margin-bottom:0;}
-.prog-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
-.prog-name{font-size:12.5px;color:var(--text);font-weight:500;}
-.prog-pct{font-size:12px;color:var(--muted2);font-variant-numeric:tabular-nums;}
-.prog-track{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
-.prog-fill{height:5px;border-radius:3px;position:relative;}
-
-.streak-section{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:12px 0 0;margin-top:8px;
-  border-top:0.5px solid var(--border);
-}
+/* Streak / XP */
+.streak-section{display:flex;align-items:center;justify-content:space-between;padding:12px 0 0;margin-top:8px;border-top:0.5px solid var(--border);}
 .streak-left{display:flex;align-items:center;gap:10px;}
 .streak-flame{font-size:24px;line-height:1;}
 .streak-count{font-size:22px;font-weight:700;color:var(--amber);line-height:1;}
 .streak-label{font-size:10.5px;color:var(--muted);margin-top:1px;}
 .week-dots{display:flex;gap:5px;}
-.wd{
-  width:22px;height:22px;border-radius:6px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:8px;font-weight:500;letter-spacing:.3px;
-  background:rgba(251,146,60,.06);
-  border:0.5px solid rgba(251,146,60,.15);
-  color:rgba(251,146,60,.3);
-}
+.wd{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:500;letter-spacing:.3px;background:rgba(251,146,60,.06);border:0.5px solid rgba(251,146,60,.15);color:rgba(251,146,60,.3);}
 .wd.on{background:rgba(251,146,60,.2);border-color:rgba(251,146,60,.4);color:rgba(251,146,60,.85);}
-
 .xp-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .xp-label{font-size:12px;color:var(--muted2);}
 .xp-val{font-size:12px;font-weight:600;color:var(--text);}
 .xp-track{height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;position:relative;}
-.xp-fill{
-  height:7px;border-radius:4px;
-  background:linear-gradient(90deg,var(--purple),var(--blue));
-  width:62%;position:relative;overflow:hidden;
-}
-.xp-shimmer{
-  position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.3) 50%,transparent 100%);
-  animation:xpShimmer 2.2s ease-in-out infinite;
-  background-size:200%;
-}
+.xp-fill{height:7px;border-radius:4px;background:linear-gradient(90deg,var(--purple),var(--blue));width:0%;position:relative;overflow:hidden;}
+.xp-shimmer{position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.3) 50%,transparent 100%);animation:xpShimmer 2.2s ease-in-out infinite;background-size:200%;}
 @keyframes xpShimmer{0%{background-position:-200%}100%{background-position:200%}}
 
+/* Memory */
 .memory-cards{display:flex;flex-direction:column;gap:8px;margin-top:2px;}
-.mem-item{
-  display:flex;align-items:flex-start;gap:9px;
-  padding:9px 11px;border-radius:9px;
-  background:var(--bg);
-  border:0.5px solid var(--border);
-}
-.mem-tag{
-  padding:2px 7px;border-radius:100px;
-  font-size:9px;font-weight:600;letter-spacing:.3px;
-  text-transform:uppercase;white-space:nowrap;flex-shrink:0;
-}
+.mem-item{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;border-radius:9px;background:var(--bg);border:0.5px solid var(--border);}
+.mem-tag{padding:2px 7px;border-radius:100px;font-size:9px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap;flex-shrink:0;}
 .mem-tag.weak{background:rgba(248,113,113,.12);color:var(--red);}
 .mem-tag.strong{background:rgba(74,222,128,.1);color:var(--green);}
 .mem-tag.goal{background:rgba(157,127,255,.12);color:var(--purple);}
 .mem-body{flex:1;}
 .mem-text{font-size:11.5px;color:var(--muted2);line-height:1.45;}
 .mem-note{font-size:10px;color:var(--muted);margin-top:2px;}
+.mem-empty{font-size:12px;color:var(--muted);text-align:center;padding:12px 0;line-height:1.6;}
 
-.goal-row{
-  display:flex;align-items:center;gap:10px;
-  padding:8px 0;border-bottom:0.5px solid var(--border);
-}
+/* Goals */
+.goal-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);}
 .goal-row:last-child{border-bottom:none;}
-
-.goal-check{
-  width:18px;height:18px;border-radius:5px;
-  border:1.5px solid var(--border2);
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;flex-shrink:0;
-}
-
-.goal-check.done{
-  background:rgba(74,222,128,.12);
-  border-color:rgba(74,222,128,.35);
-  color:var(--green);
-}
-
+.goal-check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
+.goal-check.done{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.35);color:var(--green);}
 .goal-text{font-size:12px;color:var(--muted2);}
 .goal-text.done{color:var(--muted);text-decoration:line-through;}
 
-.correction-item{
-  display:flex;align-items:flex-start;gap:8px;
-  padding:8px 0;border-bottom:0.5px solid var(--border);
-}
+/* Corrections */
+.correction-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--border);}
 .correction-item:last-child{border-bottom:none;}
 .ci-icon{font-size:13px;flex-shrink:0;margin-top:1px;}
 .ci-wrong{font-size:11.5px;color:var(--red);font-family:monospace;text-decoration:line-through;}
 .ci-right{font-size:11.5px;color:var(--green);font-family:monospace;}
 .ci-note{font-size:10.5px;color:var(--muted);margin-top:2px;}
 
-.mini-stats{display:flex;gap:8px;}
-.mini-stat{
-  flex:1;padding:10px;border-radius:10px;
-  background:var(--bg);border:0.5px solid var(--border);
-  text-align:center;
-}
-.ms-val{font-size:18px;font-weight:700;color:var(--text);line-height:1;}
-.ms-label{font-size:9.5px;color:var(--muted);margin-top:3px;}
-
-.main::before{
-  content:'';
-  position:absolute;inset:0;pointer-events:none;z-index:0;
-  background-image:
-    linear-gradient(var(--grid-color) 1px,transparent 1px),
-    linear-gradient(90deg,var(--grid-color) 1px,transparent 1px);
-  background-size:48px 48px;
-  mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,black 10%,transparent 80%);
-  opacity:.6;
-}
-.main > *{position:relative;z-index:1;}
-
-@media(max-width:1100px){
-  .app{grid-template-columns:200px 1fr 240px;}
-}
+@media(max-width:1100px){.app{grid-template-columns:200px 1fr 240px;}}
 </style>
 </head>
 <body>
@@ -652,72 +297,58 @@ body::before{
 <div class="cursor-ring" id="cursorRing"></div>
 
 <div class="app">
+  <!-- ── SIDEBAR ── -->
   <aside class="sidebar">
     <div class="sb-top">
       <div class="sb-logo-row">
         <div class="sb-logo"><span>AURA</span></div>
         <button class="theme-toggle" id="themeToggle" title="Toggle theme">☀️</button>
       </div>
-      <div class="sb-user">
-        <div class="sb-avatar">P</div>
+      <div class="sb-user" id="sbUserCard" title="Manage profiles">
+        <div class="sb-avatar" id="sbAvatar">?</div>
         <div>
-          <div class="sb-user-name">Priya Mehta</div>
-          <div class="sb-user-sub">Pro · 147-day streak 🔥</div>
+          <div class="sb-user-name" id="sbUserName">Loading…</div>
+          <div class="sb-user-sub" id="sbUserSub"></div>
         </div>
+        <span class="sb-chevron" style="margin-left:auto;font-size:10px;color:var(--muted);">⌄</span>
       </div>
     </div>
 
     <nav class="sb-nav">
       <div class="sb-section-label">Learn</div>
-
       <button class="nav-item active" data-screen="session">
-        <span class="nav-icon">🎙️</span>
-        Live Session
+        <span class="nav-icon">🎙️</span>Live Session
         <span class="nav-badge">LIVE</span>
       </button>
-
       <button class="nav-item" data-screen="journey">
-        <span class="nav-icon">🗺️</span>
-        Journey
+        <span class="nav-icon">🗺️</span>Journey
       </button>
-
       <button class="nav-item" data-screen="vocabulary">
-        <span class="nav-icon">📖</span>
-        Vocabulary
-        <span class="nav-badge red">12</span>
+        <span class="nav-icon">📖</span>Vocabulary
       </button>
-
       <button class="nav-item" data-screen="exam">
-        <span class="nav-icon">📝</span>
-        Exam Mode
+        <span class="nav-icon">📝</span>Exam Mode
       </button>
-
       <div class="sb-section-label" style="margin-top:6px;">Explore</div>
-
       <button class="nav-item" data-screen="scenarios">
-        <span class="nav-icon">🏙️</span>
-        Scenarios
+        <span class="nav-icon">🏙️</span>Scenarios
         <span class="nav-badge green">New</span>
       </button>
-
       <button class="nav-item" data-screen="goals">
-        <span class="nav-icon">🎯</span>
-        Goals
+        <span class="nav-icon">🎯</span>Goals
       </button>
-
       <button class="nav-item" data-screen="progress">
-        <span class="nav-icon">📊</span>
-        Progress
+        <span class="nav-icon">📊</span>Progress
       </button>
 
-      <div class="sb-current-lang" style="margin-top:10px;">
+      <div class="sb-current-lang" style="margin-top:10px;" id="sclCard">
         <div class="scl-top">
           <span class="scl-label">Now Learning</span>
-          <span class="scl-flag">🇩🇪</span>
+          <span class="scl-flag" id="sclFlag">🌍</span>
         </div>
-        <div class="scl-name">German B1</div>
-        <div class="scl-level">Intermediate · 68% to B2</div>
-        <div class="scl-bar"><div class="scl-fill"></div></div>
+        <div class="scl-name" id="sclName">—</div>
+        <div class="scl-level" id="sclLevel">Set up your profile</div>
+        <div class="scl-bar"><div class="scl-fill" id="sclFill"></div></div>
       </div>
     </nav>
 
@@ -725,320 +356,178 @@ body::before{
       <button class="logout-btn" id="logoutBtn">
         <span style="font-size:14px">↩</span> Sign out
       </button>
-      
       <button class="live-session-btn" id="liveSessionBtn">
         <div class="live-btn-icon">🎙️</div>
         <div class="live-btn-text">
           <div class="live-btn-title">Start Voice Session</div>
-          <div class="live-btn-sub">Gemini Live · German B1</div>
+          <div class="live-btn-sub" id="liveBtnSub">Ready to practice</div>
         </div>
         <div class="live-pulse"></div>
       </button>
     </div>
   </aside>
 
+  <!-- ── MAIN ── -->
   <main class="main">
+    <!-- Topbar — always visible -->
     <div class="main-topbar">
       <div class="topbar-left">
-        <div class="session-status">
+        <div class="session-status idle" id="sessionStatusBadge">
           <div class="status-dot"></div>
-          Session Active
+          <span id="sessionStatusText">Ready</span>
         </div>
-        <div class="session-timer" id="sessionTimer">00:18:42</div>
-        <div style="font-size:11px;color:var(--muted);margin-left:4px;">· German B1 · Conversation</div>
+        <div class="session-timer" id="sessionTimer" style="display:none;">00:00:00</div>
+        <div class="topbar-session-info" id="topbarSessionInfo"></div>
       </div>
-
       <div class="topbar-right">
-        <button class="tb-btn"><span>🌍</span> Translate</button>
-        <button class="tb-btn"><span>📋</span> Summary</button>
-        <button class="tb-btn end" id="endSessionBtn">■ End Session</button>
+        <button class="tb-btn" id="endSessionBtn" style="display:none;border-color:rgba(248,113,113,.3);color:var(--red);">■ End Session</button>
       </div>
     </div>
 
-    <div class="voice-zone">
-      <div class="aura-orb-wrap">
-        <div class="aura-orb speaking" id="auraOrb">A</div>
-        <div class="orb-ring"></div>
+    <!-- IDLE SCREEN — shown before session starts -->
+    <div id="idle-screen">
+      <div class="idle-greeting">
+        <h1 id="idleGreeting">Good morning</h1>
+        <p id="idleSubtext">Ready for today's practice session?</p>
       </div>
 
-      <div class="waveform-area">
-        <div class="wf-label">AURA Speaking</div>
-        <div class="waveform" id="waveform"></div>
-      </div>
-
-      <div class="lang-switcher">
-        <button class="ls-btn active" data-lang="German">DE</button>
-        <button class="ls-btn" data-lang="French">FR</button>
-        <button class="ls-btn" data-lang="Japanese">JA</button>
-      </div>
-
-      <div class="voice-controls">
-        <button class="vc-btn mic-active" id="micBtn" title="Microphone">
-          <span class="vc-icon">🎙️</span>
-        </button>
-        <button class="vc-btn" title="Mute AURA"><span>🔊</span></button>
-        <button class="vc-btn" title="Settings"><span>⚙️</span></button>
-      </div>
-    </div>
-
-    <div class="messages-wrap" id="messagesWrap">
-      <div class="msg ai">
-        <div class="msg-label">AURA</div>
-        <div class="bubble">Guten Morgen, Priya! Wie war dein Wochenende? Hast du etwas Interessantes gemacht?</div>
-      </div>
-
-      <div class="msg me">
-        <div class="msg-label">YOU</div>
-        <div class="bubble">Ich bin ins Kino gegangen haben.</div>
-      </div>
-
-      <div class="msg ai">
-        <div class="msg-label">AURA</div>
-        <div class="bubble">Almost perfect! Just one small fix with the verb position.</div>
-        <div class="correction-block">
-          <div class="correction-label">❌ Correction</div>
-          Ich bin ins Kino gegangen <s>haben</s> → <strong>Ich bin ins Kino gegangen.</strong>
+      <div class="idle-profile-card" id="idleProfileCard" style="display:none;">
+        <div class="ipc-label">Active profile</div>
+        <div class="ipc-main">
+          <div class="ipc-flag" id="ipcFlag">🌍</div>
+          <div>
+            <div class="ipc-lang" id="ipcLang">—</div>
+            <div class="ipc-level" id="ipcLevel">—</div>
+          </div>
         </div>
-        <div class="explanation-block">
-          <div class="explanation-label">💡 AURA Explains — Gujarati</div>
-          "Perfekt" tense માં "haben" અને "sein" — movement verbs "sein" સાથે use થાય. "Ich bin gegangen" bilkul saru chhe!
+        <div id="ipcGoalWrap"></div>
+        <div class="ipc-meta" id="ipcMeta"></div>
+      </div>
+
+      <button class="idle-start-btn" id="idleStartBtn">
+        <span style="font-size:20px">🎙️</span>
+        <span>Start Voice Session</span>
+      </button>
+
+      <div class="idle-recent" id="idleRecent">
+        <div class="idle-recent-label">Recent sessions</div>
+        <div class="idle-recent-empty" id="idleRecentContent">Loading…</div>
+      </div>
+    </div>
+
+    <!-- SESSION SCREEN — shown while session is active -->
+    <div id="session-screen">
+      <div class="voice-zone">
+        <div class="aura-orb-wrap">
+          <div class="aura-orb" id="auraOrb">A</div>
+          <div class="orb-ring"></div>
+        </div>
+        <div class="waveform-area">
+          <div class="wf-label" id="wfLabel">Listening…</div>
+          <div class="waveform" id="waveform"></div>
+        </div>
+        <div class="voice-controls">
+          <button class="vc-btn mic-active" id="micBtn" title="Microphone">
+            <span class="vc-icon">🎙️</span>
+          </button>
         </div>
       </div>
 
-      <div class="msg me">
-        <div class="msg-label">YOU</div>
-        <div class="bubble">Ich bin ins Kino gegangen. Danke, AURA!</div>
+      <div class="messages-wrap" id="messagesWrap">
+        <div class="typing-indicator" id="typingIndicator" style="display:none;">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
       </div>
 
-      <div class="msg ai">
-        <div class="msg-label">AURA</div>
-        <div class="bubble">Perfekt! 🎉 Das war wirklich gut. Now let's expand — what movie did you watch? In German, can you describe it in two sentences?</div>
+      <div class="suggestions" id="suggestions">
+        <button class="sug-chip">How do I say this?</button>
+        <button class="sug-chip">Can you slow down?</button>
+        <button class="sug-chip">Give me a hint</button>
+        <button class="sug-chip">Correct my sentence</button>
       </div>
 
-      <div class="msg me">
-        <div class="msg-label">YOU</div>
-        <div class="bubble">Ich habe einen Action-Film gesehen. Es war sehr spannend!</div>
+      <div class="input-bar">
+        <input class="chat-input" id="chatInput" type="text" placeholder="Type in your language or the target language…" autocomplete="off"/>
+        <button class="send-btn" id="sendBtn">➤</button>
       </div>
-
-      <div class="msg ai">
-        <div class="msg-label">AURA</div>
-        <div class="bubble">Wunderbar! Both sentences are grammatically correct. "Spannend" is a strong choice. Try "richtig spannend" next time for a more natural tone.</div>
-      </div>
-
-      <div class="typing-indicator" id="typingIndicator" style="display:none;">
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-      </div>
-    </div>
-
-    <div class="suggestions" id="suggestions">
-      <button class="sug-chip">Wie sagt man "exciting"?</button>
-      <button class="sug-chip">Can you slow down?</button>
-      <button class="sug-chip">Give me another example</button>
-      <button class="sug-chip">Use it in a sentence</button>
-    </div>
-
-    <div class="input-bar">
-      <input
-        class="chat-input"
-        id="chatInput"
-        type="text"
-        placeholder="Type in German or English…"
-        autocomplete="off"
-      />
-      <button class="send-btn" id="sendBtn">➤</button>
     </div>
   </main>
 
+  <!-- ── RIGHT PANEL ── -->
   <aside class="right-panel">
     <div class="rp-header">
       <div>
-        <div class="rp-title">Session Progress</div>
-        <div class="rp-sub">B1 German · Today's session</div>
+        <div class="rp-title" id="rpTitle">Your Progress</div>
+        <div class="rp-sub" id="rpSub">Overview</div>
       </div>
     </div>
 
     <div class="rp-scroll">
-      <div class="mini-stats">
-        <div class="mini-stat">
-          <div class="ms-val" id="wordsSpoken">34</div>
-          <div class="ms-label">Words</div>
-        </div>
-        <div class="mini-stat">
-          <div class="ms-val" id="correctCount" style="color:var(--green)">8</div>
-          <div class="ms-label">Correct</div>
-        </div>
-        <div class="mini-stat">
-          <div class="ms-val" id="errCount" style="color:var(--red)">2</div>
-          <div class="ms-label">Errors</div>
+      <!-- Live session stats — only shown during session -->
+      <div id="liveStatsCard" style="display:none;">
+        <div class="mini-stats">
+          <div class="mini-stat">
+            <div class="ms-val" id="wordsSpoken">0</div>
+            <div class="ms-label">Words</div>
+          </div>
+          <div class="mini-stat">
+            <div class="ms-val" id="correctCount" style="color:var(--green)">0</div>
+            <div class="ms-label">Correct</div>
+          </div>
+          <div class="mini-stat">
+            <div class="ms-val" id="errCount" style="color:var(--red)">0</div>
+            <div class="ms-label">Errors</div>
+          </div>
         </div>
       </div>
 
+      <!-- Streak + XP — always shown -->
       <div class="rp-card">
-        <div class="rp-card-label">
-          Skill Progress
-          <span style="font-size:9px;color:var(--muted);">vs last week</span>
+        <div class="rp-card-label">Streak &amp; XP</div>
+        <div class="xp-row">
+          <span class="xp-label" id="xpLabel">XP</span>
+          <span class="xp-val" id="xpVal">0 / 1000</span>
         </div>
-
-        <div class="prog-row">
-          <div class="prog-top">
-            <span class="prog-name">B1 German</span>
-            <span class="prog-pct">68%</span>
-          </div>
-          <div class="prog-track">
-            <div class="prog-fill" style="width:68%;background:linear-gradient(90deg,var(--purple),var(--blue));"></div>
+        <div class="xp-track">
+          <div class="xp-fill" id="xpFill" style="width:0%">
+            <div class="xp-shimmer"></div>
           </div>
         </div>
-
-        <div class="prog-row">
-          <div class="prog-top">
-            <span class="prog-name">Pronunciation</span>
-            <span class="prog-pct">82%</span>
-          </div>
-          <div class="prog-track">
-            <div class="prog-fill" style="width:82%;background:linear-gradient(90deg,#4ade80,#22c55e);"></div>
-          </div>
-        </div>
-
-        <div class="prog-row">
-          <div class="prog-top">
-            <span class="prog-name">Grammar</span>
-            <span class="prog-pct">54%</span>
-          </div>
-          <div class="prog-track">
-            <div class="prog-fill" style="width:54%;background:linear-gradient(90deg,var(--amber),#f59e0b);"></div>
-          </div>
-        </div>
-
-        <div class="prog-row">
-          <div class="prog-top">
-            <span class="prog-name">Vocabulary</span>
-            <span class="prog-pct">71%</span>
-          </div>
-          <div class="prog-track">
-            <div class="prog-fill" style="width:71%;background:linear-gradient(90deg,var(--blue),#38bdf8);"></div>
-          </div>
-        </div>
-
-        <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);">
-          <div class="xp-row">
-            <span class="xp-label">XP to B2</span>
-            <span class="xp-val">620 / 1000</span>
-          </div>
-          <div class="xp-track">
-            <div class="xp-fill">
-              <div class="xp-shimmer"></div>
-            </div>
-          </div>
-        </div>
-
         <div class="streak-section">
           <div class="streak-left">
             <div class="streak-flame">🔥</div>
             <div>
-              <div class="streak-count">147</div>
+              <div class="streak-count" id="streakCount">0</div>
               <div class="streak-label">day streak</div>
             </div>
           </div>
           <div class="week-dots">
-            <div class="wd on">M</div>
-            <div class="wd on">T</div>
-            <div class="wd on">W</div>
-            <div class="wd on">T</div>
-            <div class="wd on">F</div>
-            <div class="wd">S</div>
-            <div class="wd">S</div>
+            <div class="wd" id="wd-M">M</div>
+            <div class="wd" id="wd-T">T</div>
+            <div class="wd" id="wd-W">W</div>
+            <div class="wd" id="wd-Th">T</div>
+            <div class="wd" id="wd-F">F</div>
+            <div class="wd" id="wd-S">S</div>
+            <div class="wd" id="wd-Su">S</div>
           </div>
         </div>
       </div>
 
-      <div class="rp-card">
-        <div class="rp-card-label">Today's Goals</div>
-
-        <div class="goal-row">
-          <div class="goal-check done">✓</div>
-          <div class="goal-text done">20-minute conversation</div>
-        </div>
-        <div class="goal-row">
-          <div class="goal-check done">✓</div>
-          <div class="goal-text done">Practice Perfekt tense</div>
-        </div>
-        <div class="goal-row">
-          <div class="goal-check"></div>
-          <div class="goal-text">Learn 5 new adjectives</div>
-        </div>
-        <div class="goal-row">
-          <div class="goal-check"></div>
-          <div class="goal-text">Exam-mode: modal verbs</div>
-        </div>
-      </div>
-
+      <!-- AURA Remembers -->
       <div class="rp-card">
         <div class="rp-card-label">🧠 AURA Remembers</div>
-
-        <div class="memory-cards">
-          <div class="mem-item">
-            <div class="mem-tag weak">Weak</div>
-            <div class="mem-body">
-              <div class="mem-text">Verb-second word order (V2 rule)</div>
-              <div class="mem-note">Errors in 3 of last 5 sessions</div>
-            </div>
-          </div>
-
-          <div class="mem-item">
-            <div class="mem-tag weak">Weak</div>
-            <div class="mem-body">
-              <div class="mem-text">Dative vs Accusative with "in"</div>
-              <div class="mem-note">Confused direction vs location</div>
-            </div>
-          </div>
-
-          <div class="mem-item">
-            <div class="mem-tag strong">Strong</div>
-            <div class="mem-body">
-              <div class="mem-text">Perfekt with sein (movement verbs)</div>
-              <div class="mem-note">Consistent since April 3rd</div>
-            </div>
-          </div>
-
-          <div class="mem-item">
-            <div class="mem-tag strong">Strong</div>
-            <div class="mem-body">
-              <div class="mem-text">Cinema vocabulary cluster</div>
-              <div class="mem-note">Film, Kino, Schauspieler mastered</div>
-            </div>
-          </div>
-
-          <div class="mem-item">
-            <div class="mem-tag goal">Goal</div>
-            <div class="mem-body">
-              <div class="mem-text">Reach B2 before June trip to Berlin</div>
-              <div class="mem-note">~47 days remaining</div>
-            </div>
-          </div>
+        <div class="memory-cards" id="memoryCards">
+          <div class="mem-empty">Start a session and AURA will begin learning your patterns.</div>
         </div>
       </div>
 
-      <div class="rp-card">
-        <div class="rp-card-label">Recent Corrections</div>
-
-        <div class="correction-item">
-          <div class="ci-icon">→</div>
-          <div>
-            <div class="ci-wrong">gegangen haben</div>
-            <div class="ci-right">gegangen (drop haben)</div>
-            <div class="ci-note">Sein verbs don't take haben in Perfekt</div>
-          </div>
-        </div>
-
-        <div class="correction-item">
-          <div class="ci-icon">→</div>
-          <div>
-            <div class="ci-wrong">in dem Kino</div>
-            <div class="ci-right">ins Kino (direction = Akkusativ)</div>
-            <div class="ci-note">Motion verbs use Akkusativ</div>
-          </div>
+      <!-- Today's goal — derived from profile -->
+      <div class="rp-card" id="goalCard">
+        <div class="rp-card-label">Today's Focus</div>
+        <div id="goalContent" style="font-size:13px;color:var(--muted2);line-height:1.6;">
+          Complete your first session to set a focus.
         </div>
       </div>
     </div>
