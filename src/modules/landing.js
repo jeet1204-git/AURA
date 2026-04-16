@@ -55,40 +55,37 @@ track.addEventListener('scroll', () => {
 });
 
 // ── HERO LIVE CHAT ──
-// Pre-scripted screen content per language (fixed — matches what's visible)
 const HERO_SCREEN = {
   German: {
     label: 'B1 German',
     greeting: 'Guten Morgen! Wie war dein Wochenende?',
     userWrong: 'Ich bin gegangen ins Kino.',
     fix: '✗ &nbsp;gegangen ins → ins Kino <strong>gegangen</strong>',
-    exp: 'Verb always sentence na end ma aave chhe. "Ich bin ins Kino gegangen" correct chhe.',
-    userRight: 'Ich bin ins Kino gegangen.',
-    perfect: 'Perfekt. That\'s exactly it. ✓',
-    input: 'How do I use der, die, das in German?',
+    exp: 'Verb always sentence na end ma aave chhe.',
+    userRight: 'Ich bin ins Kino gegangen. Danke, AURA!',
+    perfect: 'Perfekt! 🎉 Das war wirklich gut.',
+    input: 'How do I say "I went to the cinema"?',
     voiceLines: [
-      'Guten Morgen! Ich bin AURA.',
-      'Wie war dein Wochenende?',
+      'Guten Morgen! Wie war dein Wochenende?',
       'Almost! One small fix.',
-      'Gegangen ins — it should be ins Kino gegangen.',
-      'In German, the verb always goes to the end of the sentence.',
-      'Ich bin ins Kino gegangen — that\'s correct!',
-      'Perfekt. That\'s exactly it!'
+      'In German, the verb always goes to the end.',
+      'Ich bin ins Kino gegangen — that is correct!',
+      'Perfekt. Das war wirklich gut.'
     ]
   },
   French: {
     label: 'A2 French',
     greeting: 'Bonjour! Comment s\'est passé ton week-end?',
-    userWrong: 'Je suis allé au cinéma hier.',
-    fix: '✓ &nbsp;Correct! Good use of passé composé.',
-    exp: '"Je suis allé" — être verb sathe passé composé bane chhe. Tame sari rite yaad rakhyu!',
-    userRight: 'Merci, AURA! C\'est utile.',
-    perfect: 'Très bien! Keep going. ✓',
-    input: 'How do I conjugate être in present tense?',
+    userWrong: 'Je suis allé au cinéma avec mes amis.',
+    fix: '✓ &nbsp;Correct! Passé composé with être.',
+    exp: '"Aller" verb sathe "être" vaperay chhe past tense ma.',
+    userRight: 'Merci beaucoup, AURA!',
+    perfect: 'Très bien! Your French is improving fast.',
+    input: 'How do I say "I went to the cinema"?',
     voiceLines: [
-      'Bonjour! Je suis AURA, votre tuteur de langues.',
-      'Comment s\'est passé ton week-end?',
-      'Très bien! You used the passé composé correctly.',
+      'Bonjour! Comment s\'est passé ton week-end?',
+      'Très bien!',
+      'You used passé composé correctly.',
       'Je suis allé au cinéma — perfect French!',
       'Continuons!'
     ]
@@ -186,20 +183,15 @@ async function heroSend() {
 heroSendBtn.addEventListener('click', heroSend);
 heroInput.addEventListener('keydown', e => { if (e.key === 'Enter') heroSend(); });
 
-// ── HERO VOICE (reads what's on screen — pre-scripted, no synthesis guesswork) ──
-// TO USE REAL AURA VOICE: replace the SpeechSynthesisUtterance logic below
-// with: const audio = new Audio('aura-voice-preview.mp3'); audio.play();
-// Record that MP3 once using AURA's actual Gemini voice.
-
+// ── HERO VOICE ──
 const heroVoiceBtn = document.getElementById('heroVoiceBtn');
 const heroVoiceWave = document.getElementById('heroVoiceWave');
 const heroVoiceBtnText = document.getElementById('heroVoiceBtnText');
 const heroPlayRing = document.getElementById('heroPlayRing');
 let voiceSpeaking = false;
 
-// The exact lines visible on screen, spoken in order
 const VOICE_SCRIPT = {
-  German: "Guten Morgen! Wie war dein Wochenende? ... Almost! One small fix. In German, the verb always goes to the end. Ich bin ins Kino gegangen — that is correct! Perfekt. That is exactly it.",
+  German: "Guten Morgen! Wie war dein Wochenende? ... Almost! One small fix. In German, the verb always goes to the end. Ich bin ins Kino gegangen — that is correct! Perfekt. Das war wirklich gut.",
   French: "Bonjour! Comment s'est passé ton week-end? ... Très bien! You used passé composé correctly. Je suis allé au cinéma. Continuons!",
   Japanese: "こんにちは！週末はどうでしたか？... Very good! 映画館に行きました — perfect past tense. 素晴らしい！"
 };
@@ -217,21 +209,15 @@ function speakScreen() {
 
   const script = VOICE_SCRIPT[heroLang];
   const utter = new SpeechSynthesisUtterance(script);
-
-  // Best available voice selection — try to avoid the most robotic ones
   const allVoices = speechSynthesis.getVoices();
   const langCode = heroLang === 'German' ? 'de' : heroLang === 'French' ? 'fr' : 'ja';
-
-  // Priority: Google voices > Apple voices > anything in that language > default
   const preferred = allVoices.find(v => v.lang.startsWith(langCode) && v.name.includes('Google'))
     || allVoices.find(v => v.lang.startsWith(langCode) && (v.name.includes('Samantha') || v.name.includes('Anna') || v.name.includes('Google')))
     || allVoices.find(v => v.lang.startsWith(langCode));
-
   if (preferred) utter.voice = preferred;
   utter.lang = heroLang === 'German' ? 'de-DE' : heroLang === 'French' ? 'fr-FR' : 'ja-JP';
   utter.rate = 0.9;
   utter.pitch = 1.05;
-
   utter.onstart = () => {
     voiceSpeaking = true;
     heroVoiceWave.style.display = 'flex';
@@ -246,12 +232,10 @@ function speakScreen() {
     heroVoiceBtnText.textContent = 'Hear AURA speak';
     heroPlayRing.textContent = '▶';
   };
-
   speechSynthesis.speak(utter);
 }
 
 heroVoiceBtn.addEventListener('click', speakScreen);
-// Preload voices (Chrome needs this)
 if (speechSynthesis.onvoiceschanged !== undefined) {
   speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
 }
@@ -264,8 +248,59 @@ function setBilling(mode) {
     el.textContent = mode === 'annual' ? el.dataset.annual : el.dataset.monthly;
   });
 }
-document.querySelectorAll('.btn-primary, .nav-cta').forEach(btn => {
-  btn.addEventListener('click', () => {
+
+// ── CTA BUTTONS — check auth before navigating ──
+// "Start for free" and "Try free" / "nav-cta" go to auth if not signed in,
+// or straight to dashboard if already signed in.
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { FIREBASE_CONFIG } from '../config/constants.js';
+
+const fbApp = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+const auth  = getAuth(fbApp);
+const db    = getFirestore(fbApp);
+
+// Update "Log in" link in nav based on auth state
+onAuthStateChanged(auth, (user) => {
+  const loginEl = document.querySelector('.nav-login');
+  if (!loginEl) return;
+  if (user) {
+    loginEl.textContent = 'Dashboard';
+    loginEl.style.cursor = 'pointer';
+    loginEl.style.color = 'var(--text)';
+    loginEl.addEventListener('click', () => {
+      window.location.href = '/src/app/screens/app-screens.html';
+    });
+  } else {
+    loginEl.textContent = 'Log in';
+    loginEl.style.cursor = 'pointer';
+    loginEl.addEventListener('click', () => {
+      window.location.href = '/src/app/screens/auth.html';
+    });
+  }
+});
+
+async function handleCtaClick() {
+  const user = auth.currentUser;
+  if (!user) {
+    // Not signed in — go to auth
+    window.location.href = '/src/app/screens/auth.html';
+    return;
+  }
+  // Signed in — check if onboarding is complete
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (snap.exists() && snap.data().onboardingComplete) {
+      window.location.href = '/src/app/screens/app-screens.html';
+    } else {
+      window.location.href = '/src/app/screens/onboarding.html';
+    }
+  } catch {
     window.location.href = '/src/app/screens/app-screens.html';
-  });
+  }
+}
+
+document.querySelectorAll('.btn-primary, .nav-cta, .cta-big').forEach(btn => {
+  btn.addEventListener('click', handleCtaClick);
 });
