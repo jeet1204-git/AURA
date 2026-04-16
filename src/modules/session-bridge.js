@@ -438,9 +438,37 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
   const lang     = profile?.targetLanguage || 'German';
 
   let systemPrompt;
-  try {
+try {
+  const targetLang = profile?.targetLanguage || 'German';
+  const level      = profile?.level          || 'A2';
+  const mode       = profile?.preferredMode  || 'guided';
+  const nativeLang = profile?.nativeLanguage || 'English';
+  const langPref2  = profile?.langPref       || nativeLang;
+
+  if (targetLang === 'German') {
+    // Use the full structured prompt engine for German
     const blueprint = buildBlueprintFromProfile(profile);
-    systemPrompt = buildSystemPrompt(blueprint, langPref);
+    systemPrompt = buildSystemPrompt(blueprint, langPref2);
+  } else {
+    // Dynamic prompt for other languages
+    systemPrompt = `You are AURA, a warm and intelligent AI language tutor.
+
+Student: ${userDisplayName}
+Target language: ${targetLang}
+Student level: ${level}
+Native language: ${nativeLang}
+Correction language: ${langPref2}
+Session mode: ${mode === 'immersion' ? 'Immersion — speak only in ${targetLang}, corrections in ${langPref2} only when essential' : 'Guided — supportive, corrections in ${langPref2}'}
+
+RULES:
+1. Speak primarily in ${targetLang}.
+2. Use ${langPref2} ONLY for brief corrections (one sentence max).
+3. When correcting: give a short signal, say the correct ${targetLang} phrase once, wait for repeat.
+4. Keep each turn to 2-3 sentences maximum.
+5. After a correction, append on a new line: ##CORRECTION## wrong: [wrong] | right: [correct] | note: [brief note in ${langPref2}]
+6. Greet the student warmly in ${targetLang} to begin.
+7. Level ${level}: ${level === 'A1' ? 'very simple words, short sentences, lots of encouragement' : level === 'A2' ? 'basic sentences, common words, gentle corrections' : 'intermediate vocabulary, correct errors, encourage longer responses'}.`;
+  }
     console.log('[AURA] system prompt built via prompts.js', {
       level: blueprint.level,
       mode:  blueprint.mode,
@@ -642,9 +670,16 @@ export function initSession(callbacks) {
       const langPref  = profile?.langPref || profile?.nativeLanguage || 'English';
       let   textSystemPrompt;
 
-      try {
-        const blueprint    = buildBlueprintFromProfile(profile);
-        textSystemPrompt   = buildSystemPrompt(blueprint, langPref);
+     try {
+  const targetLang2 = profile?.targetLanguage || 'German';
+  if (targetLang2 === 'German') {
+    const blueprint  = buildBlueprintFromProfile(profile);
+    textSystemPrompt = buildSystemPrompt(blueprint, langPref);
+  } else {
+    const lvl = profile?.level || 'A2';
+    const nat = profile?.nativeLanguage || 'English';
+    textSystemPrompt = `You are AURA, a warm AI language tutor. The student is learning ${targetLang2} at ${lvl} level. Their native language is ${nat}. Use ${nat} only for corrections (one sentence max). Keep replies to 3 sentences max. No bullet points.`;
+  }
       } catch (e) {
         const nativeLang   = profile?.nativeLanguage || 'English';
         const targetLang   = profile?.targetLanguage || 'German';
