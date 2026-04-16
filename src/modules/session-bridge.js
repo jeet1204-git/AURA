@@ -106,6 +106,7 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
 
     // 5. Open Gemini Live WebSocket — pass token raw, no encodeURIComponent
     // Use BidiGenerateContentConstrained for ephemeral tokens — NO setup message allowed
+    const systemPromptText = buildSystemPrompt(userDisplayName);
     ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${token}`);
     ws.binaryType = 'arraybuffer';
 
@@ -129,7 +130,7 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
       },
       inputAudioTranscription: {},
       outputAudioTranscription: {},
-      systemInstruction: { parts: [{ text: buildSystemPrompt(userDisplayName) }] }
+      systemInstruction: { parts: [{ text: systemPromptText }] }
     }
   }));
 
