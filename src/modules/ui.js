@@ -69,6 +69,9 @@ async function onUserReady(user) {
 
   // Load recent sessions
   loadRecentSessions(user.uid, activeProfile?.id || null);
+
+  // Build session bar chart and skill bars from history
+  buildSessionChart(user.uid, activeProfile?.id || null);
   renderSkillProgress(user.uid, activeProfile?.id || null);
 }
 
@@ -232,6 +235,7 @@ function enterSessionState() {
   document.getElementById('session-screen').classList.add('active');
   document.getElementById('liveStatsCard').style.display  = 'block';
   document.getElementById('endSessionBtn').style.display  = '';
+  document.getElementById('endSessionBtn').style.visibility = 'visible';
   document.getElementById('summaryBtn').style.display     = '';
   document.getElementById('sessionTimer').style.display   = '';
   const sumBtn = document.getElementById('summaryBtn');
@@ -259,6 +263,7 @@ function enterIdleState() {
   document.getElementById('session-screen').classList.remove('active');
   document.getElementById('liveStatsCard').style.display  = 'none';
   document.getElementById('endSessionBtn').style.display  = 'none';
+  document.getElementById('endSessionBtn').style.visibility = 'hidden';
   document.getElementById('summaryBtn').style.display     = 'none';
   document.getElementById('sessionTimer').style.display   = 'none';
   const sumBtnIdle = document.getElementById('summaryBtn');
@@ -346,7 +351,18 @@ window.addEventListener('aura:stats', (e) => {
   if (wordsSpoken  != null) setEl('wordsSpoken',  wordsSpoken);
   if (correctCount != null) setEl('correctCount', correctCount);
   if (errCount     != null) setEl('errCount',     errCount);
+  if (correctCount != null || errCount != null) {
+    updateAccuracyRing(correctCount || 0, errCount || 0);
+  }
 });
+
+// Poll accuracy ring during session from DOM values
+setInterval(() => {
+  if (!window.sessionActive) return;
+  const c = parseInt(document.getElementById('correctCount')?.textContent || '0', 10);
+  const e = parseInt(document.getElementById('errCount')?.textContent     || '0', 10);
+  updateAccuracyRing(c, e);
+}, 2000);
 
 // ── MEMORY PANEL ─────────────────────────────────────────────────────────────
 async function loadMemoryPanel(user, profileId) {
