@@ -52,13 +52,7 @@ async function onUserReady(user) {
     console.warn('[AURA] Could not load profile:', e?.message);
   }
 
-  // 3. Gate: redirect to onboarding if profile incomplete
-  if (!profile || !profile.onboardingComplete) {
-    window.location.href = '/src/app/screens/onboarding.html';
-    return;
-  }
-
-  // 4. Load memory panel from Worker
+  // 3. Load memory panel from Worker
   loadMemoryPanel(user);
 }
 
