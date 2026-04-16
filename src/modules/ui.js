@@ -6,7 +6,8 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { FIREBASE_CONFIG } from '../config/constants.js';
+import { FIREBASE_CONFIG, WORKER_URL } from '../config/constants.js';
+import { loadUserProfile } from './firestore.js';
 import { initSession } from './session-bridge.js';
 
 // ── FIREBASE AUTH ─────────────────────────────────────────────────────────────
@@ -15,29 +16,186 @@ const auth = getAuth(app);
 
 let currentUser = null;
 
-// Wire buttons immediately — don't wait for auth
+// Wire session buttons immediately — auth state fills in the token later
 initSession({
-  getIdToken: () => currentUser ? currentUser.getIdToken() : Promise.resolve(null),
+  getIdToken:         () => currentUser ? currentUser.getIdToken() : Promise.resolve(null),
   getUserDisplayName: () => currentUser?.displayName || currentUser?.email?.split('@')[0] || 'there',
 });
 
 onAuthStateChanged(auth, (user) => {
   if (!user) {
-    // Auth gate disabled during development
-   //window.location.href = '/src/app/screens/auth.html';
+    window.location.href = '/src/app/screens/auth.html';
     return;
   }
   currentUser = user;
   onUserReady(user);
 });
 
-function onUserReady(user) {
+// ── ON USER READY ─────────────────────────────────────────────────────────────
+async function onUserReady(user) {
+  // 1. Fill sidebar with Firebase Auth data immediately (no flicker)
   const nameEl   = document.getElementById('sbUserName');
   const subEl    = document.getElementById('sbUserSub');
   const avatarEl = document.getElementById('sbAvatar');
-  if (nameEl)   nameEl.textContent   = user.displayName || user.email?.split('@')[0] || 'Learner';
+  const displayName = user.displayName || user.email?.split('@')[0] || 'Learner';
+  if (nameEl)   nameEl.textContent   = displayName;
   if (subEl)    subEl.textContent    = user.email || '';
-  if (avatarEl) avatarEl.textContent = (user.displayName || user.email || 'A')[0].toUpperCase();
+  if (avatarEl) avatarEl.textContent = displayName[0].toUpperCase();
+
+  // 2. Load Firestore profile for streak, XP, level
+  try {
+    const profile = await loadUserProfile(user.uid);
+    if (profile) renderProfile(profile);
+  } catch (e) {
+    console.warn('[AURA] Could not load profile:', e?.message);
+  }
+
+  // 3. Load memory panel from Worker
+  loadMemoryPanel(user);
+}
+
+// ── RENDER PROFILE (streak, XP, level) ───────────────────────────────────────
+function renderProfile(profile) {
+  // Streak
+  const streakEl = document.querySelector('.streak-count');
+  if (streakEl && profile.streak != null) streakEl.textContent = profile.streak;
+
+  // XP bar
+  const xpVal  = document.querySelector('.xp-val');
+  const xpFill = document.querySelector('.xp-fill');
+  if (profile.xp != null) {
+    const xp    = profile.xp;
+    const xpMax = 1000;
+    const pct   = Math.min(100, Math.round((xp / xpMax) * 100));
+    if (xpVal)  xpVal.textContent = `${xp} / ${xpMax}`;
+    if (xpFill) xpFill.style.width = pct + '%';
+  }
+
+  // Level in sidebar language card
+  const levelEl = document.querySelector('.scl-level');
+  if (levelEl && profile.level) levelEl.textContent = profile.level + ' · ' + (profile.targetLanguage || 'German');
+
+  // Sub-label under name — show level instead of email if present
+  const subEl = document.getElementById('sbUserSub');
+  if (subEl && profile.level) subEl.textContent = profile.level + ' · ' + (profile.targetLanguage || 'German');
+
+  // Week dots — mark today and streak days
+  renderWeekDots(profile.streak || 0);
+}
+
+function renderWeekDots(streak) {
+  const dots = document.querySelectorAll('.wd');
+  if (!dots.length) return;
+  const today = new Date().getDay(); // 0 = Sunday
+  // Map our M T W T F S S order to JS day index
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  dots.forEach((dot, i) => {
+    const dayIndex = order[i];
+    // Mark days up to and including today as done if streak covers them
+    const daysAgo = (today - dayIndex + 7) % 7;
+    dot.classList.toggle('on', daysAgo < Math.min(streak, 7));
+  });
+}
+
+// ── MEMORY PANEL ─────────────────────────────────────────────────────────────
+async function loadMemoryPanel(user) {
+  const memoryCards = document.querySelector('.memory-cards');
+  if (!memoryCards) return;
+
+  try {
+    const idToken = await user.getIdToken();
+    const res = await fetch(`${WORKER_URL}/memory?userId=${user.uid}`, {
+      headers: { Authorization: `Bearer ${idToken}` }
+    });
+    if (!res.ok) return;
+    const memory = await res.json();
+    renderMemoryPanel(memory, memoryCards);
+  } catch (e) {
+    console.warn('[AURA] Could not load memory:', e?.message);
+  }
+}
+
+function renderMemoryPanel(memory, container) {
+  if (!memory || !container) return;
+
+  const items = [];
+
+  // Recurring mistakes -> Weak
+  (memory.recurringMistakes || []).slice(0, 2).forEach(m => {
+    items.push({ tag: 'weak', text: m, note: 'Recurring mistake' });
+  });
+
+  // Weak topics -> Weak
+  (memory.weakTopics || []).slice(0, 2).forEach(t => {
+    items.push({ tag: 'weak', text: t, note: 'Needs more practice' });
+  });
+
+  // Mastered topics -> Strong
+  (memory.masteredTopics || []).slice(0, 2).forEach(t => {
+    items.push({ tag: 'strong', text: t, note: 'Mastered' });
+  });
+
+  // Breakthrough moments -> Strong
+  (memory.breakthroughMoments || []).slice(0, 1).forEach(b => {
+    items.push({ tag: 'strong', text: b, note: 'Breakthrough' });
+  });
+
+  // Current focus -> Goal
+  if (memory.currentFocus) {
+    items.push({ tag: 'goal', text: memory.currentFocus, note: memory.lastSessionSummary ? 'Current focus' : '' });
+  }
+
+  // Left unfinished from last session
+  (memory.leftUnfinished || []).slice(0, 1).forEach(u => {
+    items.push({ tag: 'goal', text: u, note: 'Pick up from last session' });
+  });
+
+  if (!items.length) return; // keep placeholder if nothing to show
+
+  container.innerHTML = items.map(item => `
+    <div class="mem-item">
+      <div class="mem-tag ${item.tag}">${item.tag.charAt(0).toUpperCase() + item.tag.slice(1)}</div>
+      <div class="mem-body">
+        <div class="mem-text">${escHtml(item.text)}</div>
+        ${item.note ? `<div class="mem-note">${escHtml(item.note)}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  // Re-attach cursor hover listeners for new elements
+  container.querySelectorAll('.mem-item').forEach(el => {
+    el.addEventListener('mouseenter', () => ring?.classList.add('hover'));
+    el.addEventListener('mouseleave', () => ring?.classList.remove('hover'));
+  });
+
+  // Also update Recent Corrections from memory
+  renderCorrections(memory);
+}
+
+function renderCorrections(memory) {
+  const corrSection = document.querySelector('.rp-card:last-of-type');
+  if (!corrSection) return;
+  const mistakes = memory.recurringMistakes || [];
+  if (!mistakes.length) return;
+
+  const items = mistakes.slice(0, 3).map(m => `
+    <div class="correction-item">
+      <div class="ci-icon">→</div>
+      <div>
+        <div class="ci-wrong">${escHtml(m)}</div>
+        <div class="ci-note">Recurring pattern — keep an eye on this</div>
+      </div>
+    </div>
+  `).join('');
+
+  const label = corrSection.querySelector('.rp-card-label');
+  if (label) label.insertAdjacentHTML('afterend', items);
+  corrSection.querySelectorAll('.correction-item:not(:first-of-type)').forEach(el => el.remove());
+  corrSection.insertAdjacentHTML('beforeend', items);
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ── THEME ─────────────────────────────────────────────────────────────────────
@@ -61,19 +219,19 @@ const ring = document.getElementById('cursorRing');
 let mx = 0, my = 0, rx = 0, ry = 0;
 document.addEventListener('mousemove', e => {
   mx = e.clientX; my = e.clientY;
-  dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+  if (dot) { dot.style.left = mx + 'px'; dot.style.top = my + 'px'; }
 });
 (function animCursor() {
   rx += (mx - rx) * 0.14; ry += (my - ry) * 0.14;
-  ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+  if (ring) { ring.style.left = rx + 'px'; ring.style.top = ry + 'px'; }
   requestAnimationFrame(animCursor);
 })();
 document.querySelectorAll('button, a, .sug-chip, .nav-item, .mem-item').forEach(el => {
-  el.addEventListener('mouseenter', () => ring.classList.add('hover'));
-  el.addEventListener('mouseleave', () => ring.classList.remove('hover'));
+  el.addEventListener('mouseenter', () => ring?.classList.add('hover'));
+  el.addEventListener('mouseleave', () => ring?.classList.remove('hover'));
 });
-document.addEventListener('mousedown', () => ring.classList.add('click'));
-document.addEventListener('mouseup',   () => ring.classList.remove('click'));
+document.addEventListener('mousedown', () => ring?.classList.add('click'));
+document.addEventListener('mouseup',   () => ring?.classList.remove('click'));
 
 // ── WAVEFORM ──────────────────────────────────────────────────────────────────
 const waveform = document.getElementById('waveform');
@@ -99,8 +257,32 @@ document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     item.classList.add('active');
+    // Coming soon for unbuilt sections
+    const label = item.querySelector('.nav-icon')?.nextSibling?.textContent?.trim() || '';
+    const builtScreens = ['Talk to AURA', 'Dashboard'];
+    if (!builtScreens.some(s => label.includes(s))) {
+      showComingSoon(label);
+    }
   });
 });
+
+function showComingSoon(label) {
+  const existing = document.getElementById('coming-soon-toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'coming-soon-toast';
+  toast.style.cssText = `
+    position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
+    background:var(--surface2); border:0.5px solid var(--border2);
+    color:var(--text); padding:10px 20px; border-radius:10px;
+    font-size:13px; font-weight:500; z-index:9000;
+    box-shadow:0 8px 32px rgba(0,0,0,0.4);
+    animation: fadeInUp .2s ease;
+  `;
+  toast.textContent = (label || 'This section') + ' is coming soon';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
 
 // ── LANGUAGE SWITCHER ─────────────────────────────────────────────────────────
 document.querySelectorAll('.ls-btn').forEach(btn => {
@@ -129,24 +311,28 @@ document.querySelectorAll('.sug-chip').forEach(chip => {
   });
 });
 
-// ── ORB CLICK (demo toggle) ───────────────────────────────────────────────────
+// ── ORB CLICK ─────────────────────────────────────────────────────────────────
 document.getElementById('auraOrb')?.addEventListener('click', () => {
   document.getElementById('auraOrb').classList.toggle('speaking');
 });
 
-// ── COUNT-UP STATS ────────────────────────────────────────────────────────────
-function countUp(el, target, duration = 800) {
-  if (!el) return;
-  let val = 0;
-  const step = target / Math.ceil(duration / 16);
-  const t = setInterval(() => {
-    val = Math.min(val + step, target);
-    el.textContent = Math.round(val);
-    if (val >= target) clearInterval(t);
-  }, 16);
-}
-setTimeout(() => {
-  countUp(document.getElementById('wordsSpoken'), 34);
-  countUp(document.getElementById('correctCount'), 8);
-  countUp(document.getElementById('errCount'), 2);
-}, 400);
+// ── SESSION STATS (updated by session-bridge via events) ──────────────────────
+window.addEventListener('aura:stats', (e) => {
+  const { wordsSpoken, correctCount, errCount } = e.detail || {};
+  const ws = document.getElementById('wordsSpoken');
+  const cc = document.getElementById('correctCount');
+  const ec = document.getElementById('errCount');
+  if (ws && wordsSpoken != null) ws.textContent = wordsSpoken;
+  if (cc && correctCount != null) cc.textContent = correctCount;
+  if (ec && errCount    != null) ec.textContent = errCount;
+});
+
+// ── FADEUP ANIMATION ─────────────────────────────────────────────────────────
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes fadeInUp {
+    from { opacity:0; transform:translate(-50%, 8px); }
+    to   { opacity:1; transform:translate(-50%, 0);   }
+  }
+`;
+document.head.appendChild(style);
