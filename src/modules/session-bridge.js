@@ -291,14 +291,13 @@ async function initDeepgramSTT(targetLanguage) {
 let _dgAudioBuffer = [];
 function sendToDeeepgram(pcmBuffer) {
   if (micMuted) return;
-  if (dgWs?.readyState === WebSocket.OPEN) {
+  if (dgWs && dgWs.readyState === WebSocket.OPEN) {
     if (_dgAudioBuffer.length > 0) {
-      _dgAudioBuffer.forEach(buf => dgWs.send(buf));
-      _dgAudioBuffer = [];
+      const toFlush = _dgAudioBuffer.splice(0);
+      toFlush.forEach(buf => { try { dgWs && dgWs.send(buf); } catch(e){} });
     }
-    dgWs.send(pcmBuffer);
-  } else if (dgWs) {
-    // WS exists but not yet open — buffer up to 50 chunks (~1.6s of audio)
+    try { dgWs.send(pcmBuffer); } catch(e) {}
+  } else if (dgWs && dgWs.readyState === WebSocket.CONNECTING) {
     if (_dgAudioBuffer.length < 50) _dgAudioBuffer.push(pcmBuffer);
   }
 }
