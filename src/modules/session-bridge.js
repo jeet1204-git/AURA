@@ -228,20 +228,16 @@ async function initDeepgramSTT(targetLanguage) {
   const langCode = langMap[targetLanguage] || 'en';
 
   try {
-    // Connect to the worker's WebSocket proxy — API key never reaches the browser
-    const workerWssUrl = DEEPGRAM_WORKER_URL.replace(/^https?:\/\//, 'wss://');
-    const dgParams = new URLSearchParams({
-      model:            'nova-2',
-      language:         langCode,
-      smart_format:     'false',
-      punctuate:        'false',
-      encoding:         'linear16',
-      sample_rate:      '16000',
-      endpointing:      '400',
-      utterance_end_ms: '1000',
-      interim_results:  'true',
+    const r = await fetch(`${DEEPGRAM_WORKER_URL}/deepgram-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
     });
-    const dgUrl = `${workerWssUrl}/listen?${dgParams.toString()}`;
+    if (!r.ok) { console.warn('[Deepgram] token fetch failed', r.status); return; }
+    const { token } = await r.json();
+    if (!token) { console.warn('[Deepgram] no token returned'); return; }
+
+    const dgUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${langCode}&smart_format=false&punctuate=false&encoding=linear16&sample_rate=16000&endpointing=400&utterance_end_ms=1000&interim_results=true&access_token=${encodeURIComponent(token)}`;
     dgWs = new WebSocket(dgUrl);
     dgWs.binaryType = 'arraybuffer';
 
@@ -288,17 +284,9 @@ async function initDeepgramSTT(targetLanguage) {
   }
 }
 
-let _dgAudioBuffer = [];
 function sendToDeeepgram(pcmBuffer) {
-  if (micMuted) return;
-  if (dgWs && dgWs.readyState === WebSocket.OPEN) {
-    if (_dgAudioBuffer.length > 0) {
-      const toFlush = _dgAudioBuffer.splice(0);
-      toFlush.forEach(buf => { try { dgWs && dgWs.send(buf); } catch(e){} });
-    }
-    try { dgWs.send(pcmBuffer); } catch(e) {}
-  } else if (dgWs && dgWs.readyState === WebSocket.CONNECTING) {
-    if (_dgAudioBuffer.length < 50) _dgAudioBuffer.push(pcmBuffer);
+  if (dgWs?.readyState === WebSocket.OPEN && !micMuted) {
+    dgWs.send(pcmBuffer);
   }
 }
 
@@ -392,7 +380,7 @@ function handleServerMessage(msg) {
 // ── CLEANUP ───────────────────────────────────────────────────────────────────
 function cleanup() {
   if (window._keepAlive) { clearInterval(window._keepAlive); window._keepAlive = null; }
-  if (dgWs) { try { dgWs.close(); } catch(e){} dgWs = null; } _dgAudioBuffer = [];
+  if (dgWs) { try { dgWs.close(); } catch(e){} dgWs = null; }
   if (workletNode)  { try { workletNode.disconnect();  } catch(e){} workletNode  = null; }
   if (playbackNode) { try { playbackNode.disconnect(); } catch(e){} playbackNode = null; }
   if (micStream)    { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
