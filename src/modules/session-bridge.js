@@ -237,8 +237,8 @@ async function initDeepgramSTT(targetLanguage) {
     const { token } = await r.json();
     if (!token) { console.warn('[Deepgram] no token returned'); return; }
 
-    const dgUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${langCode}&smart_format=false&punctuate=false&encoding=linear16&sample_rate=16000&endpointing=400&utterance_end_ms=1000&interim_results=true&token=${encodeURIComponent(token)}`;
-    dgWs = new WebSocket(dgUrl);
+    const dgUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${langCode}&smart_format=false&punctuate=false&encoding=linear16&sample_rate=16000&endpointing=400&utterance_end_ms=1000&interim_results=true`;
+    dgWs = new WebSocket(dgUrl, ['token', token]);
     dgWs.binaryType = 'arraybuffer';
 
     dgWs.onopen  = () => console.log('[Deepgram] connected, lang:', langCode);
