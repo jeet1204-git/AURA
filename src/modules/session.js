@@ -1123,95 +1123,102 @@ function _renderStudentBubble(text) {
   area.appendChild(div);
   area.scrollTop = area.scrollHeight;
 }
-   async function initDeepgramSTT() {
+  // Replace your existing initDeepgramSTT() function in session.js with this.
+// The browser now connects to YOUR worker at /listen (wss://),
+// which proxies to Deepgram server-side. The API key never reaches the browser.
+
+async function initDeepgramSTT() {
   try {
     setDeepgramStatusVisible(false);
     dgClosingByApp = false;
-    const r = await fetch(`${DEEPGRAM_WORKER_URL}/deepgram-token`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({})
+
+    // Convert the worker HTTPS URL to WSS — no token fetch needed anymore
+    // The worker injects the Deepgram API key server-side
+    const workerWssUrl = DEEPGRAM_WORKER_URL.replace(/^https?:\/\//, "wss://");
+
+    const dgParams = new URLSearchParams({
+      model:            "nova-2",
+      language:         "de",
+      smart_format:     "false",
+      punctuate:        "false",
+      encoding:         "linear16",
+      sample_rate:      "16000",
+      endpointing:      "1500",
+      utterance_end_ms: "2000",
+      interim_results:  "false",
     });
-    if (!r.ok) { console.warn('Deepgram token fetch failed', r.status); setDeepgramStatusVisible(true); return; }
-    const {token} = await r.json();
-    if (!token) { console.warn('No Deepgram token returned'); setDeepgramStatusVisible(true); return; }
-    const dgUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=de&smart_format=false&punctuate=false&encoding=linear16&sample_rate=16000&endpointing=1500&utterance_end_ms=2000&interim_results=false&access_token=${encodeURIComponent(token)}`;
+
+    const dgUrl = `${workerWssUrl}/listen?${dgParams.toString()}`;
     dgWs = new WebSocket(dgUrl);
-    dgWs.binaryType = 'arraybuffer';
-    dgWs.onopen = () => { console.log('[Deepgram] connected'); setDeepgramStatusVisible(false); };
-    dgWs.onerror = (e) => { console.warn('[Deepgram] error', e); setDeepgramStatusVisible(true); };
+    dgWs.binaryType = "arraybuffer";
+
+    dgWs.onopen  = () => { console.log("[Deepgram] connected via proxy"); setDeepgramStatusVisible(false); };
+    dgWs.onerror = (e) => { console.warn("[Deepgram] error", e); setDeepgramStatusVisible(true); };
     dgWs.onclose = () => {
       const wasUnexpected = sessionActive && !dgClosingByApp;
       dgWs = null;
       if (wasUnexpected) setDeepgramStatusVisible(true);
       dgClosingByApp = false;
     };
+
     // Utterance buffer — accumulates Deepgram is_final segments until UtteranceEnd
-    let _dgBuffer = '';
-    let _dgLastSpeechAt = 0;        // timestamp of last Deepgram transcript
-    let _geminiSpeechAt = 0;        // timestamp of last Gemini inputTranscription event
+    let _dgBuffer = "";
+    let _dgLastSpeechAt = 0;
+    let _geminiSpeechAt = 0;
 
     dgWs.onmessage = (evt) => {
       try {
         const msg = JSON.parse(evt.data);
 
-        // Standard transcript segment — accumulate into buffer
-        if (msg.type === 'Results' && msg.is_final) {
-          const text = (msg.channel?.alternatives?.[0]?.transcript || '').trim();
+        if (msg.type === "Results" && msg.is_final) {
+          const text = (msg.channel?.alternatives?.[0]?.transcript || "").trim();
           if (text && sessionActive && !micMuted) {
-            _dgBuffer = _dgBuffer ? _dgBuffer + ' ' + text : text;
+            _dgBuffer = _dgBuffer ? _dgBuffer + " " + text : text;
             _dgLastSpeechAt = Date.now();
           }
         }
 
-        // UtteranceEnd — Deepgram says the speaker has stopped. Flush the buffer.
-        if (msg.type === 'UtteranceEnd') {
+        if (msg.type === "UtteranceEnd") {
           _flushDgBuffer();
         }
 
-      } catch(e) {}
+      } catch (e) {}
     };
 
-    // Called when Gemini confirms the student spoke (inputTranscription fired)
-    // but Deepgram may have returned nothing (non-German speech).
-    // Records a visible marker so evaluation knows speech happened.
-    window._onGeminiSpeechDetected = function(geminiText) {
+    window._onGeminiSpeechDetected = function (geminiText) {
       _geminiSpeechAt = Date.now();
-      // If Deepgram has something buffered, flush it now — Gemini's turn boundary
-      // is a reliable signal the student has finished speaking.
-      if (_dgBuffer) {
-        _flushDgBuffer();
-        return;
-      }
-      // Deepgram returned nothing but Gemini heard speech.
-      // This usually means the student spoke in a non-German language.
-      // Insert a marker so the evaluator sees the turn rather than silence.
+      if (_dgBuffer) { _flushDgBuffer(); return; }
       if (geminiText && geminiText.length > 2 && sessionActive && !micMuted) {
-        const marker = '[non-German speech detected]';
-        _renderStudentBubble('\u26a0\ufe0f ' + marker);
-        // Store marker in history so evaluator knows speech happened,
-        // but do NOT add to wordsUsed or trigger word count update.
-        conversationHistory.push({role:'user', content: marker});
-        appendCanonicalTurn('user', marker, {stage:getCurrentStage(), nonGerman:true});
+        const marker = "[non-German speech detected]";
+        _renderStudentBubble("\u26a0\ufe0f " + marker);
+        conversationHistory.push({ role: "user", content: marker });
+        appendCanonicalTurn("user", marker, { stage: getCurrentStage(), nonGerman: true });
         tickStageEngine();
       }
     };
 
     function _flushDgBuffer() {
       const text = _dgBuffer.trim();
-      _dgBuffer = '';
+      _dgBuffer = "";
       if (!text || !sessionActive || micMuted) return;
       _renderStudentBubble(text);
-      conversationHistory.push({role:'user', content:text});
-      text.toLowerCase().split(/\s+/).forEach(w=>{const c=w.replace(/[^a-zäöüß]/gi,'');if(c.length>2)wordsUsed.add(c);});
+      conversationHistory.push({ role: "user", content: text });
+      text.toLowerCase().split(/\s+/).forEach(w => {
+        const c = w.replace(/[^a-zäöüß]/gi, "");
+        if (c.length > 2) wordsUsed.add(c);
+      });
       updateWordCount();
-      pushEvent('user_transcript_final',{text,inputMode:'voice'});
-      appendCanonicalTurn('user',text,{stage:getCurrentStage()});
+      pushEvent("user_transcript_final", { text, inputMode: "voice" });
+      appendCanonicalTurn("user", text, { stage: getCurrentStage() });
       tickStageEngine();
     }
     window._flushDgBuffer = _flushDgBuffer;
-  } catch(e) { console.warn('[Deepgram] init failed', e); setDeepgramStatusVisible(true); }
-}
 
+  } catch (e) {
+    console.warn("[Deepgram] init failed", e);
+    setDeepgramStatusVisible(true);
+  }
+}
 // ── CORRECTION DETECTION ─────────────────────
 function detectAndShowCorrection(text) {
   if (!text || text.length < 10) return;
