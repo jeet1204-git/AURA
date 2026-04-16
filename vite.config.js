@@ -26,11 +26,12 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     rollupOptions: {
-  input: {
-    main: resolve(__dirname, 'index.html'),
-    dashboard: resolve(__dirname, 'src/app/screens/app-screens.html'),
-    auth: resolve(__dirname, 'src/app/screens/auth.html')
-  }
-}
+      input: {
+        main:       resolve(__dirname, 'index.html'),
+        dashboard:  resolve(__dirname, 'src/app/screens/app-screens.html'),
+        auth:       resolve(__dirname, 'src/app/screens/auth.html'),
+        onboarding: resolve(__dirname, 'src/app/screens/onboarding.html'),
+      }
+    }
   }
 });
