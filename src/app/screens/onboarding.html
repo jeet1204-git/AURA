@@ -1,199 +1,211 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AURA — Onboarding</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA — Setup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --bg:#050508; --bg2:#0a0a10; --surface:#13131e; --surface2:#1a1a28;
-      --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
-      --text:#e8e8f2; --muted:rgba(232,232,242,0.55);
-      --purple:#9d7fff; --blue:#5ba3ff; --green:#4ade80;
-      --grad:linear-gradient(135deg,#9d7fff,#5ba3ff);
-      --grad2:linear-gradient(135deg,#7c5cfc,#4b8ef0);
-      --input-bg:rgba(255,255,255,0.04);
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #050508; --surface: #13131e; --surface2: #1a1a28;
+      --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+      --text: #e8e8f2; --muted: rgba(232,232,242,0.38); --muted2: rgba(232,232,242,0.58);
+      --purple: #9d7fff; --blue: #5ba3ff; --green: #4ade80; --red: #f87171;
+      --grad: linear-gradient(135deg,#9d7fff,#5ba3ff);
+      --grad2: linear-gradient(135deg,#7c5cfc,#4b8ef0);
     }
 
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      min-height:100vh;
-      font-family:'Inter',sans-serif;
-      background:
-        radial-gradient(circle at top, rgba(91,163,255,0.12), transparent 30%),
-        var(--bg);
-      color:var(--text);
-      padding:24px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
     }
 
-    .wrap{
-      width:100%;
-      max-width:780px;
+    .wrap {
+      width: 100%;
+      max-width: 560px;
     }
 
-    .card{
-      border:1px solid var(--border);
-      background:rgba(255,255,255,0.03);
-      border-radius:24px;
-      padding:32px;
-      backdrop-filter:blur(12px);
+    .card {
+      background: var(--surface);
+      border: 0.5px solid var(--border2);
+      border-radius: 20px;
+      padding: 40px 36px;
     }
 
-    .top{
-      margin-bottom:28px;
+    .top {
+      margin-bottom: 32px;
     }
 
-    .brand{
-      font-size:28px;
-      font-weight:700;
-      letter-spacing:-0.03em;
-      margin-bottom:10px;
+    .brand {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      margin-bottom: 20px;
     }
 
-    .brand span{
-      background:var(--grad);
-      -webkit-background-clip:text;
-      -webkit-text-fill-color:transparent;
-      background-clip:text;
+    .brand span {
+      background: var(--grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    h1{
-      font-size:34px;
-      line-height:1.1;
-      letter-spacing:-0.04em;
-      margin-bottom:10px;
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      margin-bottom: 8px;
     }
 
-    .sub{
-      font-size:15px;
-      line-height:1.6;
-      color:var(--muted);
-      max-width:640px;
+    .sub {
+      font-size: 14px;
+      color: var(--muted2);
+      line-height: 1.6;
+      margin-bottom: 20px;
     }
 
-    .progress{
-      display:flex;
-      gap:8px;
-      margin:24px 0 28px;
+    .progress {
+      display: flex;
+      gap: 6px;
     }
 
-    .progress span{
-      height:6px;
-      flex:1;
-      border-radius:999px;
-      background:rgba(255,255,255,0.08);
+    .progress span {
+      flex: 1;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--border2);
     }
 
-    .progress span.active{
-      background:var(--grad);
+    .progress span.active {
+      background: var(--grad2);
     }
 
-    .grid{
-      display:grid;
-      gap:18px;
-      grid-template-columns:1fr 1fr;
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
     }
 
-    .field{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
     }
 
-    .field.full{
-      grid-column:1 / -1;
+    .field.full {
+      grid-column: 1 / -1;
     }
 
-    label{
-      font-size:13px;
-      color:var(--muted);
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted2);
+      letter-spacing: 0.3px;
     }
 
-    input, select, textarea{
-      width:100%;
-      padding:14px 16px;
-      border-radius:14px;
-      border:1px solid var(--border);
-      background:var(--input-bg);
-      color:var(--text);
-      font:inherit;
-      outline:none;
+    input, select, textarea {
+      background: rgba(255,255,255,0.04);
+      border: 0.5px solid var(--border2);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
     }
 
-    textarea{
-      min-height:110px;
-      resize:vertical;
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(157,127,255,0.45);
     }
 
-    input:focus, select:focus, textarea:focus{
-      border-color:rgba(157,127,255,0.45);
+    select option { background: #1a1a28; }
+
+    textarea {
+      resize: vertical;
+      min-height: 72px;
     }
 
-    .chips{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
-    .chip{
-      padding:10px 14px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:transparent;
-      color:var(--muted);
-      font:inherit;
-      cursor:pointer;
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
 
-    .chip.active{
-      background:rgba(157,127,255,0.14);
-      border-color:rgba(157,127,255,0.35);
-      color:var(--text);
+    .chip.active {
+      background: rgba(157,127,255,0.14);
+      border-color: rgba(157,127,255,0.35);
+      color: var(--text);
     }
 
-    .actions{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      margin-top:28px;
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 28px;
     }
 
-    .btn{
-      padding:14px 18px;
-      border-radius:14px;
-      font:inherit;
-      font-weight:600;
-      cursor:pointer;
-      border:none;
+    .btn {
+      padding: 14px 18px;
+      border-radius: 14px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-size: 14px;
+      transition: opacity 0.15s, transform 0.1s;
     }
 
-    .btn.secondary{
-      background:transparent;
-      color:var(--text);
-      border:1px solid var(--border);
+    .btn.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 0.5px solid var(--border2);
     }
 
-    .btn.primary{
-      background:var(--grad2);
-      color:#fff;
+    .btn.primary {
+      background: var(--grad2);
+      color: #fff;
+      flex: 1;
     }
 
-    @media (max-width: 700px){
-      .card{
-        padding:24px 18px;
-      }
-      .grid{
-        grid-template-columns:1fr;
-      }
-      .actions{
-        flex-direction:column;
-      }
+    .btn.primary:hover { opacity: 0.88; }
+    .btn.primary:active { transform: scale(0.98); }
+    .btn.primary:disabled { opacity: 0.4; cursor: default; }
+
+    .error-msg {
+      font-size: 13px;
+      color: var(--red);
+      margin-top: 12px;
+      min-height: 18px;
+      text-align: center;
+    }
+
+    @media (max-width: 520px) {
+      .card { padding: 28px 20px; }
+      .grid { grid-template-columns: 1fr; }
+      .actions { flex-direction: column; }
     }
   </style>
 </head>
@@ -202,11 +214,10 @@
     <div class="card">
       <div class="top">
         <div class="brand"><span>AURA</span></div>
-        <h1>Let’s set up your learning path</h1>
+        <h1>Let's set up your learning path</h1>
         <p class="sub">
           This helps AURA personalize your sessions, corrections, and progression from the very first conversation.
         </p>
-
         <div class="progress">
           <span class="active"></span>
           <span class="active"></span>
@@ -222,6 +233,9 @@
               <option>German</option>
               <option>French</option>
               <option>Japanese</option>
+              <option>Spanish</option>
+              <option>Italian</option>
+              <option>Mandarin</option>
             </select>
           </div>
 
@@ -272,19 +286,28 @@
           </div>
         </div>
 
+        <div class="error-msg" id="errorMsg"></div>
+
         <div class="actions">
           <button type="button" class="btn secondary" id="backToAuth">Back</button>
-          <button type="submit" class="btn primary">Continue to Dashboard</button>
+          <button type="submit" class="btn primary" id="submitBtn">Continue to Dashboard</button>
         </div>
       </form>
     </div>
   </div>
 
-  <script>
-    const chips = document.querySelectorAll('.chip');
-    const onboardingForm = document.getElementById('onboardingForm');
-    const backToAuth = document.getElementById('backToAuth');
+  <script type="module">
+    import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getFirestore, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    import { FIREBASE_CONFIG } from '/src/config/constants.js';
 
+    const fbApp = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+    const auth  = getAuth(fbApp);
+    const db    = getFirestore(fbApp);
+
+    // ── Chip selection ────────────────────────────────────────────────────────
+    const chips = document.querySelectorAll('.chip');
     chips.forEach(chip => {
       chip.addEventListener('click', () => {
         chips.forEach(c => c.classList.remove('active'));
@@ -292,13 +315,76 @@
       });
     });
 
-    backToAuth.addEventListener('click', () => {
+    // ── Back button ───────────────────────────────────────────────────────────
+    document.getElementById('backToAuth').addEventListener('click', () => {
       window.location.href = './auth.html';
     });
 
-    onboardingForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      window.location.href = './app-screens.html';
+    // ── Form submit ───────────────────────────────────────────────────────────
+    const form      = document.getElementById('onboardingForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const errorMsg  = document.getElementById('errorMsg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const user = auth.currentUser;
+      if (!user) {
+        window.location.href = './auth.html';
+        return;
+      }
+
+      // Collect form values
+      const targetLanguage   = document.getElementById('targetLanguage').value;
+      const currentLevel     = document.getElementById('currentLevel').value;
+      const nativeLanguage   = document.getElementById('nativeLanguage').value.trim() || 'English';
+      const supportLanguage  = document.getElementById('supportLanguage').value.trim() || nativeLanguage;
+      const learningReason   = document.getElementById('learningReason').value.trim();
+      const weeklyCommitment = document.getElementById('weeklyCommitment').value;
+      const selectedGoalEl   = document.querySelector('#goalChips .chip.active');
+      const goal             = selectedGoalEl ? selectedGoalEl.textContent.trim() : 'Daily conversation';
+
+      submitBtn.disabled    = true;
+      submitBtn.textContent = 'Saving…';
+      errorMsg.textContent  = '';
+
+      try {
+        await setDoc(doc(db, 'users', user.uid), {
+          // Identity
+          uid:              user.uid,
+          email:            user.email || '',
+          displayName:      user.displayName || nativeLanguage,
+          // Learning profile
+          targetLanguage,
+          level:            currentLevel,
+          nativeLanguage,
+          langPref:         supportLanguage,
+          goal,
+          learningReason,
+          weeklyCommitment,
+          // Defaults
+          preferredMode:    'guided',
+          streak:           0,
+          xp:               0,
+          isPaid:           false,
+          freeSessionsUsedThisMonth: 0,
+          onboardingComplete: true,
+          createdAt:        serverTimestamp(),
+          updatedAt:        serverTimestamp(),
+        }, { merge: true });
+
+        window.location.href = './app-screens.html';
+      } catch (err) {
+        console.error('[AURA] onboarding save failed:', err);
+        errorMsg.textContent  = 'Could not save your profile. Please try again.';
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Continue to Dashboard';
+      }
+    });
+
+    // ── If not signed in, redirect to auth ───────────────────────────────────
+    onAuthStateChanged(auth, (user) => {
+      if (!user) window.location.href = './auth.html';
     });
   </script>
 </body>
