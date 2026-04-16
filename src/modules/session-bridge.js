@@ -577,16 +577,25 @@ export function sendText(text) {
 
 export function getSessionState() { return sessionActive ? 'active' : 'idle'; }
 
-export function initSession({ getIdToken: _getIdToken, getUserDisplayName: _getUserDisplayName, getActiveProfile: _getActiveProfile }) {
+// Module-level callback refs — set once by initSession, used everywhere.
+// Stored this way to survive Vite's minifier renaming destructured params.
+let _tokenFn   = () => Promise.resolve(null);
+let _nameFn    = () => 'there';
+let _profileFn = () => null;
+
+export function initSession(callbacks) {
+  if (callbacks.getIdToken)         _tokenFn   = callbacks.getIdToken;
+  if (callbacks.getUserDisplayName) _nameFn    = callbacks.getUserDisplayName;
+  if (callbacks.getActiveProfile)   _profileFn = callbacks.getActiveProfile;
 
   ['liveSessionBtn', 'idleStartBtn'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', async () => {
       if (sessionActive) return;
-      const idToken = await _getIdToken().catch(() => null);
+      const idToken = await _tokenFn().catch(() => null);
       await startSession({
         idToken,
-        userDisplayName: _getUserDisplayName(),
-        profile: _getActiveProfile?.() || null
+        userDisplayName: _nameFn(),
+        profile: _profileFn() || null
       });
     });
   });
@@ -629,7 +638,7 @@ export function initSession({ getIdToken: _getIdToken, getUserDisplayName: _getU
     if (typing) { typing.style.display = 'flex'; scrollBottom(); }
 
     try {
-      const profile   = _getActiveProfile?.() || null;
+      const profile   = _profileFn() || null;
       const langPref  = profile?.langPref || profile?.nativeLanguage || 'English';
       let   textSystemPrompt;
 
