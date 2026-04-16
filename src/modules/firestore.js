@@ -16,7 +16,7 @@ import {
   query, orderBy, limit,
   serverTimestamp, increment,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { fbApp } from './auth.js';
+import { fbApp, auth } from './auth.js';
 
 export const db = getFirestore(fbApp);
 
@@ -313,7 +313,6 @@ export async function checkSessionAccess(uid) {
 export async function logAnalyticsEvent(eventName, metadata = {}) {
   if (!eventName) return;
   try {
-    const { auth } = await import('./auth.js');
     const uid = auth?.currentUser?.uid || null;
     await addDoc(collection(db, 'analytics_events'), {
       userId:    uid,
