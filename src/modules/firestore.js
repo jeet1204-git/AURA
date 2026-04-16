@@ -1,4 +1,4 @@
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, addDoc, query, orderBy, limit, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc, query, orderBy, limit, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { fbApp } from './auth.js';
 
 export const db = getFirestore(fbApp);
@@ -84,7 +84,7 @@ export async function saveDailyState(uid, data) {
 }
 
 // ── Persist session progress ──────────────────────────────────────────────────
-export async function persistSessionProgress({ uid, activeBlueprint, selectedScenario, selectedLevel, sessionStartedAt, result, completed, wordsUsed, conversationHistory, getActiveSessionMode }) {
+export async function persistSessionProgress({ uid, profileId, activeBlueprint, selectedScenario, selectedLevel, sessionStartedAt, result, completed, wordsUsed, conversationHistory, getActiveSessionMode }) {
   if (!uid || !(activeBlueprint || selectedScenario)) return;
   const endedAt   = new Date();
   const startedAt = sessionStartedAt || endedAt;
@@ -110,6 +110,7 @@ export async function persistSessionProgress({ uid, activeBlueprint, selectedSce
   const sessionDoc = {
     sessionId,
     uid,
+    profileId:      profileId || null,
     level:          sessionLevel,
     scenarioId:     sourceScenario?.scenarioId || sourceScenario?.id || null,
     scenarioTitle:  sourceScenario?.title || null,
@@ -134,4 +135,112 @@ export async function persistSessionProgress({ uid, activeBlueprint, selectedSce
   } catch (e) {
     console.warn('[AURA] persistSessionProgress failed:', e?.message);
   }
+}
+
+// ── Profile system ────────────────────────────────────────────────────────────
+
+const LANG_FLAGS = {
+  German: '🇩🇪', French: '🇫🇷', Japanese: '🇯🇵', Spanish: '🇪🇸',
+  Italian: '🇮🇹', Mandarin: '🇨🇳', Portuguese: '🇧🇷', Korean: '🇰🇷',
+  Arabic: '🇸🇦', Hindi: '🇮🇳',
+};
+export function getLangFlag(lang) { return LANG_FLAGS[lang] || '🌍'; }
+
+export async function loadProfiles(uid) {
+  if (!uid) return [];
+  try {
+    const snap = await getDocs(collection(db, 'users', uid, 'profiles'));
+    const profiles = [];
+    snap.forEach(d => profiles.push({ id: d.id, ...d.data() }));
+    profiles.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+    return profiles;
+  } catch (e) {
+    console.warn('[AURA] loadProfiles failed:', e?.message);
+    return [];
+  }
+}
+
+export async function createProfile(uid, data) {
+  if (!uid) return null;
+  try {
+    const profileId = `prof_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const profileDoc = {
+      targetLanguage: data.targetLanguage || 'German',
+      level:          data.level          || 'A1',
+      nativeLanguage: data.nativeLanguage || 'English',
+      langPref:       data.langPref       || data.nativeLanguage || 'English',
+      goal:           data.goal           || 'Daily conversation',
+      preferredMode:  data.preferredMode  || 'guided',
+      flag:           getLangFlag(data.targetLanguage || 'German'),
+      createdAt:      serverTimestamp(),
+      updatedAt:      serverTimestamp(),
+    };
+    await setDoc(doc(db, 'users', uid, 'profiles', profileId), profileDoc);
+    return { id: profileId, ...profileDoc };
+  } catch (e) {
+    console.warn('[AURA] createProfile failed:', e?.message);
+    return null;
+  }
+}
+
+export async function updateProfile(uid, profileId, data) {
+  if (!uid || !profileId) return;
+  try {
+    await updateDoc(doc(db, 'users', uid, 'profiles', profileId), {
+      ...data,
+      flag:      getLangFlag(data.targetLanguage || 'German'),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (e) {
+    console.warn('[AURA] updateProfile failed:', e?.message);
+  }
+}
+
+export async function deleteProfile(uid, profileId) {
+  if (!uid || !profileId) return;
+  try {
+    await deleteDoc(doc(db, 'users', uid, 'profiles', profileId));
+  } catch (e) {
+    console.warn('[AURA] deleteProfile failed:', e?.message);
+  }
+}
+
+export async function setActiveProfile(uid, profileId) {
+  if (!uid || !profileId) return;
+  try {
+    await updateDoc(doc(db, 'users', uid), { activeProfileId: profileId, updatedAt: serverTimestamp() });
+  } catch (e) {
+    console.warn('[AURA] setActiveProfile failed:', e?.message);
+  }
+}
+
+export async function loadProfileMemory(uid, profileId) {
+  if (!uid || !profileId) return null;
+  try {
+    const snap = await getDoc(doc(db, 'users', uid, 'memory', profileId));
+    return snap.exists() ? snap.data() : null;
+  } catch (e) { return null; }
+}
+
+// Migrate existing flat user data into profiles subcollection (runs once per user)
+export async function migrateUserToProfiles(uid, userDoc) {
+  if (!uid || !userDoc) return [];
+  const existing = await loadProfiles(uid);
+  if (existing.length > 0) {
+    if (!userDoc.activeProfileId) await setActiveProfile(uid, existing[0].id);
+    return existing;
+  }
+  const firstProfile = await createProfile(uid, {
+    targetLanguage: userDoc.targetLanguage || 'German',
+    level:          userDoc.level          || 'A1',
+    nativeLanguage: userDoc.nativeLanguage || 'English',
+    langPref:       userDoc.langPref       || 'English',
+    goal:           userDoc.goal           || 'Daily conversation',
+    preferredMode:  userDoc.preferredMode  || 'guided',
+  });
+  if (firstProfile) {
+    await setActiveProfile(uid, firstProfile.id);
+    return [firstProfile];
+  }
+  return [];
 }
