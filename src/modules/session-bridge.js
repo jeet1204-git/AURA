@@ -288,9 +288,18 @@ async function initDeepgramSTT(targetLanguage) {
   }
 }
 
+let _dgAudioBuffer = [];
 function sendToDeeepgram(pcmBuffer) {
-  if (dgWs?.readyState === WebSocket.OPEN && !micMuted) {
+  if (micMuted) return;
+  if (dgWs?.readyState === WebSocket.OPEN) {
+    if (_dgAudioBuffer.length > 0) {
+      _dgAudioBuffer.forEach(buf => dgWs.send(buf));
+      _dgAudioBuffer = [];
+    }
     dgWs.send(pcmBuffer);
+  } else if (dgWs) {
+    // WS exists but not yet open — buffer up to 50 chunks (~1.6s of audio)
+    if (_dgAudioBuffer.length < 50) _dgAudioBuffer.push(pcmBuffer);
   }
 }
 
@@ -384,7 +393,7 @@ function handleServerMessage(msg) {
 // ── CLEANUP ───────────────────────────────────────────────────────────────────
 function cleanup() {
   if (window._keepAlive) { clearInterval(window._keepAlive); window._keepAlive = null; }
-  if (dgWs) { try { dgWs.close(); } catch(e){} dgWs = null; }
+  if (dgWs) { try { dgWs.close(); } catch(e){} dgWs = null; } _dgAudioBuffer = [];
   if (workletNode)  { try { workletNode.disconnect();  } catch(e){} workletNode  = null; }
   if (playbackNode) { try { playbackNode.disconnect(); } catch(e){} playbackNode = null; }
   if (micStream)    { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
