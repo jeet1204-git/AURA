@@ -42,6 +42,14 @@ let _transcript  = []; // accumulates { role, text } turns
 // ── BLUEPRINT BUILDER ─────────────────────────────────────────────────────────
 // Builds a minimal but real blueprint from the user's Firestore profile.
 // Falls back to A2 guided daily conversation if profile fields are missing.
+
+function stripMetaTags(text) {
+  return text
+    .replace(/##CORRECTION##.*?##END##/gs, '')
+    .replace(/##STUDENT##.*?##END##/gs, '')
+    .trim();
+}
+
 function buildBlueprintFromProfile(profile) {
   const level  = profile?.level          || 'A2';
   const mode   = profile?.preferredMode  || 'guided';
@@ -333,10 +341,10 @@ function handleServerMessage(msg) {
     }
 
     if (sc.outputTranscription?.text) {
-      _currentAiText += sc.outputTranscription.text;
-      const el = getOrCreateAiBubble();
-      const b  = el?.querySelector('.bubble');
-      if (b) b.textContent = _currentAiText;
+  _currentAiText += sc.outputTranscription.text;
+  const el = getOrCreateAiBubble();
+  const b  = el?.querySelector('.bubble');
+  if (b) b.textContent = stripMetaTags(_currentAiText);
       scrollBottom();
     }
 
