@@ -577,16 +577,16 @@ export function sendText(text) {
 
 export function getSessionState() { return sessionActive ? 'active' : 'idle'; }
 
-export function initSession({ getIdToken, getUserDisplayName, getActiveProfile }) {
+export function initSession({ getIdToken: _getIdToken, getUserDisplayName: _getUserDisplayName, getActiveProfile: _getActiveProfile }) {
 
   ['liveSessionBtn', 'idleStartBtn'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', async () => {
       if (sessionActive) return;
-      const idToken = await getIdToken().catch(() => null);
+      const idToken = await _getIdToken().catch(() => null);
       await startSession({
         idToken,
-        userDisplayName: getUserDisplayName(),
-        profile: getActiveProfile?.() || null
+        userDisplayName: _getUserDisplayName(),
+        profile: _getActiveProfile?.() || null
       });
     });
   });
@@ -629,7 +629,7 @@ export function initSession({ getIdToken, getUserDisplayName, getActiveProfile }
     if (typing) { typing.style.display = 'flex'; scrollBottom(); }
 
     try {
-      const profile   = getActiveProfile?.() || null;
+      const profile   = _getActiveProfile?.() || null;
       const langPref  = profile?.langPref || profile?.nativeLanguage || 'English';
       let   textSystemPrompt;
 
