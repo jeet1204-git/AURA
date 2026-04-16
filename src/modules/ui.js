@@ -5,7 +5,7 @@
  */
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { FIREBASE_CONFIG, WORKER_URL } from '../config/constants.js';
 import { loadUserProfile } from './firestore.js';
 import { initSession } from './session-bridge.js';
@@ -297,6 +297,16 @@ document.querySelectorAll('.sug-chip').forEach(chip => {
     const input = document.getElementById('chatInput');
     if (input) { input.value = chip.textContent.trim(); input.focus(); }
   });
+});
+
+// ── LOGOUT ───────────────────────────────────────────────────────────────────
+document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+  try {
+    await signOut(auth);
+    window.location.href = '/src/app/screens/auth.html';
+  } catch (e) {
+    console.warn('[AURA] Sign out failed:', e?.message);
+  }
 });
 
 // ── ORB CLICK ─────────────────────────────────────────────────────────────────
