@@ -13,6 +13,7 @@
       --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
       --text: #e8e8f2; --muted: rgba(232,232,242,0.38); --muted2: rgba(232,232,242,0.58);
       --purple: #9d7fff; --blue: #5ba3ff; --green: #4ade80; --red: #f87171;
+      --amber: #fbbf24;
       --grad: linear-gradient(135deg,#9d7fff,#5ba3ff);
       --grad2: linear-gradient(135deg,#7c5cfc,#4b8ef0);
     }
@@ -28,82 +29,145 @@
       padding: 24px;
     }
 
-    .wrap {
-      width: 100%;
-      max-width: 560px;
-    }
+    .wrap { width: 100%; max-width: 580px; }
 
     .card {
       background: var(--surface);
       border: 0.5px solid var(--border2);
-      border-radius: 20px;
-      padding: 40px 36px;
+      border-radius: 24px;
+      padding: 44px 40px;
+      position: relative;
+      overflow: hidden;
     }
 
-    .top {
-      margin-bottom: 32px;
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 220px; height: 220px;
+      background: radial-gradient(circle, rgba(157,127,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
     }
 
+    /* Brand */
     .brand {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
       letter-spacing: -0.3px;
-      margin-bottom: 20px;
-    }
-
-    .brand span {
+      margin-bottom: 28px;
       background: var(--grad);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
+    /* Progress bar */
+    .progress-wrap { margin-bottom: 32px; }
+    .progress-bar {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+    .pb-seg {
+      flex: 1; height: 3px; border-radius: 2px;
+      background: var(--border2);
+      transition: background 0.3s;
+    }
+    .pb-seg.done { background: var(--grad2); }
+    .progress-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+    }
+
+    /* Step header */
+    .step-header { margin-bottom: 28px; }
+    .step-num {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 8px;
+    }
     h1 {
       font-size: 22px;
       font-weight: 600;
       letter-spacing: -0.3px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      line-height: 1.3;
     }
-
-    .sub {
-      font-size: 14px;
+    .step-sub {
+      font-size: 13.5px;
       color: var(--muted2);
       line-height: 1.6;
-      margin-bottom: 20px;
     }
 
-    .progress {
-      display: flex;
-      gap: 6px;
-    }
+    /* Steps */
+    .step { display: none; }
+    .step.active { display: block; }
 
-    .progress span {
-      flex: 1;
-      height: 3px;
-      border-radius: 2px;
-      background: var(--border2);
-    }
-
-    .progress span.active {
-      background: var(--grad2);
-    }
-
-    .grid {
+    /* Option cards — large tap targets */
+    .option-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
+      gap: 10px;
+      margin-bottom: 8px;
     }
+    .option-grid.single { grid-template-columns: 1fr; }
+    .option-grid.three  { grid-template-columns: 1fr 1fr 1fr; }
 
-    .field {
+    .opt-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      padding: 16px 14px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      text-align: left;
       display: flex;
       flex-direction: column;
-      gap: 7px;
+      gap: 5px;
+      position: relative;
     }
+    .opt-card:hover { background: rgba(255,255,255,0.05); }
+    .opt-card.selected {
+      background: rgba(157,127,255,0.1);
+      border-color: rgba(157,127,255,0.45);
+    }
+    .opt-card .opt-icon { font-size: 22px; margin-bottom: 4px; }
+    .opt-card .opt-title {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .opt-card .opt-desc {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .opt-card .check {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .opt-card.selected .check {
+      background: var(--purple);
+      border-color: var(--purple);
+      color: #fff;
+    }
+    .opt-card.selected .check::after { content: '✓'; }
 
-    .field.full {
-      grid-column: 1 / -1;
-    }
+    /* Fields */
+    .field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
     label {
       font-size: 12px;
@@ -112,7 +176,7 @@
       letter-spacing: 0.3px;
     }
 
-    input, select, textarea {
+    input, select {
       background: rgba(255,255,255,0.04);
       border: 0.5px solid var(--border2);
       border-radius: 10px;
@@ -124,51 +188,127 @@
       transition: border-color 0.2s;
       width: 100%;
     }
-
-    input:focus, select:focus, textarea:focus {
-      border-color: rgba(157,127,255,0.45);
-    }
-
+    input:focus, select:focus { border-color: rgba(157,127,255,0.45); }
     select option { background: #1a1a28; }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
 
-    textarea {
-      resize: vertical;
-      min-height: 72px;
-    }
+    /* Exam date conditional */
+    #examDateWrap { display: none; margin-top: 12px; }
+    #examDateWrap.show { display: block; }
 
-    .chips {
+    /* Daily time chips */
+    .time-chips {
       display: flex;
+      gap: 8px;
       flex-wrap: wrap;
-      gap: 10px;
     }
-
-    .chip {
-      padding: 10px 14px;
+    .time-chip {
+      padding: 9px 16px;
       border-radius: 999px;
-      border: 1px solid var(--border);
+      border: 1px solid var(--border2);
       background: transparent;
-      color: var(--muted);
+      color: var(--muted2);
       font: inherit;
       font-size: 13px;
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      transition: all 0.15s;
     }
-
-    .chip.active {
-      background: rgba(157,127,255,0.14);
-      border-color: rgba(157,127,255,0.35);
+    .time-chip.selected {
+      background: rgba(157,127,255,0.12);
+      border-color: rgba(157,127,255,0.4);
       color: var(--text);
     }
 
-    .actions {
+    /* Level selector */
+    .level-grid {
       display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 28px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .level-btn {
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--muted2);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .level-btn.selected {
+      background: rgba(157,127,255,0.12);
+      border-color: rgba(157,127,255,0.4);
+      color: var(--text);
+    }
+    .level-note {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
     }
 
+    /* Weakness chips */
+    .weakness-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .weak-btn {
+      padding: 11px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--muted2);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .weak-btn.selected {
+      background: rgba(157,127,255,0.1);
+      border-color: rgba(157,127,255,0.4);
+      color: var(--text);
+    }
+    .weak-btn .wi { font-size: 16px; }
+
+    /* Summary card */
+    .summary-card {
+      background: rgba(157,127,255,0.07);
+      border: 0.5px solid rgba(157,127,255,0.2);
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .sum-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .sum-label {
+      color: var(--muted);
+      min-width: 130px;
+      font-size: 12px;
+    }
+    .sum-val { color: var(--text); font-weight: 500; }
+
+    /* Actions */
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 28px;
+    }
     .btn {
-      padding: 14px 18px;
+      padding: 14px 20px;
       border-radius: 14px;
       font: inherit;
       font-weight: 600;
@@ -177,19 +317,17 @@
       font-size: 14px;
       transition: opacity 0.15s, transform 0.1s;
     }
-
     .btn.secondary {
       background: transparent;
-      color: var(--text);
+      color: var(--muted2);
       border: 0.5px solid var(--border2);
+      padding: 14px 18px;
     }
-
     .btn.primary {
       background: var(--grad2);
       color: #fff;
       flex: 1;
     }
-
     .btn.primary:hover { opacity: 0.88; }
     .btn.primary:active { transform: scale(0.98); }
     .btn.primary:disabled { opacity: 0.4; cursor: default; }
@@ -197,195 +335,634 @@
     .error-msg {
       font-size: 13px;
       color: var(--red);
-      margin-top: 12px;
-      min-height: 18px;
+      margin-top: 10px;
+      min-height: 16px;
       text-align: center;
     }
 
     @media (max-width: 520px) {
       .card { padding: 28px 20px; }
-      .grid { grid-template-columns: 1fr; }
-      .actions { flex-direction: column; }
+      .option-grid { grid-template-columns: 1fr; }
+      .option-grid.three { grid-template-columns: 1fr 1fr; }
+      .field-grid { grid-template-columns: 1fr; }
+      .weakness-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <div class="top">
-        <div class="brand"><span>AURA</span></div>
-        <h1>Let's set up your learning path</h1>
-        <p class="sub">
-          This helps AURA personalize your sessions, corrections, and progression from the very first conversation.
-        </p>
-        <div class="progress">
-          <span class="active"></span>
-          <span class="active"></span>
-          <span></span>
+<div class="wrap">
+  <div class="card">
+    <div class="brand">AURA</div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar">
+        <div class="pb-seg" id="pb1"></div>
+        <div class="pb-seg" id="pb2"></div>
+        <div class="pb-seg" id="pb3"></div>
+        <div class="pb-seg" id="pb4"></div>
+        <div class="pb-seg" id="pb5"></div>
+      </div>
+      <div class="progress-label" id="progressLabel">Step 1 of 5</div>
+    </div>
+
+    <!-- ── STEP 1: Language + Why ── -->
+    <div class="step active" id="step1">
+      <div class="step-header">
+        <div class="step-num">Step 1</div>
+        <h1>What are you learning and why?</h1>
+        <p class="step-sub">AURA's entire approach changes based on your goal. Be honest — there's no wrong answer.</p>
+      </div>
+
+      <div class="field" style="margin-bottom:20px;">
+        <label>Language you want to learn</label>
+        <select id="targetLanguage">
+          <option>German</option>
+          <option>French</option>
+          <option>Japanese</option>
+          <option>Spanish</option>
+          <option>Italian</option>
+          <option>Mandarin</option>
+          <option>Korean</option>
+          <option>Portuguese</option>
+          <option>Arabic</option>
+          <option>Hindi</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Why are you learning this language?</label>
+        <div class="option-grid" id="goalGrid">
+          <button type="button" class="opt-card" data-val="exam">
+            <div class="check"></div>
+            <div class="opt-icon">🎓</div>
+            <div class="opt-title">Exam preparation</div>
+            <div class="opt-desc">Goethe, DELF, JLPT, DELE or other official exams</div>
+          </button>
+          <button type="button" class="opt-card" data-val="conversation">
+            <div class="check"></div>
+            <div class="opt-icon">💬</div>
+            <div class="opt-title">Daily conversation</div>
+            <div class="opt-desc">Talk to locals, make friends, live abroad</div>
+          </button>
+          <button type="button" class="opt-card" data-val="professional">
+            <div class="check"></div>
+            <div class="opt-icon">💼</div>
+            <div class="opt-title">Professional / Work</div>
+            <div class="opt-desc">Job interviews, business meetings, work emails</div>
+          </button>
+          <button type="button" class="opt-card" data-val="study_abroad">
+            <div class="check"></div>
+            <div class="opt-icon">✈️</div>
+            <div class="opt-title">Study abroad</div>
+            <div class="opt-desc">University, school, or long-term relocation</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: Exam details (conditional) or Level ── -->
+    <div class="step" id="step2">
+      <div class="step-header">
+        <div class="step-num">Step 2</div>
+        <h1 id="step2Title">Which exam and when?</h1>
+        <p class="step-sub" id="step2Sub">AURA will build a personalised study plan around your exam date.</p>
+      </div>
+
+      <!-- Exam path -->
+      <div id="examPath">
+        <div class="field" style="margin-bottom:16px;">
+          <label>Which exam are you targeting?</label>
+          <select id="examName">
+            <option value="Goethe A1">Goethe A1</option>
+            <option value="Goethe A2" selected>Goethe A2</option>
+            <option value="Goethe B1">Goethe B1</option>
+            <option value="Goethe B2">Goethe B2</option>
+            <option value="TestDaF">TestDaF</option>
+            <option value="DELF A1">DELF A1</option>
+            <option value="DELF A2">DELF A2</option>
+            <option value="DELF B1">DELF B1</option>
+            <option value="DELF B2">DELF B2</option>
+            <option value="JLPT N5">JLPT N5</option>
+            <option value="JLPT N4">JLPT N4</option>
+            <option value="JLPT N3">JLPT N3</option>
+            <option value="DELE A1">DELE A1</option>
+            <option value="DELE A2">DELE A2</option>
+            <option value="DELE B1">DELE B1</option>
+            <option value="Other">Other exam</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Exam date</label>
+          <div class="option-grid single" id="examDateTypeGrid">
+            <button type="button" class="opt-card" data-val="booked" style="flex-direction:row;align-items:center;gap:12px;padding:14px 16px;">
+              <div class="check"></div>
+              <div>
+                <div class="opt-title">I have a date booked</div>
+                <div class="opt-desc">AURA will count down and pace your sessions</div>
+              </div>
+            </button>
+            <button type="button" class="opt-card" data-val="not_booked" style="flex-direction:row;align-items:center;gap:12px;padding:14px 16px;">
+              <div class="check"></div>
+              <div>
+                <div class="opt-title">Not booked yet, but planning to</div>
+                <div class="opt-desc">AURA will prepare you and remind you to book</div>
+              </div>
+            </button>
+          </div>
+          <div id="examDateWrap">
+            <input type="date" id="examDate" style="margin-top:10px;" />
+          </div>
         </div>
       </div>
 
-      <form id="onboardingForm">
-        <div class="grid">
-          <div class="field">
-            <label for="targetLanguage">Target language</label>
-            <select id="targetLanguage">
-              <option>German</option>
-              <option>French</option>
-              <option>Japanese</option>
-              <option>Spanish</option>
-              <option>Italian</option>
-              <option>Mandarin</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="currentLevel">Current level</label>
-            <select id="currentLevel">
-              <option>A1</option>
-              <option>A2</option>
-              <option selected>B1</option>
-              <option>B2</option>
-              <option>C1</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="nativeLanguage">Native language</label>
-            <input id="nativeLanguage" type="text" placeholder="e.g. Gujarati" />
-          </div>
-
-          <div class="field">
-            <label for="supportLanguage">Support language</label>
-            <input id="supportLanguage" type="text" placeholder="e.g. English" />
-          </div>
-
-          <div class="field full">
-            <label>What is your main goal?</label>
-            <div class="chips" id="goalChips">
-              <button type="button" class="chip active">Daily conversation</button>
-              <button type="button" class="chip">Exam preparation</button>
-              <button type="button" class="chip">Grammar accuracy</button>
-              <button type="button" class="chip">Pronunciation</button>
-              <button type="button" class="chip">Job interviews</button>
-            </div>
-          </div>
-
-          <div class="field full">
-            <label for="learningReason">Why are you learning this language?</label>
-            <textarea id="learningReason" placeholder="Write a short reason..."></textarea>
-          </div>
-
-          <div class="field full">
-            <label for="weeklyCommitment">Weekly commitment</label>
-            <select id="weeklyCommitment">
-              <option>3 sessions per week</option>
-              <option selected>5 sessions per week</option>
-              <option>Daily practice</option>
-            </select>
+      <!-- Non-exam path -->
+      <div id="nonExamPath" style="display:none;">
+        <div class="field">
+          <label>What is your specific goal?</label>
+          <div class="option-grid single">
+            <button type="button" class="opt-card" data-val="fluency" data-group="subgoal" style="flex-direction:row;align-items:center;gap:12px;padding:14px 16px;">
+              <div class="check"></div>
+              <div>
+                <div class="opt-title">Speak fluently with natives</div>
+                <div class="opt-desc">Natural, confident everyday speech</div>
+              </div>
+            </button>
+            <button type="button" class="opt-card" data-val="survival" data-group="subgoal" style="flex-direction:row;align-items:center;gap:12px;padding:14px 16px;">
+              <div class="check"></div>
+              <div>
+                <div class="opt-title">Survival / travel language</div>
+                <div class="opt-desc">Get by in restaurants, transport, shops</div>
+              </div>
+            </button>
+            <button type="button" class="opt-card" data-val="professional_fluency" data-group="subgoal" style="flex-direction:row;align-items:center;gap:12px;padding:14px 16px;">
+              <div class="check"></div>
+              <div>
+                <div class="opt-title">Professional fluency</div>
+                <div class="opt-desc">Meetings, emails, presentations at work</div>
+              </div>
+            </button>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div class="error-msg" id="errorMsg"></div>
+    <!-- ── STEP 3: Level ── -->
+    <div class="step" id="step3">
+      <div class="step-header">
+        <div class="step-num">Step 3</div>
+        <h1>What is your current level?</h1>
+        <p class="step-sub">Be honest — AURA will adjust. Starting too high is worse than starting too low.</p>
+      </div>
 
-        <div class="actions">
-          <button type="button" class="btn secondary" id="backToAuth">Back</button>
-          <button type="submit" class="btn primary" id="submitBtn">Continue to Dashboard</button>
+      <div class="field">
+        <label>Select your level</label>
+        <div class="level-grid" id="levelGrid">
+          <button type="button" class="level-btn" data-val="A1">A1 — Beginner</button>
+          <button type="button" class="level-btn" data-val="A2">A2 — Elementary</button>
+          <button type="button" class="level-btn" data-val="B1">B1 — Intermediate</button>
+          <button type="button" class="level-btn" data-val="B2">B2 — Upper intermediate</button>
+          <button type="button" class="level-btn" data-val="C1">C1 — Advanced</button>
+          <button type="button" class="level-btn" data-val="unknown">I don't know yet</button>
         </div>
-      </form>
+        <div class="level-note" id="levelNote"></div>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: Language + Daily time + Weakness ── -->
+    <div class="step" id="step4">
+      <div class="step-header">
+        <div class="step-num">Step 4</div>
+        <h1>How AURA will correct you</h1>
+        <p class="step-sub">AURA corrects in your native language so you understand instantly. It never speaks that language for conversation — only for corrections.</p>
+      </div>
+
+      <div class="field-grid" style="margin-bottom:20px;">
+        <div class="field">
+          <label>Your native language</label>
+          <input id="nativeLanguage" type="text" placeholder="e.g. Gujarati" />
+        </div>
+        <div class="field">
+          <label>Correction language</label>
+          <input id="langPref" type="text" placeholder="Same as native, or English" />
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:20px;">
+        <label>Daily practice time available</label>
+        <div class="time-chips" id="timeChips">
+          <button type="button" class="time-chip" data-val="10">10 min</button>
+          <button type="button" class="time-chip" data-val="20">20 min</button>
+          <button type="button" class="time-chip" data-val="30">30 min</button>
+          <button type="button" class="time-chip" data-val="60">1 hour</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>What's your biggest weakness? (pick all that apply)</label>
+        <div class="weakness-grid" id="weaknessGrid">
+          <button type="button" class="weak-btn" data-val="speaking"><span class="wi">🗣️</span>Speaking / Confidence</button>
+          <button type="button" class="weak-btn" data-val="grammar"><span class="wi">📐</span>Grammar</button>
+          <button type="button" class="weak-btn" data-val="vocabulary"><span class="wi">📚</span>Vocabulary</button>
+          <button type="button" class="weak-btn" data-val="pronunciation"><span class="wi">🎯</span>Pronunciation</button>
+          <button type="button" class="weak-btn" data-val="listening"><span class="wi">👂</span>Listening</button>
+          <button type="button" class="weak-btn" data-val="all"><span class="wi">🌀</span>Everything — I'm a beginner</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 5: Summary + Confirm ── -->
+    <div class="step" id="step5">
+      <div class="step-header">
+        <div class="step-num">Step 5</div>
+        <h1>Your learning profile</h1>
+        <p class="step-sub">AURA will use this every session. You can edit any of this from your dashboard settings at any time.</p>
+      </div>
+
+      <div class="summary-card" id="summaryCard">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="actions">
+      <button type="button" class="btn secondary" id="backBtn" style="display:none;">Back</button>
+      <button type="button" class="btn primary" id="nextBtn">Continue</button>
     </div>
   </div>
+</div>
 
-  <script type="module">
-    import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-    import { getFirestore, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-    import { FIREBASE_CONFIG } from '/src/config/constants.js';
+<script type="module">
+  import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { FIREBASE_CONFIG } from '/src/config/constants.js';
 
-    const fbApp = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-    const auth  = getAuth(fbApp);
-    const db    = getFirestore(fbApp);
+  const fbApp = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  const auth  = getAuth(fbApp);
+  const db    = getFirestore(fbApp);
 
-    // ── Chip selection ────────────────────────────────────────────────────────
-    const chips = document.querySelectorAll('.chip');
-    chips.forEach(chip => {
-      chip.addEventListener('click', () => {
-        chips.forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
+  // ── State ─────────────────────────────────────────────────────────────────
+  let currentStep = 1;
+  const TOTAL_STEPS = 5;
+
+  const data = {
+    targetLanguage: 'German',
+    goal:           null,   // 'exam' | 'conversation' | 'professional' | 'study_abroad'
+    subgoal:        null,
+    examName:       null,
+    examDate:       null,   // 'YYYY-MM-DD' | 'not_booked' | null
+    examDateStatus: null,   // 'booked' | 'not_booked'
+    level:          null,
+    nativeLanguage: '',
+    langPref:       '',
+    dailyMinutes:   20,
+    weaknesses:     [],
+  };
+
+  // ── DOM refs ──────────────────────────────────────────────────────────────
+  const nextBtn   = document.getElementById('nextBtn');
+  const backBtn   = document.getElementById('backBtn');
+  const errorMsg  = document.getElementById('errorMsg');
+
+  // ── Progress ──────────────────────────────────────────────────────────────
+  function updateProgress() {
+    for (let i = 1; i <= TOTAL_STEPS; i++) {
+      document.getElementById('pb' + i).classList.toggle('done', i <= currentStep);
+    }
+    document.getElementById('progressLabel').textContent = `Step ${currentStep} of ${TOTAL_STEPS}`;
+    backBtn.style.display = currentStep > 1 ? '' : 'none';
+    nextBtn.textContent = currentStep === TOTAL_STEPS ? 'Start learning' : 'Continue';
+  }
+
+  function showStep(n) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step' + n).classList.add('active');
+    currentStep = n;
+    updateProgress();
+    errorMsg.textContent = '';
+  }
+
+  // ── Generic option card selector ──────────────────────────────────────────
+  function wireOptionCards(gridId, dataKey, multi = false) {
+    const cards = document.querySelectorAll(`#${gridId} .opt-card`);
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        if (multi) {
+          card.classList.toggle('selected');
+          data[dataKey] = [...document.querySelectorAll(`#${gridId} .opt-card.selected`)].map(c => c.dataset.val);
+        } else {
+          cards.forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          data[dataKey] = card.dataset.val;
+        }
       });
     });
+  }
 
-    // ── Back button ───────────────────────────────────────────────────────────
-    document.getElementById('backToAuth').addEventListener('click', () => {
-      window.location.href = './auth.html';
+  function wireButtons(containerSel, dataKey, multi = false) {
+    const btns = document.querySelectorAll(containerSel);
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (multi) {
+          btn.classList.toggle('selected');
+          data[dataKey] = [...document.querySelectorAll(`${containerSel}.selected`)].map(b => b.dataset.val);
+        } else {
+          btns.forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          data[dataKey] = btn.dataset.val;
+        }
+      });
     });
+  }
 
-    // ── Form submit ───────────────────────────────────────────────────────────
-    const form      = document.getElementById('onboardingForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const errorMsg  = document.getElementById('errorMsg');
+  // ── Step 1 wiring ─────────────────────────────────────────────────────────
+  document.getElementById('targetLanguage').addEventListener('change', e => {
+    data.targetLanguage = e.target.value;
+    // Update exam options based on language
+    updateExamOptions(e.target.value);
+  });
+  wireOptionCards('goalGrid', 'goal');
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  function updateExamOptions(lang) {
+    const examSelect = document.getElementById('examName');
+    const examMap = {
+      German:     ['Goethe A1','Goethe A2','Goethe B1','Goethe B2','TestDaF'],
+      French:     ['DELF A1','DELF A2','DELF B1','DELF B2','DALF C1'],
+      Japanese:   ['JLPT N5','JLPT N4','JLPT N3','JLPT N2','JLPT N1'],
+      Spanish:    ['DELE A1','DELE A2','DELE B1','DELE B2','SIELE'],
+      Italian:    ['CILS A1','CILS A2','CILS B1','CILS B2'],
+      Mandarin:   ['HSK 1','HSK 2','HSK 3','HSK 4','HSK 5'],
+      Korean:     ['TOPIK I','TOPIK II'],
+      Portuguese: ['CAPLE A1','CAPLE A2','CAPLE B1','CAPLE B2'],
+    };
+    const options = examMap[lang] || ['Level 1','Level 2','Level 3'];
+    examSelect.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join('') + '<option value="Other">Other exam</option>';
+  }
+  updateExamOptions('German');
 
-      const user = auth.currentUser;
-      if (!user) {
-        window.location.href = './auth.html';
-        return;
-      }
-
-      // Collect form values
-      const targetLanguage   = document.getElementById('targetLanguage').value;
-      const currentLevel     = document.getElementById('currentLevel').value;
-      const nativeLanguage   = document.getElementById('nativeLanguage').value.trim() || 'English';
-      const supportLanguage  = document.getElementById('supportLanguage').value.trim() || nativeLanguage;
-      const learningReason   = document.getElementById('learningReason').value.trim();
-      const weeklyCommitment = document.getElementById('weeklyCommitment').value;
-      const selectedGoalEl   = document.querySelector('#goalChips .chip.active');
-      const goal             = selectedGoalEl ? selectedGoalEl.textContent.trim() : 'Daily conversation';
-
-      submitBtn.disabled    = true;
-      submitBtn.textContent = 'Saving…';
-      errorMsg.textContent  = '';
-
-      try {
-        await setDoc(doc(db, 'users', user.uid), {
-          // Identity
-          uid:              user.uid,
-          email:            user.email || '',
-          displayName:      user.displayName || nativeLanguage,
-          // Learning profile
-          targetLanguage,
-          level:            currentLevel,
-          nativeLanguage,
-          langPref:         supportLanguage,
-          goal,
-          learningReason,
-          weeklyCommitment,
-          // Defaults
-          preferredMode:    'guided',
-          streak:           0,
-          xp:               0,
-          isPaid:           false,
-          freeSessionsUsedThisMonth: 0,
-          onboardingComplete: true,
-          createdAt:        serverTimestamp(),
-          updatedAt:        serverTimestamp(),
-        }, { merge: true });
-
-        window.location.href = './app-screens.html';
-      } catch (err) {
-        console.error('[AURA] onboarding save failed:', err);
-        errorMsg.textContent  = 'Could not save your profile. Please try again.';
-        submitBtn.disabled    = false;
-        submitBtn.textContent = 'Continue to Dashboard';
+  // ── Step 2 wiring ─────────────────────────────────────────────────────────
+  wireOptionCards('examDateTypeGrid', 'examDateStatus');
+  document.querySelectorAll('#examDateTypeGrid .opt-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const wrap = document.getElementById('examDateWrap');
+      if (card.dataset.val === 'booked') {
+        wrap.classList.add('show');
+        data.examDate = null;
+      } else {
+        wrap.classList.remove('show');
+        data.examDate = 'not_booked';
       }
     });
+  });
+  document.getElementById('examDate').addEventListener('change', e => {
+    data.examDate = e.target.value || null;
+  });
+  document.getElementById('examName').addEventListener('change', e => {
+    data.examName = e.target.value;
+  });
 
-    // ── If not signed in, redirect to auth ───────────────────────────────────
-    onAuthStateChanged(auth, (user) => {
-      if (!user) window.location.href = './auth.html';
+  // Non-exam subgoal
+  wireOptionCards('nonExamPath', 'subgoal');
+
+  // ── Step 3 wiring ─────────────────────────────────────────────────────────
+  const levelNotes = {
+    A1: 'Complete beginner. You know very little or nothing yet.',
+    A2: 'You know some basics — greetings, numbers, simple sentences.',
+    B1: 'You can handle everyday situations and have basic conversations.',
+    B2: 'You can discuss most topics with some effort.',
+    C1: 'Near-fluent. You can express complex ideas clearly.',
+    unknown: 'No problem — AURA will assess you in your first session.',
+  };
+  document.querySelectorAll('#levelGrid .level-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#levelGrid .level-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      data.level = btn.dataset.val;
+      document.getElementById('levelNote').textContent = levelNotes[btn.dataset.val] || '';
     });
-  </script>
+  });
+
+  // ── Step 4 wiring ─────────────────────────────────────────────────────────
+  document.getElementById('nativeLanguage').addEventListener('input', e => {
+    data.nativeLanguage = e.target.value.trim();
+    // Auto-fill langPref if empty
+    const lp = document.getElementById('langPref');
+    if (!lp.value) lp.value = data.nativeLanguage;
+  });
+  document.getElementById('langPref').addEventListener('input', e => {
+    data.langPref = e.target.value.trim();
+  });
+
+  document.querySelectorAll('#timeChips .time-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#timeChips .time-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      data.dailyMinutes = parseInt(chip.dataset.val);
+    });
+  });
+  // Default select 20 min
+  document.querySelector('#timeChips .time-chip[data-val="20"]').classList.add('selected');
+
+  document.querySelectorAll('#weaknessGrid .weak-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.val === 'all') {
+        document.querySelectorAll('#weaknessGrid .weak-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.toggle('selected');
+        data.weaknesses = btn.classList.contains('selected') ? ['all'] : [];
+      } else {
+        document.querySelector('#weaknessGrid .weak-btn[data-val="all"]').classList.remove('selected');
+        btn.classList.toggle('selected');
+        data.weaknesses = [...document.querySelectorAll('#weaknessGrid .weak-btn.selected')].map(b => b.dataset.val);
+      }
+    });
+  });
+
+  // ── Step 2: show exam vs non-exam ─────────────────────────────────────────
+  function configureStep2() {
+    const isExam = data.goal === 'exam';
+    document.getElementById('examPath').style.display    = isExam ? '' : 'none';
+    document.getElementById('nonExamPath').style.display = isExam ? 'none' : '';
+    document.getElementById('step2Title').textContent = isExam
+      ? 'Which exam and when?'
+      : 'What does success look like for you?';
+    document.getElementById('step2Sub').textContent = isExam
+      ? 'AURA will build a personalised study plan around your exam date.'
+      : 'This helps AURA focus your sessions on the right outcomes.';
+    if (isExam) {
+      data.examName = document.getElementById('examName').value;
+    }
+  }
+
+  // ── Summary ───────────────────────────────────────────────────────────────
+  function buildSummary() {
+    const goalLabels = {
+      exam: '🎓 Exam preparation',
+      conversation: '💬 Daily conversation',
+      professional: '💼 Professional / Work',
+      study_abroad: '✈️ Study abroad',
+    };
+    const examDateLabel = data.examDate === 'not_booked'
+      ? 'Not booked yet (planning to)'
+      : data.examDate
+      ? new Date(data.examDate).toLocaleDateString('en', { day:'numeric', month:'long', year:'numeric' })
+      : '—';
+
+    const weakLabel = data.weaknesses.length
+      ? data.weaknesses.join(', ')
+      : 'Not specified';
+
+    const levelLabel = data.level === 'unknown' ? 'To be assessed' : data.level;
+
+    let rows = [
+      { label: 'Language', val: data.targetLanguage },
+      { label: 'Goal', val: goalLabels[data.goal] || data.goal },
+      { label: 'Level', val: levelLabel },
+      { label: 'Native language', val: data.nativeLanguage || 'Not set' },
+      { label: 'Correction language', val: data.langPref || data.nativeLanguage || 'Not set' },
+      { label: 'Daily practice', val: `${data.dailyMinutes} minutes` },
+      { label: 'Weaknesses', val: weakLabel },
+    ];
+
+    if (data.goal === 'exam') {
+      rows.splice(2, 0, { label: 'Exam', val: data.examName || '—' });
+      rows.splice(3, 0, { label: 'Exam date', val: examDateLabel });
+    }
+
+    document.getElementById('summaryCard').innerHTML = rows.map(r => `
+      <div class="sum-row">
+        <span class="sum-label">${r.label}</span>
+        <span class="sum-val">${r.val}</span>
+      </div>
+    `).join('');
+  }
+
+  // ── Validation ────────────────────────────────────────────────────────────
+  function validate() {
+    errorMsg.textContent = '';
+    if (currentStep === 1) {
+      if (!data.goal) { errorMsg.textContent = 'Please select why you are learning.'; return false; }
+    }
+    if (currentStep === 2) {
+      if (data.goal === 'exam') {
+        if (!data.examDateStatus) { errorMsg.textContent = 'Please select your exam date status.'; return false; }
+        if (data.examDateStatus === 'booked' && !data.examDate) { errorMsg.textContent = 'Please enter your exam date.'; return false; }
+      } else {
+        if (!data.subgoal) { errorMsg.textContent = 'Please select your specific goal.'; return false; }
+      }
+    }
+    if (currentStep === 3) {
+      if (!data.level) { errorMsg.textContent = 'Please select your current level.'; return false; }
+    }
+    if (currentStep === 4) {
+      if (!data.nativeLanguage) { errorMsg.textContent = 'Please enter your native language.'; return false; }
+      if (!data.weaknesses.length) { errorMsg.textContent = 'Please select at least one weakness.'; return false; }
+      if (!data.langPref) data.langPref = data.nativeLanguage;
+    }
+    return true;
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  nextBtn.addEventListener('click', async () => {
+    if (!validate()) return;
+
+    if (currentStep === 1) {
+      configureStep2();
+      showStep(2);
+    } else if (currentStep === 2) {
+      showStep(3);
+    } else if (currentStep === 3) {
+      showStep(4);
+    } else if (currentStep === 4) {
+      buildSummary();
+      showStep(5);
+    } else if (currentStep === 5) {
+      await saveAndContinue();
+    }
+  });
+
+  backBtn.addEventListener('click', () => {
+    if (currentStep > 1) showStep(currentStep - 1);
+  });
+
+  // ── Save to Firestore ─────────────────────────────────────────────────────
+  async function saveAndContinue() {
+    const user = auth.currentUser;
+    if (!user) { window.location.href = './auth.html'; return; }
+
+    nextBtn.disabled    = true;
+    nextBtn.textContent = 'Saving…';
+    errorMsg.textContent = '';
+
+    // Build the profile object
+    const profileData = {
+      // Core learning config
+      targetLanguage:    data.targetLanguage,
+      level:             data.level === 'unknown' ? 'A1' : data.level,
+      nativeLanguage:    data.nativeLanguage,
+      langPref:          data.langPref || data.nativeLanguage,
+      preferredMode:     'guided',
+
+      // Goal + motivation
+      goal:              data.goal,
+      subgoal:           data.subgoal || null,
+
+      // Exam specific
+      examName:          data.goal === 'exam' ? (data.examName || null) : null,
+      examDate:          data.goal === 'exam' ? (data.examDate || null) : null,
+      examDateConfirmed: data.goal === 'exam' ? (data.examDateStatus === 'booked') : false,
+
+      // Practice plan
+      dailyMinutes:      data.dailyMinutes,
+      weaknesses:        data.weaknesses,
+      startDate:         new Date().toISOString().slice(0, 10),
+
+      // Flags
+      onboardingComplete: true,
+      levelAssessed:      data.level !== 'unknown',
+      updatedAt:          serverTimestamp(),
+    };
+
+    // Only set these on first onboarding (don't overwrite if already exist)
+    const firstTimeFields = {
+      uid:          user.uid,
+      email:        user.email || '',
+      name:         user.displayName || '',
+      createdAt:    serverTimestamp(),
+      xp:           0,
+      streak:       0,
+      totalSessions: 0,
+      totalMinutes:  0,
+      isPaid:        false,
+      freeSessionsUsedThisMonth: 0,
+      freeSessionsMonthKey: new Date().toISOString().slice(0, 7),
+      lastSessionDate: null,
+    };
+
+    try {
+      // merge:true so we don't overwrite GME fields
+      await setDoc(doc(db, 'users', user.uid), {
+        ...firstTimeFields,
+        ...profileData,
+      }, { merge: true });
+
+      window.location.href = './app-screens.html';
+    } catch (err) {
+      console.error('[AURA] onboarding save failed:', err);
+      errorMsg.textContent  = 'Could not save your profile. Please try again.';
+      nextBtn.disabled      = false;
+      nextBtn.textContent   = 'Start learning';
+    }
+  }
+
+  // ── Auth guard ────────────────────────────────────────────────────────────
+  onAuthStateChanged(auth, (user) => {
+    if (!user) window.location.href = './auth.html';
+  });
+
+  // Init
+  updateProgress();
+</script>
 </body>
 </html>
