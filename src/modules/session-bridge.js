@@ -117,7 +117,21 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
     }, 10000);
 
     ws.onopen = async () => {
-      clearTimeout(wsTimeout);
+  clearTimeout(wsTimeout);
+
+  // Send setup — Constrained endpoint still requires this
+  ws.send(JSON.stringify({
+    setup: {
+      model: 'models/gemini-2.5-flash-native-audio-preview-12-2025',
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } } }
+      },
+      inputAudioTranscription: {},
+      outputAudioTranscription: {},
+      systemInstruction: { parts: [{ text: buildSystemPrompt(userDisplayName) }] }
+    }
+  }));
 
       // DO NOT send a setup message — ephemeral token already has setup baked in.
       // Start mic immediately and begin streaming audio.
