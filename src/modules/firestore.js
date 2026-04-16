@@ -1,13 +1,18 @@
 /**
  * firestore.js — AURA Firestore layer
- * Clean schema. Every read/write in one place.
- * Collections: users, users/{uid}/sessions, users/{uid}/memory, analytics_events
+ *
+ * Collections:
+ *   users/{uid}                        — root profile (shared with GME, AURA adds its own fields)
+ *   users/{uid}/profiles/{profileId}   — one doc per learning profile (language/level/mode/goal)
+ *   users/{uid}/sessions/{sessionId}   — one doc per completed session (Worker-write only)
+ *   users/{uid}/memory/{profileId}     — AURA's persistent memory per profile (Worker-write only)
+ *   analytics_events/{auto}            — lightweight event log
  */
 
 import {
   getFirestore,
   collection, doc,
-  getDoc, getDocs, setDoc, updateDoc, addDoc,
+  getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc,
   query, orderBy, limit,
   serverTimestamp, increment,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -16,11 +21,25 @@ import { fbApp } from './auth.js';
 export const db = getFirestore(fbApp);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// USER PROFILE
+// LANGUAGE HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+const LANG_FLAGS = {
+  German: '🇩🇪', French: '🇫🇷', Japanese: '🇯🇵', Spanish: '🇪🇸',
+  Italian: '🇮🇹', Mandarin: '🇨🇳', Korean: '🇰🇷', Portuguese: '🇵🇹',
+  Arabic: '🇸🇦', Hindi: '🇮🇳', Dutch: '🇳🇱', Russian: '🇷🇺',
+};
+
+export function getLangFlag(language) {
+  return LANG_FLAGS[language] || '🌍';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOT USER PROFILE
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Load full user profile. Returns null if doc doesn't exist yet.
+ * Load the root user document (shared between AURA and GME).
  */
 export async function loadUserProfile(uid) {
   if (!uid) return null;
@@ -34,207 +53,200 @@ export async function loadUserProfile(uid) {
 }
 
 /**
- * Create a brand-new user profile on first sign-in.
- * Only called if loadUserProfile() returns null.
+ * Ensure the root user document has AURA's required fields.
+ * Safe to call on every login — only writes if fields are missing.
+ * Does NOT touch any GME fields.
  */
-export async function createUserProfile(uid, { name, email }) {
-  if (!uid) return;
-  const today = todayString();
-  const profileDoc = {
-    name:          name || '',
-    email:         email || '',
-    createdAt:     serverTimestamp(),
-    lastActiveAt:  serverTimestamp(),
-
-    // Learning config — filled properly by onboarding
-    targetLanguage: 'German',
-    nativeLanguage: 'English',
-    langPref:       'English',
-    level:          null,          // null until onboarding complete
-    preferredMode:  'guided',
-    goal:           '',
-
-    // Gamification
-    xp:                         0,
-    streak:                     0,
-    lastSessionDate:            null,
-    totalSessions:              0,
-    totalMinutes:               0,
-
-    // Access control
-    isPaid:                     false,
-    freeSessionsUsedThisMonth:  0,
-    freeSessionsMonthKey:       monthKey(),
-
-    // Onboarding
-    onboardingComplete: false,
-  };
-  try {
-    await setDoc(doc(db, 'users', uid), profileDoc);
-    console.log('[AURA] createUserProfile ok', uid);
-    return profileDoc;
-  } catch (e) {
-    console.warn('[AURA] createUserProfile failed:', e?.message);
-  }
-}
-
-/**
- * Save onboarding answers. Marks onboarding complete.
- * Called once when user submits the onboarding form.
- */
-export async function saveOnboarding(uid, { nativeLanguage, langPref, level, preferredMode, goal }) {
+export async function ensureUserDoc(uid, { name, email }) {
   if (!uid) return;
   try {
-    await updateDoc(doc(db, 'users', uid), {
-      nativeLanguage:     nativeLanguage || 'English',
-      langPref:           langPref || nativeLanguage || 'English',
-      level:              level || 'A2',
-      preferredMode:      preferredMode || 'guided',
-      goal:               goal || '',
-      onboardingComplete: true,
-      lastActiveAt:       serverTimestamp(),
-    });
-    console.log('[AURA] saveOnboarding ok');
-  } catch (e) {
-    console.warn('[AURA] saveOnboarding failed:', e?.message);
-    throw e; // re-throw so UI can show error
-  }
-}
+    const snap = await getDoc(doc(db, 'users', uid));
+    const data = snap.exists() ? snap.data() : {};
 
-/**
- * Touch lastActiveAt on every dashboard load.
- */
-export async function touchLastActive(uid) {
-  if (!uid) return;
-  try {
-    await updateDoc(doc(db, 'users', uid), { lastActiveAt: serverTimestamp() });
-  } catch (e) {}
-}
+    const patch = {};
+    if (!data.name  && name)  patch.name  = name;
+    if (!data.email && email) patch.email = email;
+    if (!data.createdAt)      patch.createdAt = serverTimestamp();
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SESSION PERSISTENCE
-// ─────────────────────────────────────────────────────────────────────────────
+    // AURA-specific fields — only set if not already present
+    if (data.xp              === undefined) patch.xp              = 0;
+    if (data.streak          === undefined) patch.streak          = 0;
+    if (data.lastSessionDate === undefined) patch.lastSessionDate = null;
+    if (data.totalSessions   === undefined) patch.totalSessions   = 0;
+    if (data.totalMinutes    === undefined) patch.totalMinutes    = 0;
+    if (data.isPaid          === undefined) patch.isPaid          = false;
+    if (data.freeSessionsUsedThisMonth === undefined) patch.freeSessionsUsedThisMonth = 0;
+    if (data.freeSessionsMonthKey      === undefined) patch.freeSessionsMonthKey      = monthKey();
+    if (data.activeProfileId === undefined) patch.activeProfileId = null;
 
-/**
- * Save a completed session and update user stats.
- * Call this when a session ends.
- *
- * @param {string} uid
- * @param {object} session
- *   - blueprint: the active blueprint object
- *   - durationSeconds: number
- *   - wordCount: number
- *   - turnCount: number
- *   - scores: { overall, fluency, grammar, vocabulary, taskCompletion }
- *   - corrections: [{ wrong, right, note }]
- */
-export async function saveSession(uid, session) {
-  if (!uid || !session) return;
-
-  const {
-    blueprint,
-    durationSeconds = 0,
-    wordCount       = 0,
-    turnCount       = 0,
-    scores          = null,
-    corrections     = [],
-  } = session;
-
-  const weakAreas = scores
-    ? Object.entries(scores)
-        .filter(([k, v]) => k !== 'overall' && typeof v === 'number' && v < 75)
-        .map(([k]) => k)
-    : [];
-
-  const sessionId = `sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const now       = serverTimestamp();
-
-  const sessionDoc = {
-    sessionId,
-    level:         blueprint?.level        || 'A2',
-    mode:          blueprint?.mode         || 'guided',
-    scenarioId:    blueprint?.scenarioId   || null,
-    scenarioTitle: blueprint?.title        || null,
-    startedAt:     now,   // approximation — real startedAt needs to be passed in
-    endedAt:       now,
-    durationSeconds,
-    wordCount,
-    turnCount,
-    scores:        scores || null,
-    corrections:   corrections.slice(0, 20), // cap at 20
-    weakAreas,
-  };
-
-  try {
-    // 1. Write session doc
-    await setDoc(doc(db, 'users', uid, 'sessions', sessionId), sessionDoc);
-
-    // 2. Update user aggregate stats
-    const xpEarned  = computeXP({ durationSeconds, scores, corrections });
-    const today     = todayString();
-    const userSnap  = await getDoc(doc(db, 'users', uid));
-    const userData  = userSnap.exists() ? userSnap.data() : {};
-    const newStreak = computeStreak(userData.lastSessionDate, userData.streak || 0, today);
-
-    const userUpdate = {
-      lastActiveAt:    now,
-      lastSessionDate: today,
-      streak:          newStreak,
-      totalSessions:   increment(1),
-      totalMinutes:    increment(Math.round(durationSeconds / 60)),
-      xp:              increment(xpEarned),
-    };
-
-    // Handle monthly free session counter
-    const currentMonthKey = monthKey();
-    if (!userData.isPaid) {
-      if (userData.freeSessionsMonthKey !== currentMonthKey) {
-        // New month — reset counter
-        userUpdate.freeSessionsMonthKey      = currentMonthKey;
-        userUpdate.freeSessionsUsedThisMonth = 1;
+    if (Object.keys(patch).length > 0) {
+      if (snap.exists()) {
+        await updateDoc(doc(db, 'users', uid), patch);
       } else {
-        userUpdate.freeSessionsUsedThisMonth = increment(1);
+        await setDoc(doc(db, 'users', uid), patch);
       }
     }
 
-    await updateDoc(doc(db, 'users', uid), userUpdate);
-
-    console.log('[AURA] saveSession ok', { sessionId, xpEarned, streak: newStreak });
-    return { sessionId, xpEarned, streak: newStreak };
+    patch.lastActiveAt = serverTimestamp();
+    await updateDoc(doc(db, 'users', uid), { lastActiveAt: serverTimestamp() }).catch(() => {});
   } catch (e) {
-    console.warn('[AURA] saveSession failed:', e?.message);
+    console.warn('[AURA] ensureUserDoc failed:', e?.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFILES SUBCOLLECTION
+// Each profile = one language + level + mode + goal combination.
+// Paid users can have multiple. Free users get one.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Load all profiles for a user.
+ */
+export async function loadProfiles(uid) {
+  if (!uid) return [];
+  try {
+    const snap = await getDocs(collection(db, 'users', uid, 'profiles'));
+    const profiles = [];
+    snap.forEach(d => profiles.push({ id: d.id, ...d.data() }));
+    return profiles;
+  } catch (e) {
+    console.warn('[AURA] loadProfiles failed:', e?.message);
+    return [];
   }
 }
 
 /**
- * Load last N sessions for a user (most recent first).
+ * Create a new learning profile.
  */
-export async function loadSessionHistory(uid, maxSessions = 20) {
+export async function createProfile(uid, { targetLanguage, level, nativeLanguage, langPref, goal, preferredMode }) {
+  if (!uid) return null;
+  try {
+    const profileId = `prof_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const profileDoc = {
+      id:             profileId,
+      targetLanguage: targetLanguage || 'German',
+      level:          level          || 'A2',
+      nativeLanguage: nativeLanguage || 'English',
+      langPref:       langPref       || nativeLanguage || 'English',
+      goal:           goal           || 'Daily conversation',
+      preferredMode:  preferredMode  || 'guided',
+      flag:           getLangFlag(targetLanguage || 'German'),
+      createdAt:      serverTimestamp(),
+    };
+    await setDoc(doc(db, 'users', uid, 'profiles', profileId), profileDoc);
+
+    // If this is the first profile, set it as active
+    const userSnap = await getDoc(doc(db, 'users', uid));
+    if (!userSnap.data()?.activeProfileId) {
+      await updateDoc(doc(db, 'users', uid), { activeProfileId: profileId });
+    }
+
+    console.log('[AURA] createProfile ok', profileId);
+    return profileDoc;
+  } catch (e) {
+    console.warn('[AURA] createProfile failed:', e?.message);
+    return null;
+  }
+}
+
+/**
+ * Delete a profile. Does not delete its sessions or memory (historical data kept).
+ */
+export async function deleteProfile(uid, profileId) {
+  if (!uid || !profileId) return;
+  try {
+    await deleteDoc(doc(db, 'users', uid, 'profiles', profileId));
+  } catch (e) {
+    console.warn('[AURA] deleteProfile failed:', e?.message);
+  }
+}
+
+/**
+ * Set the active profile on the root user doc.
+ */
+export async function setActiveProfile(uid, profileId) {
+  if (!uid) return;
+  try {
+    await updateDoc(doc(db, 'users', uid), { activeProfileId: profileId });
+  } catch (e) {
+    console.warn('[AURA] setActiveProfile failed:', e?.message);
+  }
+}
+
+/**
+ * Migration helper: if user has no profiles subcollection yet, create one
+ * from whatever fields exist on the root user doc (from old AURA or GME).
+ * Safe to call on every login — no-ops if profiles already exist.
+ */
+export async function migrateUserToProfiles(uid, userDoc) {
+  if (!uid) return [];
+
+  // Check if profiles already exist
+  const existing = await loadProfiles(uid);
+  if (existing.length > 0) return existing;
+
+  // Try to build a profile from existing root doc fields
+  const lang   = userDoc?.targetLanguage || 'German';
+  const level  = ['A1','A2','B1','B2','C1','C2'].includes(userDoc?.level) ? userDoc.level : 'A2';
+  const native = userDoc?.nativeLanguage || userDoc?.langPref || 'English';
+  const goal   = userDoc?.goal || 'Daily conversation';
+  const mode   = userDoc?.preferredMode || 'guided';
+
+  const newProfile = await createProfile(uid, {
+    targetLanguage: lang,
+    level,
+    nativeLanguage: native,
+    langPref:       native,
+    goal,
+    preferredMode:  mode,
+  });
+
+  return newProfile ? [newProfile] : [];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SESSION HISTORY
+// Sessions are written by the Cloudflare Worker (Service Account).
+// Client can only read.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Load last N sessions for a user (most recent first).
+ * Optionally filter by profileId.
+ */
+export async function loadUserSessionHistory(uid, maxSessions = 20) {
   if (!uid) return [];
   try {
     const ref  = collection(db, 'users', uid, 'sessions');
-    const snap = await getDocs(query(ref, orderBy('endedAt', 'desc'), limit(maxSessions)));
+    let snap;
+    try {
+      snap = await getDocs(query(ref, orderBy('endedAt', 'desc'), limit(maxSessions)));
+    } catch {
+      snap = await getDocs(query(ref, limit(maxSessions)));
+    }
     const sessions = [];
     snap.forEach(d => sessions.push({ id: d.id, ...d.data() }));
     return sessions;
   } catch (e) {
-    console.warn('[AURA] loadSessionHistory failed:', e?.message);
+    console.warn('[AURA] loadUserSessionHistory failed:', e?.message);
     return [];
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AURA MEMORY
+// Memory is written by the Cloudflare Worker after each session.
+// Client reads it at session start to inject into the system prompt.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Load AURA's persistent memory for a user.
- * Returns null if no memory exists yet.
+ * Load AURA's persistent memory for a specific profile.
  */
-export async function loadMemory(uid) {
-  if (!uid) return null;
+export async function loadMemory(uid, profileId) {
+  if (!uid || !profileId) return null;
   try {
-    const snap = await getDoc(doc(db, 'users', uid, 'memory', 'current'));
+    const snap = await getDoc(doc(db, 'users', uid, 'memory', profileId));
     return snap.exists() ? snap.data() : null;
   } catch (e) {
     console.warn('[AURA] loadMemory failed:', e?.message);
@@ -243,102 +255,32 @@ export async function loadMemory(uid) {
 }
 
 /**
- * Update AURA's persistent memory after a session.
- * Merges new corrections into recurring mistakes, updates strong areas.
- *
- * @param {string} uid
- * @param {object} sessionData  — { corrections, weakAreas, scores }
+ * Build the auraContextBlock string injected into the system prompt.
+ * Summarises recurring mistakes and current focus for this profile.
  */
-export async function updateMemory(uid, sessionData) {
-  if (!uid) return;
-  const { corrections = [], weakAreas = [], scores = null } = sessionData;
-
-  try {
-    const existing = (await loadMemory(uid)) || {
-      recurringMistakes: [],
-      strongAreas:       [],
-      currentFocus:      null,
-      lastUpdatedAt:     null,
-    };
-
-    // Merge corrections into recurringMistakes
-    const mistakeMap = {};
-    (existing.recurringMistakes || []).forEach(m => {
-      mistakeMap[m.pattern] = m;
-    });
-    corrections.forEach(c => {
-      const key = c.wrong || c.right || '';
-      if (!key) return;
-      if (mistakeMap[key]) {
-        mistakeMap[key].seenCount++;
-        mistakeMap[key].lastSeen = todayString();
-        mistakeMap[key].example  = c.right || mistakeMap[key].example;
-      } else {
-        mistakeMap[key] = {
-          pattern:   key,
-          example:   c.right || '',
-          note:      c.note  || '',
-          seenCount: 1,
-          lastSeen:  todayString(),
-        };
-      }
-    });
-
-    // Keep top 15 most-seen mistakes
-    const recurringMistakes = Object.values(mistakeMap)
-      .sort((a, b) => b.seenCount - a.seenCount)
-      .slice(0, 15);
-
-    // Strong areas = score dimensions above 85 in this session
-    const strongAreas = scores
-      ? Object.entries(scores)
-          .filter(([k, v]) => k !== 'overall' && typeof v === 'number' && v >= 85)
-          .map(([k]) => k)
-      : existing.strongAreas;
-
-    // Current focus = top weak area
-    const currentFocus = weakAreas[0] || existing.currentFocus || null;
-
-    await setDoc(doc(db, 'users', uid, 'memory', 'current'), {
-      recurringMistakes,
-      strongAreas,
-      currentFocus,
-      lastUpdatedAt: serverTimestamp(),
-    });
-
-    console.log('[AURA] updateMemory ok', { mistakes: recurringMistakes.length });
-  } catch (e) {
-    console.warn('[AURA] updateMemory failed:', e?.message);
-  }
-}
-
-/**
- * Build the auraContextBlock string that gets injected into the system prompt.
- * Call this before starting a session.
- */
-export async function buildAuraContext(uid) {
-  const memory = await loadMemory(uid);
+export async function buildAuraContext(uid, profileId) {
+  const memory = await loadMemory(uid, profileId);
   if (!memory) return '';
 
   const lines = [];
 
   if (memory.recurringMistakes?.length) {
-    lines.push('STUDENT RECURRING MISTAKES (from previous sessions):');
+    lines.push('STUDENT HISTORY — recurring mistakes from previous sessions:');
     memory.recurringMistakes.slice(0, 5).forEach(m => {
-      lines.push(`- "${m.pattern}" (seen ${m.seenCount}x) → correct: "${m.example}"`);
+      lines.push(`- "${m.pattern}" (seen ${m.seenCount}x) → correct form: "${m.example}"`);
     });
   }
 
   if (memory.strongAreas?.length) {
-    lines.push(`STUDENT STRONG AREAS: ${memory.strongAreas.join(', ')}`);
+    lines.push(`Strong areas: ${memory.strongAreas.join(', ')}`);
   }
 
   if (memory.currentFocus) {
-    lines.push(`CURRENT FOCUS AREA: ${memory.currentFocus} — apply gentle extra attention here.`);
+    lines.push(`Current focus: ${memory.currentFocus} — pay gentle extra attention here.`);
   }
 
   return lines.length
-    ? '\n\nSTUDENT HISTORY CONTEXT:\n' + lines.join('\n')
+    ? '\n\nSTUDENT CONTEXT:\n' + lines.join('\n')
     : '';
 }
 
@@ -348,19 +290,15 @@ export async function buildAuraContext(uid) {
 
 const FREE_SESSIONS_PER_MONTH = 3;
 
-/**
- * Check if the user can start a session.
- * Returns { allowed: bool, reason: string }
- */
 export async function checkSessionAccess(uid) {
   const profile = await loadUserProfile(uid);
   if (!profile) return { allowed: false, reason: 'no_profile' };
-  if (profile.isPaid) return { allowed: true, reason: 'paid' };
+  if (profile.isPaid || profile.isPaidStudent) return { allowed: true, reason: 'paid' };
 
   const currentMonthKey = monthKey();
   const used = profile.freeSessionsMonthKey === currentMonthKey
     ? (profile.freeSessionsUsedThisMonth || 0)
-    : 0; // new month, reset
+    : 0;
 
   if (used >= FREE_SESSIONS_PER_MONTH) {
     return { allowed: false, reason: 'trial_limit', used, limit: FREE_SESSIONS_PER_MONTH };
@@ -372,11 +310,13 @@ export async function checkSessionAccess(uid) {
 // ANALYTICS
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function logEvent(eventName, metadata = {}, uid = null) {
+export async function logAnalyticsEvent(eventName, metadata = {}) {
   if (!eventName) return;
   try {
+    const { auth } = await import('./auth.js');
+    const uid = auth?.currentUser?.uid || null;
     await addDoc(collection(db, 'analytics_events'), {
-      userId:    uid || null,
+      userId:    uid,
       eventName,
       createdAt: serverTimestamp(),
       metadata:  compactMeta(metadata),
@@ -386,7 +326,7 @@ export async function logEvent(eventName, metadata = {}, uid = null) {
 
 function compactMeta(m = {}) {
   const out = {};
-  ['level', 'scenarioId', 'mode', 'score', 'reason', 'durationSeconds'].forEach(k => {
+  ['level', 'scenarioId', 'mode', 'score', 'reason', 'durationSeconds', 'profileId'].forEach(k => {
     if (m[k] !== undefined) out[k] = m[k];
   });
   return out;
@@ -396,26 +336,6 @@ function compactMeta(m = {}) {
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-function todayString() {
-  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
-}
-
 function monthKey() {
   return new Date().toISOString().slice(0, 7); // "YYYY-MM"
-}
-
-function computeStreak(lastSessionDate, currentStreak, today) {
-  if (!lastSessionDate) return 1; // first session ever
-  if (lastSessionDate === today) return currentStreak; // already practiced today
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  if (lastSessionDate === yesterday) return currentStreak + 1; // extending streak
-  return 1; // streak broken
-}
-
-function computeXP({ durationSeconds, scores, corrections }) {
-  let xp = 0;
-  xp += Math.min(50, Math.floor(durationSeconds / 60) * 5); // 5 XP per minute, cap 50
-  if (scores?.overall) xp += Math.floor(scores.overall / 10); // up to 10 XP from score
-  xp += Math.max(0, 5 - corrections.length) * 2; // bonus for clean session
-  return Math.max(1, xp);
 }
