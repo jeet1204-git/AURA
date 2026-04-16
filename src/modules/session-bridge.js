@@ -1,10 +1,10 @@
 /**
  * session-bridge.js
- * Minimal Gemini Live session wired to app-screens.html.
- * Drop into src/modules/session-bridge.js
+ * Gemini Live session bridge for app-screens.html.
+ * Handles voice connection, transcription display, visual corrections.
  */
 
-import { WORKER_URL, GEMINI_WS_EPHEMERAL, MODEL } from '../config/constants.js';
+import { WORKER_URL, GEMINI_WS_EPHEMERAL } from '../config/constants.js';
 import { createWorklet, ensurePlaybackWorklet, enqueueAudio } from '../audio/worklets.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -14,84 +14,220 @@ let micCtx        = null;
 let audioCtx      = null;
 let playbackNode  = null;
 let workletNode   = null;
-
 let sessionActive = false;
 let micMuted      = false;
 
+// Live session stats
+let _wordCount    = 0;
+let _correctCount = 0;
+let _errCount     = 0;
+// Track corrections made this session for the right panel
+const _sessionCorrections = [];
+
 // ── DOM HELPERS ───────────────────────────────────────────────────────────────
-function addMsg(role, html) {
+function addMsg(role, text, extra = '') {
   const wrap = document.getElementById('messagesWrap');
-  if (!wrap) return;
+  if (!wrap) return null;
   const div = document.createElement('div');
   div.className = 'msg ' + (role === 'ai' ? 'ai' : 'me');
-  div.innerHTML = `<div class="msg-label">${role === 'ai' ? 'AURA' : 'YOU'}</div><div class="bubble">${html}</div>`;
+  div.innerHTML = `<div class="msg-label">${role === 'ai' ? 'AURA' : 'YOU'}</div><div class="bubble">${escHtml(text)}</div>${extra}`;
   const typing = document.getElementById('typingIndicator');
   typing ? wrap.insertBefore(div, typing) : wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
+  return div;
 }
 
-function setStatus(label, color) {
-  const el = document.querySelector('.session-status');
-  if (!el) return;
-  const dot = el.querySelector('.status-dot');
-  if (dot) dot.style.background = color || 'var(--green)';
-  const textNode = [...el.childNodes].find(n => n.nodeType === Node.TEXT_NODE);
-  if (textNode) textNode.textContent = ' ' + label;
-  else el.append(' ' + label);
+// Streaming AURA message — updates in place as chunks arrive
+let _streamingEl   = null;
+let _streamingText = '';
+
+function streamAuraChunk(chunk) {
+  const wrap = document.getElementById('messagesWrap');
+  if (!wrap) return;
+  _streamingText += chunk;
+  if (!_streamingEl) {
+    _streamingEl = document.createElement('div');
+    _streamingEl.className = 'msg ai streaming';
+    _streamingEl.innerHTML = `<div class="msg-label">AURA</div><div class="bubble" id="streamBubble"></div>`;
+    const typing = document.getElementById('typingIndicator');
+    typing ? wrap.insertBefore(_streamingEl, typing) : wrap.appendChild(_streamingEl);
+  }
+  const bubble = _streamingEl.querySelector('.bubble');
+  if (bubble) bubble.textContent = _streamingText;
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function finaliseAuraMessage() {
+  if (!_streamingEl) return _streamingText;
+  const text = _streamingText;
+  _streamingEl.classList.remove('streaming');
+  _streamingEl = null;
+  _streamingText = '';
+  return text;
+}
+
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function setOrbSpeaking(on) {
   document.getElementById('auraOrb')?.classList.toggle('speaking', on);
-  const wfLabel = document.querySelector('.wf-label');
-  if (wfLabel) wfLabel.textContent = on ? 'AURA Speaking' : 'Listening…';
+  const lbl = document.getElementById('wfLabel');
+  if (lbl) lbl.textContent = on ? 'AURA Speaking' : 'Listening…';
+}
+
+function updateStats() {
+  const ws = document.getElementById('wordsSpoken');
+  const cc = document.getElementById('correctCount');
+  const ec = document.getElementById('errCount');
+  if (ws) ws.textContent = _wordCount;
+  if (cc) cc.textContent = _correctCount;
+  if (ec) ec.textContent = _errCount;
+}
+
+// ── CORRECTION DETECTION ──────────────────────────────────────────────────────
+// Parses AURA's text for correction patterns and renders a visual block.
+// Does NOT speak the correction — it only appears on screen.
+function detectAndRenderCorrection(auraText, parentEl) {
+  const text = auraText || '';
+  let wrong = '', right = '', note = '', nativeNote = '';
+
+  // Pattern 1: "X → Y" or "X -> Y"
+  const arrowMatch = text.match(/["""»]?([^"""»\n]{2,40})["""«]?\s*[→\-]{1,2}>\s*["""»]?([^"""«\n.!?]{2,50})["""«]?/);
+  if (arrowMatch) { wrong = arrowMatch[1].trim(); right = arrowMatch[2].trim(); }
+
+  // Pattern 2: "nicht X, sondern Y"
+  if (!right) {
+    const nichtMatch = text.match(/nicht\s+["""»]?([^,»"""]{1,30})["""«]?,?\s+sondern\s+["""»]?([^.!?\n]{2,50})/i);
+    if (nichtMatch) { wrong = nichtMatch[1].trim(); right = nichtMatch[2].trim(); }
+  }
+
+  // Pattern 3: "say/try: X" 
+  if (!right) {
+    const tryMatch = text.match(/(?:say|try|sag|probier)\s*:\s*["""»]?([^"""«\n.!?]{3,60})/i);
+    if (tryMatch) right = tryMatch[1].trim();
+  }
+
+  // Pattern 4: "Fast richtig" or "Kleiner Fehler" signal correction nearby
+  if (!right && /(?:fast richtig|kleiner fehler|small mistake|almost)/i.test(text)) {
+    // Extract quoted correct form
+    const qMatch = text.match(/["""»]([^"""«]{3,50})["""«]/);
+    if (qMatch) right = qMatch[1].trim();
+  }
+
+  if (!right) return false; // No correction detected
+
+  // Clean up wrong/right
+  wrong = wrong.replace(/^["'"""»]+|["'"""«]+$/g, '').trim();
+  right = right.replace(/^["'"""»]+|["'"""«]+$/g, '').trim();
+  if (right === wrong) return false;
+
+  // Extract explanatory note (sentence after correction)
+  const noteMatch = text.match(/[.!]\s+([A-Z][^.!?\n]{10,80}[.!])\s*$/);
+  if (noteMatch && !noteMatch[1].includes(right) && !noteMatch[1].includes(wrong)) {
+    note = noteMatch[1].trim();
+  }
+
+  // Build visual correction block
+  const block = document.createElement('div');
+  block.className = 'corr-block';
+  block.innerHTML = `
+    <div class="corr-label">✕ Correction</div>
+    ${wrong ? `<div class="corr-wrong">${escHtml(wrong)}</div><div class="corr-arrow">↓</div>` : ''}
+    <div class="corr-right">✓ ${escHtml(right)}</div>
+    ${note ? `<div class="corr-note">${escHtml(note)}</div>` : ''}
+    ${nativeNote ? `<div class="corr-note-native">${escHtml(nativeNote)}</div>` : ''}
+  `;
+
+  // Append after AURA's message bubble
+  if (parentEl) {
+    parentEl.appendChild(block);
+    const wrap = document.getElementById('messagesWrap');
+    if (wrap) wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  // Track in session
+  _errCount++;
+  _sessionCorrections.push({ wrong, right, note });
+  updateStats();
+  updateCorrectionsPanel();
+  return true;
+}
+
+function updateCorrectionsPanel() {
+  const card = document.getElementById('correctionsCard');
+  const list = document.getElementById('correctionsList');
+  if (!card || !list) return;
+  if (!_sessionCorrections.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = _sessionCorrections.slice(-5).reverse().map(c => `
+    <div class="correction-item">
+      <div class="ci-icon">→</div>
+      <div>
+        ${c.wrong ? `<div class="ci-wrong">${escHtml(c.wrong)}</div>` : ''}
+        <div class="ci-right">${escHtml(c.right)}</div>
+        ${c.note ? `<div class="ci-note">${escHtml(c.note)}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
 }
 
 // ── TIMER ─────────────────────────────────────────────────────────────────────
-let timerSeconds = 0, timerInterval = null;
+let _timerSec = 0, _timerInterval = null;
 
 function startTimer() {
-  timerSeconds = 0;
-  timerInterval = setInterval(() => {
-    timerSeconds++;
-    const h = String(Math.floor(timerSeconds / 3600)).padStart(2, '0');
-    const m = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
-    const s = String(timerSeconds % 60).padStart(2, '0');
+  _timerSec = 0;
+  _timerInterval = setInterval(() => {
+    _timerSec++;
+    const h = String(Math.floor(_timerSec / 3600)).padStart(2,'0');
+    const m = String(Math.floor((_timerSec % 3600) / 60)).padStart(2,'0');
+    const s = String(_timerSec % 60).padStart(2,'0');
     const el = document.getElementById('sessionTimer');
     if (el) el.textContent = `${h}:${m}:${s}`;
   }, 1000);
 }
 
-function stopTimer() {
-  clearInterval(timerInterval);
-  timerInterval = null;
-}
+function stopTimer() { clearInterval(_timerInterval); _timerInterval = null; }
 
 // ── SESSION START ─────────────────────────────────────────────────────────────
 export async function startSession({ idToken, userDisplayName = 'there' } = {}) {
   if (sessionActive) return;
-  if (!idToken) { addMsg('ai', '⚠️ Please sign in to start a session.'); return; }
+  if (!idToken) { addMsg('ai', 'Please sign in to start a session.'); return; }
 
   const btn = document.getElementById('liveSessionBtn');
   if (btn) btn.disabled = true;
-  setStatus('Connecting…', 'var(--amber)');
-  addMsg('ai', '✨ Starting your live session — one moment…');
+
+  // Reset stats
+  _wordCount = 0; _correctCount = 0; _errCount = 0;
+  _sessionCorrections.length = 0;
+  updateStats();
+  const corrCard = document.getElementById('correctionsCard');
+  if (corrCard) corrCard.style.display = 'none';
+  const corrList = document.getElementById('correctionsList');
+  if (corrList) corrList.innerHTML = '';
+
+  // Clear chat
+  const wrap = document.getElementById('messagesWrap');
+  if (wrap) {
+    const typing = document.getElementById('typingIndicator');
+    wrap.innerHTML = '';
+    if (typing) wrap.appendChild(typing);
+  }
 
   try {
-    // 1. Audio contexts
     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
     if (audioCtx.state === 'suspended') await audioCtx.resume();
     micCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (micCtx.state === 'suspended') await micCtx.resume();
 
-    // 2. Mic permission
     micStream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
     });
 
-    // 3. Playback worklet
     playbackNode = await ensurePlaybackWorklet(audioCtx);
 
-    // 4. Fetch token from Worker
     const resp = await fetch(`${WORKER_URL}/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -99,79 +235,82 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
     });
     if (!resp.ok) {
       const e = await resp.json().catch(() => ({}));
+      if (resp.status === 403 && e.upgrade) {
+        addMsg('ai', 'You have used your free sessions. Upgrade to Pro to continue.');
+        if (btn) btn.disabled = false;
+        cleanup(); return;
+      }
       throw new Error(e.error || `Worker error ${resp.status}`);
     }
     const { token } = await resp.json();
     if (!token) throw new Error('No token returned from Worker.');
 
-    // 5. Open Gemini Live WebSocket — pass token raw, no encodeURIComponent
-    // Use BidiGenerateContentConstrained for ephemeral tokens — NO setup message allowed
+    // Build a personalised system prompt from the active profile
+    const profile = window._activeProfile || {};
+    const lang       = profile.targetLanguage || 'German';
+    const level      = profile.level          || 'B1';
+    const native     = profile.nativeLanguage || 'Gujarati';
+    const goal       = profile.goal           || 'daily conversation';
+    const mode       = profile.preferredMode  || 'guided';
+
     const systemPromptText = `You are AURA, a warm and intelligent AI language tutor.
-The student's name is ${userDisplayName}. They are learning German at B1 level.
-Their native language is Gujarati. They also speak English fluently.
+The student's name is ${userDisplayName}. They are learning ${lang} at ${level} level.
+Their native language is ${native}. Mode: ${mode}.
+Their goal: ${goal}.
 
-Your personality:
-- Warm, encouraging, patient — never condescending
-- You celebrate small wins genuinely
-- You speak naturally and conversationally
+Personality: warm, encouraging, patient. Celebrate small wins genuinely.
 
-Your teaching approach:
-- Respond primarily in English, weaving in German words and examples naturally
-- If the student makes a grammar error, correct it once clearly then move on
-- Occasionally say a short encouraging phrase in Gujarati to feel personal
-- Ask follow-up questions to keep the conversation alive
-- Keep each voice turn concise: 2-3 sentences maximum
+Teaching approach:
+- Conduct the session in ${lang}. Use ${native} or English only for corrections and brief grammar notes.
+- When the student makes a mistake, say a short verbal signal in ${lang} (e.g. "Fast richtig." or "Kleiner Fehler."), then say the correct version once clearly.
+- After verbal correction, append a correction summary in this exact format on a new line:
+  CORRECTION: [wrong] → [right] | NOTE: [one-sentence explanation in English]
+- Keep each voice turn to 2-3 sentences maximum.
+- Ask follow-up questions to keep the conversation flowing.
+- Start by greeting the student warmly in ${lang}.`;
 
-Start by greeting the student warmly in German, then use a natural mix of English and German.`;
-    
     ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${token}`);
     ws.binaryType = 'arraybuffer';
 
     const wsTimeout = setTimeout(() => {
       if (!sessionActive) {
-        addMsg('ai', '⚠️ Connection timed out. Please try again.');
+        addMsg('ai', 'Connection timed out. Please try again.');
+        if (btn) btn.disabled = false;
         cleanup();
       }
     }, 10000);
 
     ws.onopen = async () => {
-  clearTimeout(wsTimeout);
+      clearTimeout(wsTimeout);
+      ws.send(JSON.stringify({
+        setup: {
+          model: 'models/gemini-2.5-flash-native-audio-preview-12-2025',
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } } }
+          },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
+          systemInstruction: { parts: [{ text: systemPromptText }] }
+        }
+      }));
 
-  // Send setup — Constrained endpoint still requires this
-  ws.send(JSON.stringify({
-    setup: {
-      model: 'models/gemini-2.5-flash-native-audio-preview-12-2025',
-      generationConfig: {
-        responseModalities: ['AUDIO'],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } } }
-      },
-      inputAudioTranscription: {},
-      outputAudioTranscription: {},
-      systemInstruction: { parts: [{ text: systemPromptText }] }
-    }
-  }));
-
-      // DO NOT send a setup message — ephemeral token already has setup baked in.
-      // Start mic immediately and begin streaming audio.
       workletNode = await createWorklet(micCtx, micStream, {
         onAudioChunk: (pcmBuffer) => {
           if (!sessionActive || micMuted) return;
           if (ws?.readyState !== WebSocket.OPEN) return;
           const b64 = btoa(String.fromCharCode(...new Uint8Array(pcmBuffer)));
           ws.send(JSON.stringify({
-            realtimeInput: {
-              mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }]
-            }
+            realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }] }
           }));
         }
       });
 
       sessionActive = true;
+      window.sessionActive = true;
       startTimer();
-      setStatus('Live · Voice', 'var(--green)');
       setOrbSpeaking(true);
       if (btn) btn.disabled = false;
-      addMsg('ai', `Hey ${userDisplayName}! I'm connected. Say something in German whenever you're ready 🎙️`);
 
       // Keep-alive every 8s
       window._keepAlive = setInterval(() => {
@@ -191,7 +330,7 @@ Start by greeting the student warmly in German, then use a natural mix of Englis
     };
 
     ws.onerror = () => {
-      addMsg('ai', '⚠️ WebSocket error. Please try again.');
+      addMsg('ai', 'Connection error. Please try again.');
       cleanup();
     };
 
@@ -204,25 +343,18 @@ Start by greeting the student warmly in German, then use a natural mix of Englis
     };
 
   } catch (err) {
-    addMsg('ai', `⚠️ ${err.message}`);
-    setStatus('Disconnected', 'var(--red)');
+    addMsg('ai', `Could not start: ${err.message}`);
     if (btn) btn.disabled = false;
     cleanup();
   }
 }
 
 // ── SERVER MESSAGE HANDLER ────────────────────────────────────────────────────
-let currentAiText = '';
-
 function handleServerMessage(msg) {
-  if (msg.setupComplete !== undefined) {
-    // Session is ready — Gemini confirmed setup from the token
-    console.log('[AURA] setup complete');
-  }
-
   if (msg.serverContent) {
     const sc = msg.serverContent;
 
+    // AURA's audio
     if (sc.modelTurn?.parts) {
       sc.modelTurn.parts.forEach(part => {
         if (part.inlineData?.mimeType?.startsWith('audio/') && part.inlineData.data) {
@@ -232,28 +364,78 @@ function handleServerMessage(msg) {
       });
     }
 
+    // AURA's text transcription — stream it
     if (sc.outputTranscription?.text) {
-      currentAiText += sc.outputTranscription.text;
+      streamAuraChunk(sc.outputTranscription.text);
     }
 
+    // Student's speech — show as a message bubble
     if (sc.inputTranscription?.isFinal) {
       const text = (sc.inputTranscription.text || '').trim();
-      if (text) addMsg('me', text);
+      if (text && !micMuted) {
+        // Count words
+        const words = text.split(/\s+/).filter(w => w.length > 1);
+        _wordCount += words.length;
+        _correctCount++;
+        updateStats();
+        addMsg('me', text);
+      }
     }
 
+    // AURA's turn complete — finalise bubble and detect corrections
     if (sc.turnComplete) {
-      if (currentAiText.trim()) {
-        addMsg('ai', currentAiText.trim());
-        currentAiText = '';
-      }
+      const fullText = finaliseAuraMessage();
       setOrbSpeaking(false);
+
+      if (fullText) {
+        // Parse the CORRECTION: format we asked AURA to use
+        const corrLineMatch = fullText.match(/CORRECTION:\s*(.+?)\s*→\s*(.+?)(?:\s*\|\s*NOTE:\s*(.+))?$/im);
+        if (corrLineMatch) {
+          const wrong = corrLineMatch[1].trim();
+          const right = corrLineMatch[2].trim();
+          const note  = corrLineMatch[3]?.trim() || '';
+          // Remove the correction line from the displayed bubble
+          const displayText = fullText.replace(/CORRECTION:.*$/im, '').trim();
+          const bubble = _streamingEl?.querySelector('.bubble');
+          if (bubble) bubble.textContent = displayText;
+
+          // Render visual correction block under AURA's last message
+          const lastAuraMsg = document.querySelector('#messagesWrap .msg.ai:last-of-type');
+          if (lastAuraMsg) {
+            const block = document.createElement('div');
+            block.className = 'corr-block';
+            block.innerHTML = `
+              <div class="corr-label">✕ Correction</div>
+              ${wrong ? `<div class="corr-wrong">${escHtml(wrong)}</div><div class="corr-arrow">↓</div>` : ''}
+              <div class="corr-right">✓ ${escHtml(right)}</div>
+              ${note ? `<div class="corr-note">${escHtml(note)}</div>` : ''}
+            `;
+            lastAuraMsg.appendChild(block);
+            const wrap = document.getElementById('messagesWrap');
+            if (wrap) wrap.scrollTop = wrap.scrollHeight;
+          }
+
+          // Track in right panel
+          _errCount++;
+          _correctCount = Math.max(0, _correctCount - 1); // this turn had an error not a correct
+          _sessionCorrections.push({ wrong, right, note });
+          updateStats();
+          updateCorrectionsPanel();
+        } else {
+          // No explicit correction — try to detect from natural language
+          const lastAuraMsg = document.querySelector('#messagesWrap .msg.ai:last-of-type');
+          if (/fast richtig|kleiner fehler|small mistake|almost|nicht.*sondern/i.test(fullText)) {
+            detectAndRenderCorrection(fullText, lastAuraMsg);
+          }
+        }
+      }
     }
 
     if (sc.interrupted) setOrbSpeaking(false);
   }
 
   if (msg.error) {
-    addMsg('ai', `⚠️ API Error: ${msg.error.message || JSON.stringify(msg.error)}`);
+    addMsg('ai', `API Error: ${msg.error.message || JSON.stringify(msg.error)}`);
   }
 }
 
@@ -262,9 +444,8 @@ export async function endSession() {
   if (!sessionActive) return;
   cleanup();
   stopTimer();
-  setStatus('Session ended', 'var(--muted)');
   setOrbSpeaking(false);
-  addMsg('ai', 'Great work today! See you next time 👋');
+  addMsg('ai', `Great work! You spoke ${_wordCount} words in this session. See you next time 👋`);
 }
 
 // ── MIC TOGGLE ────────────────────────────────────────────────────────────────
@@ -277,24 +458,20 @@ export function toggleMic() {
   return micMuted;
 }
 
-// ── SEND TEXT INTO SESSION ────────────────────────────────────────────────────
+// ── SEND TEXT ─────────────────────────────────────────────────────────────────
 export function sendText(text) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   ws.send(JSON.stringify({
-    clientContent: {
-      turns: [{ role: 'user', parts: [{ text }] }],
-      turnComplete: true
-    }
+    clientContent: { turns: [{ role: 'user', parts: [{ text }] }], turnComplete: true }
   }));
 }
 
-export function getSessionState() {
-  return sessionActive ? 'active' : 'idle';
-}
+export function getSessionState() { return sessionActive ? 'active' : 'idle'; }
 
 // ── CLEANUP ───────────────────────────────────────────────────────────────────
 function cleanup() {
   sessionActive = false;
+  window.sessionActive = false;
   if (window._keepAlive) { clearInterval(window._keepAlive); window._keepAlive = null; }
   if (workletNode)  { try { workletNode.disconnect();  } catch (e) {} workletNode  = null; }
   if (playbackNode) { try { playbackNode.disconnect(); } catch (e) {} playbackNode = null; }
@@ -305,22 +482,18 @@ function cleanup() {
   micMuted = false;
 }
 
-// ── INIT — called from ui.js after auth ───────────────────────────────────────
+// ── INIT — called from ui.js ──────────────────────────────────────────────────
 export function initSession({ getIdToken, getUserDisplayName }) {
-
   document.getElementById('liveSessionBtn')?.addEventListener('click', async () => {
     if (sessionActive) return;
     const idToken = await getIdToken().catch(() => null);
     await startSession({ idToken, userDisplayName: getUserDisplayName() });
   });
 
-  document.getElementById('endSessionBtn')?.addEventListener('click', async () => {
-    if (!sessionActive) return;
-    if (!confirm('End this session? Your progress will be saved.')) return;
-    const btn = document.getElementById('endSessionBtn');
-    if (btn) btn.disabled = true;
-    await endSession();
-    if (btn) btn.disabled = false;
+  document.getElementById('idleStartBtn')?.addEventListener('click', async () => {
+    if (sessionActive) return;
+    const idToken = await getIdToken().catch(() => null);
+    await startSession({ idToken, userDisplayName: getUserDisplayName() });
   });
 
   document.getElementById('micBtn')?.addEventListener('click', () => {
@@ -328,55 +501,65 @@ export function initSession({ getIdToken, getUserDisplayName }) {
     toggleMic();
   });
 
-  let sending = false;
-
+  // Text send
+  let _sending = false;
   async function handleSend() {
-    if (sending) return;
+    if (_sending) return;
     const input = document.getElementById('chatInput');
     const text  = input?.value.trim();
     if (!text) return;
-
-    if (sessionActive) {
+    if (sessionActive && ws?.readyState === WebSocket.OPEN) {
       addMsg('me', text);
       input.value = '';
       sendText(text);
       return;
     }
-
-    sending = true;
-    const sendBtnEl = document.getElementById('sendBtn');
-    if (sendBtnEl) sendBtnEl.disabled = true;
+    // Offline text fallback via Anthropic
+    _sending = true;
+    const sendBtn = document.getElementById('sendBtn');
+    if (sendBtn) sendBtn.disabled = true;
     addMsg('me', text);
     input.value = '';
     const typing = document.getElementById('typingIndicator');
     const wrap   = document.getElementById('messagesWrap');
     if (typing) { typing.style.display = 'flex'; if (wrap) wrap.scrollTop = wrap.scrollHeight; }
-
     try {
+      const profile  = window._activeProfile || {};
+      const lang     = profile.targetLanguage || 'German';
+      const level    = profile.level          || 'B1';
+      const native   = profile.nativeLanguage || 'Gujarati';
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 800,
-          system: `You are AURA, a warm AI language tutor. Student is learning German at B1. Native language: Gujarati. Also speaks English. Reply in max 3 sentences. Correct grammar errors gently. Ask a follow-up if correct. Occasionally add a tip in Gujarati (italicized). No bullet points.`,
+          system: `You are AURA, a warm AI language tutor. Student is learning ${lang} at ${level}. Native language: ${native}. Reply in max 3 sentences. Correct grammar errors gently with the format: CORRECTION: [wrong] → [right]. No bullet points.`,
           messages: [{ role: 'user', content: text }]
         })
       });
-      const data = await res.json();
+      const data  = await res.json();
       if (typing) typing.style.display = 'none';
-      addMsg('ai', data.content?.[0]?.text || 'Sehr gut! Keep going.');
+      const reply = data.content?.[0]?.text || 'Sehr gut! Keep going.';
+      const msgEl = addMsg('ai', reply.replace(/CORRECTION:.*→.*$/im, '').trim());
+      if (msgEl) detectAndRenderCorrection(reply, msgEl);
     } catch {
       if (typing) typing.style.display = 'none';
-      addMsg('ai', 'Sehr gut! Your German is coming along well. Try another sentence?');
+      addMsg('ai', 'Your German is coming along well. Try another sentence?');
     }
-
-    sending = false;
-    if (sendBtnEl) sendBtnEl.disabled = false;
+    _sending = false;
+    if (sendBtn) sendBtn.disabled = false;
   }
 
   document.getElementById('sendBtn')?.addEventListener('click', handleSend);
   document.getElementById('chatInput')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') handleSend();
+  });
+
+  document.querySelectorAll('.sug-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const input = document.getElementById('chatInput');
+      if (input) { input.value = chip.textContent.trim(); input.focus(); }
+    });
   });
 }
