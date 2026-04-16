@@ -776,10 +776,12 @@ function showEditProfileModal(profile) {
 
   // Wire date picker visibility
   const dateTypeSel = overlay.querySelector('#ep-exam-date-type');
-  const datePickerWrap = overlay.querySelector('#ep-date-picker-wrap');
-  dateTypeSel.addEventListener('change', () => {
-    datePickerWrap.style.display = dateTypeSel.value === 'booked' ? '' : 'none';
-  });
+const datePickerWrap = overlay.querySelector('#ep-date-picker-wrap');
+// Show on load if already booked
+datePickerWrap.style.display = dateTypeSel.value === 'booked' ? '' : 'none';
+dateTypeSel.addEventListener('change', () => {
+  datePickerWrap.style.display = dateTypeSel.value === 'booked' ? '' : 'none';
+});
 
   // Wire daily minutes chips
   let selectedMinutes = profile.dailyMinutes || 20;
@@ -849,6 +851,22 @@ function showEditProfileModal(profile) {
       };
 
       await updateDoc(doc(_db, 'users', currentUser.uid), updates);
+
+      // Update flag in active profile too
+if (activeProfile?.id) {
+  const { getFirestore, doc, updateDoc: _upd, serverTimestamp } = 
+    await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  const _db = getFirestore();
+  await _upd(doc(_db, 'users', currentUser.uid, 'profiles', activeProfile.id), {
+    targetLanguage: updates.targetLanguage,
+    level:          updates.level,
+    goal:           updates.goal,
+    preferredMode:  updates.preferredMode,
+    nativeLanguage: updates.nativeLanguage,
+    langPref:       updates.langPref,
+    flag:           getLangFlag(updates.targetLanguage),
+  });
+}
 
       // Also update the in-memory profile so session picks it up immediately
       if (activeProfile) {
