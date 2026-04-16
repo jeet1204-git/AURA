@@ -108,7 +108,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .topbar-right{display:flex;align-items:center;gap:8px;}
 .tb-btn{padding:6px 14px;border-radius:100px;background:transparent;border:0.5px solid var(--border2);font-size:11.5px;color:var(--muted2);display:flex;align-items:center;gap:6px;}
 .tb-btn:hover{background:var(--surface);color:var(--text);}
-.tb-btn.end{border-color:rgba(248,113,113,.3);color:var(--red);display:none;}
+.tb-btn.end{border-color:rgba(248,113,113,.3);color:var(--red);}
 .tb-btn.end:hover{background:rgba(248,113,113,.08);}
 
 /* IDLE SCREEN */
@@ -256,6 +256,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .ci-wrong{font-size:11px;color:var(--red);font-family:monospace;text-decoration:line-through;}
 .ci-right{font-size:11px;color:var(--green);font-family:monospace;}
 .ci-note{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* Accuracy ring update helper (via JS) */
+#accRing { transition: stroke-dashoffset .6s cubic-bezier(.16,1,.3,1); }
+/* Session bar chart bars */
+#sessionBarChart > div { transition: height .4s ease, background .3s ease; }
 
 /* SESSION SUMMARY OVERLAY */
 #summary-overlay{display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;}
@@ -442,25 +447,44 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     </div>
     <div class="rp-scroll">
 
-      <!-- Live session stats (shown only during session) -->
+      <!-- ── LIVE SESSION STATS (during session only) ── -->
       <div id="liveStatsCard" style="display:none;">
         <div class="mini-stats">
           <div class="mini-stat"><div class="ms-val" id="wordsSpoken">0</div><div class="ms-label">Words</div></div>
           <div class="mini-stat"><div class="ms-val" id="correctCount" style="color:var(--green)">0</div><div class="ms-label">Correct</div></div>
           <div class="mini-stat"><div class="ms-val" id="errCount" style="color:var(--red)">0</div><div class="ms-label">Errors</div></div>
         </div>
+        <!-- Live accuracy ring (shown during session) -->
+        <div style="display:flex;align-items:center;gap:12px;margin-top:10px;">
+          <svg width="56" height="56" viewBox="0 0 56 56" style="flex-shrink:0;">
+            <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4"/>
+            <circle id="accRing" cx="28" cy="28" r="22" fill="none" stroke="url(#ringGrad)" stroke-width="4"
+              stroke-dasharray="138.2" stroke-dashoffset="138.2"
+              stroke-linecap="round" transform="rotate(-90 28 28)" style="transition:stroke-dashoffset .5s ease;"/>
+            <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#9d7fff"/><stop offset="100%" stop-color="#4ade80"/>
+            </linearGradient></defs>
+            <text x="28" y="32" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" id="accPct">—</text>
+          </svg>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text);">Session accuracy</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px;">Correct vs corrected turns</div>
+          </div>
+        </div>
       </div>
 
-      <!-- Streak & XP -->
+      <!-- ── STREAK & XP ── -->
       <div class="rp-card">
         <div class="rp-card-label">Streak &amp; XP</div>
+        <!-- XP bar -->
         <div class="xp-row">
-          <span class="xp-label" id="xpLabel">XP</span>
+          <span class="xp-label" id="xpLabel">XP to A2</span>
           <span class="xp-val" id="xpVal">0 / 1000</span>
         </div>
         <div class="xp-track">
           <div class="xp-fill" id="xpFill"><div class="xp-shimmer"></div></div>
         </div>
+        <!-- Streak + week heatmap -->
         <div class="streak-section">
           <div class="streak-left">
             <div class="streak-flame">🔥</div>
@@ -478,26 +502,65 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
         </div>
       </div>
 
-      <!-- Skill Progress -->
+      <!-- ── SKILL PROGRESS (visual bars) ── -->
       <div class="rp-card">
         <div class="rp-card-label">
           Skill Progress
           <span style="font-size:9px;color:var(--muted);">from sessions</span>
         </div>
         <div id="skillProgressContent">
-          <div class="prog-placeholder">Complete sessions to see skill progress.</div>
+          <!-- Placeholder bars shown until real data available -->
+          <div class="prog-row">
+            <div class="prog-top"><span class="prog-name">Speaking</span><span class="prog-pct" style="color:var(--muted)">—</span></div>
+            <div class="prog-track"><div class="prog-fill" style="width:0%;background:linear-gradient(90deg,var(--purple),var(--blue));"></div></div>
+          </div>
+          <div class="prog-row">
+            <div class="prog-top"><span class="prog-name">Accuracy</span><span class="prog-pct" style="color:var(--muted)">—</span></div>
+            <div class="prog-track"><div class="prog-fill" style="width:0%;background:linear-gradient(90deg,#4ade80,#22c55e);"></div></div>
+          </div>
+          <div class="prog-row">
+            <div class="prog-top"><span class="prog-name">Vocabulary</span><span class="prog-pct" style="color:var(--muted)">—</span></div>
+            <div class="prog-track"><div class="prog-fill" style="width:0%;background:linear-gradient(90deg,var(--blue),#38bdf8);"></div></div>
+          </div>
+          <div class="prog-row" style="margin-bottom:0;">
+            <div class="prog-top"><span class="prog-name">Fluency</span><span class="prog-pct" style="color:var(--muted)">—</span></div>
+            <div class="prog-track"><div class="prog-fill" style="width:0%;background:linear-gradient(90deg,var(--amber),#f59e0b);"></div></div>
+          </div>
+          <div id="skillPlaceholderNote" style="font-size:10px;color:var(--muted);margin-top:10px;font-style:italic;text-align:center;">Complete sessions to unlock skill tracking</div>
+        </div>
+        <!-- Session count mini bar chart -->
+        <div style="margin-top:12px;padding-top:10px;border-top:0.5px solid var(--border);">
+          <div style="font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;">Sessions this week</div>
+          <div style="display:flex;align-items:flex-end;gap:4px;height:32px;" id="sessionBarChart">
+            <div style="flex:1;background:rgba(157,127,255,.08);border-radius:3px 3px 0 0;" title="Mon"></div>
+            <div style="flex:1;background:rgba(157,127,255,.08);border-radius:3px 3px 0 0;" title="Tue"></div>
+            <div style="flex:1;background:rgba(157,127,255,.08);border-radius:3px 3px 0 0;" title="Wed"></div>
+            <div style="flex:1;background:rgba(157,127,255,.08);border-radius:3px 3px 0 0;" title="Thu"></div>
+            <div style="flex:1;background:rgba(157,127,255,.08);border-radius:3px 3px 0 0;" title="Fri"></div>
+            <div style="flex:1;background:rgba(157,127,255,.08);border-radius:3px 3px 0 0;" title="Sat"></div>
+            <div style="flex:1;background:rgba(157,127,255,.08);border-radius:3px 3px 0 0;" title="Sun"></div>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:3px;">
+            <div style="flex:1;text-align:center;font-size:7px;color:var(--muted);">M</div>
+            <div style="flex:1;text-align:center;font-size:7px;color:var(--muted);">T</div>
+            <div style="flex:1;text-align:center;font-size:7px;color:var(--muted);">W</div>
+            <div style="flex:1;text-align:center;font-size:7px;color:var(--muted);">T</div>
+            <div style="flex:1;text-align:center;font-size:7px;color:var(--muted);">F</div>
+            <div style="flex:1;text-align:center;font-size:7px;color:var(--muted);">S</div>
+            <div style="flex:1;text-align:center;font-size:7px;color:var(--muted);">S</div>
+          </div>
         </div>
       </div>
 
-      <!-- Today's Focus -->
+      <!-- ── TODAY'S FOCUS (from profile goal) ── -->
       <div class="rp-card" id="goalCard">
         <div class="rp-card-label">Today's Focus</div>
         <div id="goalContent" style="font-size:12px;color:var(--muted2);line-height:1.6;">
-          Complete your first session to build your focus list.
+          Complete your first session to set a focus.
         </div>
       </div>
 
-      <!-- AURA Remembers -->
+      <!-- ── AURA REMEMBERS ── -->
       <div class="rp-card">
         <div class="rp-card-label">🧠 AURA Remembers</div>
         <div class="memory-cards" id="memoryCards">
@@ -505,9 +568,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
         </div>
       </div>
 
-      <!-- Recent Corrections (session corrections land here) -->
+      <!-- ── RECENT CORRECTIONS ── -->
       <div class="rp-card" id="correctionsCard">
-        <div class="rp-card-label">Recent Corrections</div>
+        <div class="rp-card-label">
+          Recent Corrections
+          <span id="corrCount" style="font-size:9px;color:var(--muted);"></span>
+        </div>
         <div id="correctionsContent">
           <div class="mem-empty">Corrections from your sessions will appear here.</div>
         </div>
