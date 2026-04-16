@@ -437,7 +437,7 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
   const langPref = profile?.langPref || profile?.nativeLanguage || 'English';
   const lang     = profile?.targetLanguage || 'German';
 
-  let systemPrompt;
+ let systemPrompt;
 try {
   const targetLang = profile?.targetLanguage || 'German';
   const level      = profile?.level          || 'A2';
@@ -446,28 +446,34 @@ try {
   const langPref2  = profile?.langPref       || nativeLang;
 
   if (targetLang === 'German') {
-    // Use the full structured prompt engine for German
     const blueprint = buildBlueprintFromProfile(profile);
     systemPrompt = buildSystemPrompt(blueprint, langPref2);
   } else {
-    // Dynamic prompt for other languages
+    const modeDesc = mode === 'immersion'
+      ? `Immersion mode — speak only in ${targetLang}, use ${langPref2} only when student is completely stuck`
+      : `Guided mode — supportive, use ${langPref2} for corrections`;
+    const levelDesc = level === 'A1'
+      ? 'very simple words, very short sentences, maximum encouragement'
+      : level === 'A2'
+      ? 'basic sentences, common vocabulary, gentle corrections'
+      : 'intermediate vocabulary, correct errors, encourage longer responses';
     systemPrompt = `You are AURA, a warm and intelligent AI language tutor.
 
-Student: ${userDisplayName}
+Student name: ${userDisplayName}
 Target language: ${targetLang}
 Student level: ${level}
 Native language: ${nativeLang}
 Correction language: ${langPref2}
-Session mode: ${mode === 'immersion' ? 'Immersion — speak only in ${targetLang}, corrections in ${langPref2} only when essential' : 'Guided — supportive, corrections in ${langPref2}'}
+Session mode: ${modeDesc}
 
-RULES:
-1. Speak primarily in ${targetLang}.
-2. Use ${langPref2} ONLY for brief corrections (one sentence max).
-3. When correcting: give a short signal, say the correct ${targetLang} phrase once, wait for repeat.
+STRICT RULES:
+1. Speak ONLY in ${targetLang} during the session. Never default to German or English for conversation.
+2. Use ${langPref2} ONLY for brief corrections — one sentence maximum.
+3. When correcting a mistake: say a short signal in ${targetLang}, say the correct phrase once, wait for the student to repeat.
 4. Keep each turn to 2-3 sentences maximum.
-5. After a correction, append on a new line: ##CORRECTION## wrong: [wrong] | right: [correct] | note: [brief note in ${langPref2}]
-6. Greet the student warmly in ${targetLang} to begin.
-7. Level ${level}: ${level === 'A1' ? 'very simple words, short sentences, lots of encouragement' : level === 'A2' ? 'basic sentences, common words, gentle corrections' : 'intermediate vocabulary, correct errors, encourage longer responses'}.`;
+5. After every correction append on a new line: ##CORRECTION## wrong: [wrong phrase] | right: [correct phrase] | note: [brief note in ${langPref2}]
+6. Greet the student warmly in ${targetLang} right now to begin the session.
+7. For level ${level}: ${levelDesc}.`;
   }
     console.log('[AURA] system prompt built via prompts.js', {
       level: blueprint.level,
@@ -672,13 +678,14 @@ export function initSession(callbacks) {
 
      try {
   const targetLang2 = profile?.targetLanguage || 'German';
+  const lvl  = profile?.level          || 'A2';
+  const nat  = profile?.nativeLanguage || 'English';
+  const lp   = profile?.langPref       || nat;
   if (targetLang2 === 'German') {
     const blueprint  = buildBlueprintFromProfile(profile);
-    textSystemPrompt = buildSystemPrompt(blueprint, langPref);
+    textSystemPrompt = buildSystemPrompt(blueprint, lp);
   } else {
-    const lvl = profile?.level || 'A2';
-    const nat = profile?.nativeLanguage || 'English';
-    textSystemPrompt = `You are AURA, a warm AI language tutor. The student is learning ${targetLang2} at ${lvl} level. Their native language is ${nat}. Use ${nat} only for corrections (one sentence max). Keep replies to 3 sentences max. No bullet points.`;
+    textSystemPrompt = `You are AURA, a warm AI language tutor. The student is learning ${targetLang2} at ${lvl} level. Their native language is ${nat}. Speak in ${targetLang2}. Use ${nat} only for corrections, one sentence max. Keep replies to 3 sentences. No bullet points.`;
   }
       } catch (e) {
         const nativeLang   = profile?.nativeLanguage || 'English';
