@@ -5,15 +5,15 @@
  */
 
 import { WORKER_URL, GEMINI_WS_EPHEMERAL, MODEL } from '../config/constants.js';
-import { getWorkletBlobUrl, createWorklet, ensurePlaybackWorklet, enqueueAudio } from '../audio/worklets.js';
+import { createWorklet, ensurePlaybackWorklet, enqueueAudio } from '../audio/worklets.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let ws            = null;
 let micStream     = null;
 let micCtx        = null;
 let audioCtx      = null;
-let playbackNode  = null;   // returned by ensurePlaybackWorklet
-let workletNode   = null;   // mic capture node
+let playbackNode  = null;
+let workletNode   = null;
 
 let sessionActive = false;
 let micMuted      = false;
@@ -88,7 +88,7 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
     });
 
-    // 3. Playback worklet — returns the node we send audio to
+    // 3. Playback worklet
     playbackNode = await ensurePlaybackWorklet(audioCtx);
 
     // 4. Fetch token from Worker
@@ -98,14 +98,15 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
       body: JSON.stringify({ idToken })
     });
     if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error || `Worker error ${resp.status}`);
+      const e = await resp.json().catch(() => ({}));
+      throw new Error(e.error || `Worker error ${resp.status}`);
     }
     const { token } = await resp.json();
     if (!token) throw new Error('No token returned from Worker.');
 
-    // 5. Open Gemini Live WebSocket
-    ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(token)}`);
+    // 5. Open Gemini Live WebSocket — pass token raw, no encodeURIComponent
+    // Use BidiGenerateContentConstrained for ephemeral tokens — NO setup message allowed
+    ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${token}`);
     ws.binaryType = 'arraybuffer';
 
     const wsTimeout = setTimeout(() => {
@@ -118,21 +119,8 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
     ws.onopen = async () => {
       clearTimeout(wsTimeout);
 
-      // Send setup message to Gemini
-      ws.send(JSON.stringify({
-        setup: {
-          model: MODEL,
-          generationConfig: {
-            responseModalities: ['AUDIO'],
-            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } }
-          },
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
-          systemInstruction: { parts: [{ text: buildSystemPrompt(userDisplayName) }] }
-        }
-      }));
-
-      // 6. Start mic — send each PCM chunk to Gemini WebSocket
+      // DO NOT send a setup message — ephemeral token already has setup baked in.
+      // Start mic immediately and begin streaming audio.
       workletNode = await createWorklet(micCtx, micStream, {
         onAudioChunk: (pcmBuffer) => {
           if (!sessionActive || micMuted) return;
@@ -195,10 +183,14 @@ export async function startSession({ idToken, userDisplayName = 'there' } = {}) 
 let currentAiText = '';
 
 function handleServerMessage(msg) {
+  if (msg.setupComplete !== undefined) {
+    // Session is ready — Gemini confirmed setup from the token
+    console.log('[AURA] setup complete');
+  }
+
   if (msg.serverContent) {
     const sc = msg.serverContent;
 
-    // Audio — play it via playback worklet
     if (sc.modelTurn?.parts) {
       sc.modelTurn.parts.forEach(part => {
         if (part.inlineData?.mimeType?.startsWith('audio/') && part.inlineData.data) {
@@ -208,18 +200,15 @@ function handleServerMessage(msg) {
       });
     }
 
-    // AURA text transcript — accumulate
     if (sc.outputTranscription?.text) {
       currentAiText += sc.outputTranscription.text;
     }
 
-    // User speech transcript
     if (sc.inputTranscription?.isFinal) {
       const text = (sc.inputTranscription.text || '').trim();
       if (text) addMsg('me', text);
     }
 
-    // Turn complete — show full AURA message
     if (sc.turnComplete) {
       if (currentAiText.trim()) {
         addMsg('ai', currentAiText.trim());
@@ -284,39 +273,15 @@ function cleanup() {
   micMuted = false;
 }
 
-// ── SYSTEM PROMPT ─────────────────────────────────────────────────────────────
-function buildSystemPrompt(name = 'there') {
-  return `You are AURA, a warm and intelligent AI language tutor.
-
-The student's name is ${name}. They are learning German at B1 level.
-Their native language is Gujarati. They also speak English fluently.
-
-Your personality:
-- Warm, encouraging, patient — never condescending
-- You celebrate small wins genuinely
-- You speak naturally and conversationally
-
-Your teaching approach:
-- Respond primarily in English, weaving in German words and examples naturally
-- If the student makes a grammar error, correct it once clearly then move on
-- Occasionally say a short encouraging phrase in Gujarati to feel personal
-- Ask follow-up questions to keep the conversation alive
-- Keep each voice turn concise: 2-3 sentences maximum
-
-Start by greeting the student warmly in German, then use a natural mix of English and German.`;
-}
-
 // ── INIT — called from ui.js after auth ───────────────────────────────────────
 export function initSession({ getIdToken, getUserDisplayName }) {
 
-  // Start voice session button
   document.getElementById('liveSessionBtn')?.addEventListener('click', async () => {
     if (sessionActive) return;
     const idToken = await getIdToken().catch(() => null);
     await startSession({ idToken, userDisplayName: getUserDisplayName() });
   });
 
-  // End session button
   document.getElementById('endSessionBtn')?.addEventListener('click', async () => {
     if (!sessionActive) return;
     if (!confirm('End this session? Your progress will be saved.')) return;
@@ -326,13 +291,11 @@ export function initSession({ getIdToken, getUserDisplayName }) {
     if (btn) btn.disabled = false;
   });
 
-  // Mic toggle
   document.getElementById('micBtn')?.addEventListener('click', () => {
     if (!sessionActive) return;
     toggleMic();
   });
 
-  // Chat input — live session or REST fallback
   let sending = false;
 
   async function handleSend() {
@@ -348,7 +311,6 @@ export function initSession({ getIdToken, getUserDisplayName }) {
       return;
     }
 
-    // REST fallback when no live session
     sending = true;
     const sendBtnEl = document.getElementById('sendBtn');
     if (sendBtnEl) sendBtnEl.disabled = true;
