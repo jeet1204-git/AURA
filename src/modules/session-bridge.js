@@ -1,11 +1,12 @@
 /**
  * session-bridge.js — AURA Live Session Engine
- * Profile-aware system prompt, Deepgram STT for live transcription,
- * correction cards, streaming AURA responses, summary on end.
+ * Uses real buildSystemPrompt() from prompts.js for both voice and text fallback.
  */
 
 import { WORKER_URL, DEEPGRAM_WORKER_URL, GEMINI_WS_EPHEMERAL } from '../config/constants.js';
 import { createWorklet, ensurePlaybackWorklet, enqueueAudio } from '../audio/worklets.js';
+import { buildSystemPrompt, buildPromptLanguageConfig } from './prompts.js';
+import { BLUEPRINT_POLICIES } from '../config/scoring.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let ws            = null;
@@ -19,10 +20,10 @@ export let sessionActive = false;
 let micMuted      = false;
 
 // Transcription state
-let _dgBuffer        = '';      // accumulate Deepgram final segments
-let _streamBubble    = null;    // live user bubble element
-let _currentAiText   = '';      // accumulating AURA text
-let _aiEntryEl       = null;    // current AURA bubble element
+let _dgBuffer        = '';
+let _streamBubble    = null;
+let _currentAiText   = '';
+let _aiEntryEl       = null;
 
 // Stats
 let _words    = 0;
@@ -32,6 +33,44 @@ let _corrections = [];
 
 // Timer
 let _timerSecs = 0, _timerInterval = null;
+
+// ── BLUEPRINT BUILDER ─────────────────────────────────────────────────────────
+// Builds a minimal but real blueprint from the user's Firestore profile.
+// Falls back to A2 guided daily conversation if profile fields are missing.
+function buildBlueprintFromProfile(profile) {
+  const level  = profile?.level          || 'A2';
+  const mode   = profile?.preferredMode  || 'guided';
+
+  const policyKey = `${level.toLowerCase()}_${mode}`;
+  const policy    = BLUEPRINT_POLICIES[policyKey] || BLUEPRINT_POLICIES['a2_guided'];
+
+  // Default A2 daily-conversation scenario
+  const scenario = {
+    id:    'daily_conversation',
+    title: 'Daily Conversation',
+    role:  'conversation partner',
+    desc:  'Everyday topics — yourself, your day, your plans.',
+    level,
+    emoji: '💬',
+  };
+
+  return {
+    level,
+    mode,
+    scenarioId:   scenario.id,
+    scenarioLevel: scenario.level,
+    title:         scenario.title,
+    role:          scenario.role,
+    desc:          scenario.desc,
+    emoji:         scenario.emoji,
+    promptProfile: policy.promptProfile,
+    warmup_config:       policy.warmup_config,
+    interaction_policy:  policy.interaction_policy,
+    intervention_policy: policy.intervention_policy,
+    stage_flow:          policy.stage_flow,
+    completion_policy:   policy.completion_policy,
+  };
+}
 
 // ── DOM HELPERS ───────────────────────────────────────────────────────────────
 function getWrap() { return document.getElementById('messagesWrap'); }
@@ -49,7 +88,6 @@ function addMsg(role, text) {
   return div;
 }
 
-// Create/update/finalise live user transcription bubble
 function getOrCreateStreamBubble() {
   if (_streamBubble) return _streamBubble;
   const wrap = getWrap(); if (!wrap) return null;
@@ -76,7 +114,6 @@ function finaliseStreamBubble() {
   _dgBuffer = '';
 }
 
-// AURA streaming bubble
 function getOrCreateAiBubble() {
   if (_aiEntryEl) return _aiEntryEl;
   const wrap = getWrap(); if (!wrap) return null;
@@ -90,7 +127,6 @@ function getOrCreateAiBubble() {
   return div;
 }
 
-// Correction card (red, shown in chat + right panel)
 function addCorrectionCard(wrong, right, note) {
   const wrap = getWrap(); if (!wrap) return;
   const div = document.createElement('div');
@@ -167,21 +203,11 @@ function startTimer() {
 function stopTimer() { clearInterval(_timerInterval); _timerInterval = null; }
 
 // ── DEEPGRAM STT ──────────────────────────────────────────────────────────────
-// Connects to Deepgram for real-time user transcription display.
-// Language is set from the active profile's target language.
 async function initDeepgramSTT(targetLanguage) {
-  // Map language name to Deepgram language code
   const langMap = {
-    German:     'de',
-    French:     'fr',
-    Japanese:   'ja',
-    Spanish:    'es',
-    Italian:    'it',
-    Mandarin:   'zh',
-    Korean:     'ko',
-    Portuguese: 'pt',
-    Arabic:     'ar',
-    Hindi:      'hi',
+    German: 'de', French: 'fr', Japanese: 'ja', Spanish: 'es',
+    Italian: 'it', Mandarin: 'zh', Korean: 'ko', Portuguese: 'pt',
+    Arabic: 'ar', Hindi: 'hi',
   };
   const langCode = langMap[targetLanguage] || 'en';
 
@@ -207,23 +233,20 @@ async function initDeepgramSTT(targetLanguage) {
       try {
         const msg = JSON.parse(evt.data);
         if (msg.type === 'Results') {
-          const transcript = msg.channel?.alternatives?.[0]?.transcript || '';
-          const isFinal    = msg.is_final;
+          const transcript  = msg.channel?.alternatives?.[0]?.transcript || '';
+          const isFinal     = msg.is_final;
           const speechFinal = msg.speech_final;
 
           if (!transcript || !sessionActive || micMuted) return;
 
           if (isFinal) {
-            // Accumulate final segments
             _dgBuffer = _dgBuffer ? _dgBuffer + ' ' + transcript : transcript;
             updateStreamBubble(_dgBuffer.trim());
           } else {
-            // Show interim results (partial transcription)
             updateStreamBubble((_dgBuffer ? _dgBuffer + ' ' : '') + transcript);
           }
 
           if (speechFinal && _dgBuffer.trim()) {
-            // Speech ended — count words
             const words = _dgBuffer.trim().split(/\s+/).filter(Boolean);
             _words += words.length;
             _correct++;
@@ -245,7 +268,6 @@ async function initDeepgramSTT(targetLanguage) {
   }
 }
 
-// Feed raw PCM to Deepgram
 function sendToDeeepgram(pcmBuffer) {
   if (dgWs?.readyState === WebSocket.OPEN && !micMuted) {
     dgWs.send(pcmBuffer);
@@ -261,7 +283,7 @@ function detectCorrection(text) {
   if (arrow) { wrong = arrow[1].trim(); right = arrow[2].trim(); }
 
   if (!right) {
-    const sondern = text.match(/nicht\s+["""»]?([^,»"""]{1,30})["""«]?,?\s+sondern\s+["""»]?([^.<!\n]{3,50})/i);
+    const sondern = text.match(/nicht\s+["""»]?([^,»"""]{1,30})["""«]?,?\s+sondern\s+["""»]?([^.<!?\n]{3,50})/i);
     if (sondern) { wrong = sondern[1].trim(); right = sondern[2].trim(); }
   }
 
@@ -276,7 +298,6 @@ function detectCorrection(text) {
     const noteMatch = text.match(/(?:because|da |weil |denn |remember|note that)[^.!?\n]{5,100}/i);
     if (noteMatch) note = noteMatch[0].trim();
     addCorrectionCard(wrong, right, note);
-    // Decrement correct, increment error (undo the word count increment)
     if (_correct > 0) _correct--;
     updateStats();
     return true;
@@ -293,7 +314,6 @@ function handleServerMessage(msg) {
   if (msg.serverContent) {
     const sc = msg.serverContent;
 
-    // AURA audio
     if (sc.modelTurn?.parts) {
       sc.modelTurn.parts.forEach(part => {
         if (part.inlineData?.mimeType?.startsWith('audio/') && part.inlineData.data) {
@@ -304,7 +324,6 @@ function handleServerMessage(msg) {
       });
     }
 
-    // AURA transcription streaming
     if (sc.outputTranscription?.text) {
       _currentAiText += sc.outputTranscription.text;
       const el = getOrCreateAiBubble();
@@ -313,10 +332,8 @@ function handleServerMessage(msg) {
       scrollBottom();
     }
 
-    // Gemini's transcription of user speech (backup if Deepgram not available)
     if (sc.inputTranscription?.isFinal) {
       const text = (sc.inputTranscription.text || '').trim();
-      // Only show if Deepgram didn't already show it
       if (text && !_streamBubble && _dgBuffer === '') {
         addMsg('me', text);
         const words = text.split(/\s+/).filter(Boolean);
@@ -326,7 +343,6 @@ function handleServerMessage(msg) {
       }
     }
 
-    // AURA turn complete
     if (sc.turnComplete) {
       if (_currentAiText.trim()) {
         detectCorrection(_currentAiText);
@@ -417,35 +433,27 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
   const btn = document.getElementById('liveSessionBtn');
   if (btn) btn.disabled = true;
 
-  // Build profile-aware system prompt
-  const lang       = profile?.targetLanguage || 'German';
-  const level      = profile?.level          || 'A2';
-  const nativeLang = profile?.nativeLanguage || 'English';
-  const mode       = profile?.preferredMode  || 'guided';
-  const goal       = profile?.goal           || 'Daily conversation';
-  const langPref   = profile?.langPref       || nativeLang;
+  // ── BUILD REAL SYSTEM PROMPT ──────────────────────────────────────────────
+  const langPref = profile?.langPref || profile?.nativeLanguage || 'English';
+  const lang     = profile?.targetLanguage || 'German';
 
-  const systemPrompt = `You are AURA, a warm and intelligent AI language tutor.
-
-Student: ${userDisplayName}
-Target language: ${lang}
-Student level: ${level}
-Native language: ${nativeLang}
-Support language for corrections: ${langPref}
-Session mode: ${mode === 'immersion' ? 'Immersion (maximum target language use)' : 'Guided (supportive, corrections in native language)'}
-Session goal: ${goal}
-
-STRICT RULES:
-1. Teach ONLY ${lang}. Never revert to a different target language.
-2. Speak primarily in ${lang}. Use ${langPref} ONLY for brief corrections (one sentence max) when the student makes a grammar error.
-3. When correcting: say a short verbal signal in ${lang} ("Fast richtig." or "Kleiner Fehler."), then say the correct ${lang} sentence once, then wait.
-4. Keep each turn to 2-3 sentences maximum.
-5. After giving a correction, include a tag on a new line: ##CORRECTION## wrong: [wrong phrase] | right: [correct phrase] | note: [brief grammar note in ${langPref}]
-6. Ask follow-up questions to keep conversation alive.
-7. Start by greeting the student warmly in ${lang}.
-8. Celebrate progress genuinely.
-
-For level ${level}: ${level === 'A1' ? 'Use very simple vocabulary, short sentences, lots of encouragement.' : level === 'A2' ? 'Use basic sentences, common vocabulary, gentle corrections.' : level === 'B1' ? 'Use intermediate vocabulary, correct grammar errors, encourage longer responses.' : 'Use advanced vocabulary, push for complex sentences, correct subtle errors.'}`;
+  let systemPrompt;
+  try {
+    const blueprint = buildBlueprintFromProfile(profile);
+    systemPrompt = buildSystemPrompt(blueprint, langPref);
+    console.log('[AURA] system prompt built via prompts.js', {
+      level: blueprint.level,
+      mode:  blueprint.mode,
+      langPref,
+    });
+  } catch (promptErr) {
+    console.error('[AURA] buildSystemPrompt failed, using minimal fallback', promptErr);
+    // Minimal safe fallback — should only trigger if prompts.js has a bug
+    const nativeLang = profile?.nativeLanguage || 'English';
+    const level      = profile?.level || 'A2';
+    systemPrompt = `You are AURA, a warm AI language tutor. The student is learning ${lang} at ${level} level. Their native language is ${nativeLang}. Use ${nativeLang} only for corrections (one sentence max). Keep each turn to 2-3 sentences. Greet the student warmly in ${lang} to begin.`;
+  }
+  // ── END SYSTEM PROMPT BUILD ───────────────────────────────────────────────
 
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
@@ -496,14 +504,12 @@ For level ${level}: ${level === 'A1' ? 'Use very simple vocabulary, short senten
       workletNode = await createWorklet(micCtx, micStream, {
         onAudioChunk: (pcmBuffer) => {
           if (!sessionActive || micMuted) return;
-          // Send to Gemini
           if (ws?.readyState === WebSocket.OPEN) {
             const b64 = btoa(String.fromCharCode(...new Uint8Array(pcmBuffer)));
             ws.send(JSON.stringify({
               realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }] }
             }));
           }
-          // Send to Deepgram for live transcription display
           sendToDeeepgram(pcmBuffer);
         }
       });
@@ -514,7 +520,6 @@ For level ${level}: ${level === 'A1' ? 'Use very simple vocabulary, short senten
       setOrbSpeaking(true);
       if (btn) btn.disabled = false;
 
-      // Start Deepgram STT
       initDeepgramSTT(lang);
 
       window.dispatchEvent(new CustomEvent('aura:session-started'));
@@ -574,7 +579,6 @@ export function getSessionState() { return sessionActive ? 'active' : 'idle'; }
 
 export function initSession({ getIdToken, getUserDisplayName, getActiveProfile }) {
 
-  // Wire all session start buttons
   ['liveSessionBtn', 'idleStartBtn'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', async () => {
       if (sessionActive) return;
@@ -587,29 +591,26 @@ export function initSession({ getIdToken, getUserDisplayName, getActiveProfile }
     });
   });
 
-  // End session
   document.getElementById('endSessionBtn')?.addEventListener('click', async () => {
     if (!sessionActive) return;
     if (!confirm('End this session?')) return;
     await endSession();
   });
 
-  // Summary
   document.getElementById('summaryBtn')?.addEventListener('click', () => showSummary());
 
-  // Mic
   document.getElementById('micBtn')?.addEventListener('click', () => {
     if (!sessionActive) return;
     toggleMic();
   });
 
-  // Text input / send
   let sending = false;
   async function handleSend() {
     if (sending) return;
-    const input   = document.getElementById('chatInput');
-    const text    = input?.value.trim();
+    const input = document.getElementById('chatInput');
+    const text  = input?.value.trim();
     if (!text) return;
+
     if (sessionActive) {
       addMsg('me', text); input.value = '';
       sendText(text);
@@ -617,20 +618,38 @@ export function initSession({ getIdToken, getUserDisplayName, getActiveProfile }
       _correct++; updateStats();
       return;
     }
-    // Anthropic text fallback when no session
+
+    // ── ANTHROPIC TEXT FALLBACK ───────────────────────────────────────────
+    // Uses real buildSystemPrompt so the text fallback is identical to voice.
     sending = true;
     const sendBtnEl = document.getElementById('sendBtn');
     if (sendBtnEl) sendBtnEl.disabled = true;
     addMsg('me', text); input.value = '';
     const typing = document.getElementById('typingIndicator');
     if (typing) { typing.style.display = 'flex'; scrollBottom(); }
+
     try {
-      const profile = getActiveProfile?.() || null;
+      const profile   = getActiveProfile?.() || null;
+      const langPref  = profile?.langPref || profile?.nativeLanguage || 'English';
+      let   textSystemPrompt;
+
+      try {
+        const blueprint    = buildBlueprintFromProfile(profile);
+        textSystemPrompt   = buildSystemPrompt(blueprint, langPref);
+      } catch (e) {
+        const nativeLang   = profile?.nativeLanguage || 'English';
+        const targetLang   = profile?.targetLanguage || 'German';
+        const level        = profile?.level || 'A2';
+        textSystemPrompt   = `You are AURA, a warm AI language tutor. The student is learning ${targetLang} at ${level} level. Their native language is ${nativeLang}. Reply in max 3 sentences. Correct grammar errors gently. No bullet points.`;
+      }
+
       const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514', max_tokens: 800,
-          system: `You are AURA, a warm AI language tutor. The student is learning ${profile?.targetLanguage || 'German'} at ${profile?.level || 'A2'} level. Their native language is ${profile?.nativeLanguage || 'English'}. Reply in max 3 sentences. Correct grammar errors gently. No bullet points.`,
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 800,
+          system: textSystemPrompt,
           messages: [{ role: 'user', content: text }]
         })
       });
@@ -641,8 +660,10 @@ export function initSession({ getIdToken, getUserDisplayName, getActiveProfile }
       if (typing) typing.style.display = 'none';
       addMsg('ai', 'Sehr gut! Keep practising.');
     }
+
     sending = false;
     if (sendBtnEl) sendBtnEl.disabled = false;
+    // ── END ANTHROPIC TEXT FALLBACK ───────────────────────────────────────
   }
 
   document.getElementById('sendBtn')?.addEventListener('click', handleSend);
