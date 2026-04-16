@@ -16,17 +16,12 @@
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
 body{display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;}
-
-/* noise */
 body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   opacity:.4;}
-
-/* orbs */
 .orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;}
 .orb-1{width:400px;height:400px;background:rgba(124,92,252,.12);top:-100px;right:-100px;}
 .orb-2{width:300px;height:300px;background:rgba(91,163,255,.08);bottom:-80px;left:-80px;}
-
 .card{
   position:relative;z-index:1;
   width:100%;max-width:400px;margin:20px;
@@ -36,16 +31,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   padding:40px 36px;
   box-shadow:0 24px 80px rgba(0,0,0,.4);
 }
-
 .logo{
   font-size:22px;font-weight:700;letter-spacing:-.3px;
   background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
   margin-bottom:28px;text-align:center;
 }
-
 h1{font-size:20px;font-weight:600;color:var(--text);text-align:center;margin-bottom:6px;}
 .sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:32px;line-height:1.5;}
-
 .google-btn{
   width:100%;padding:13px 20px;border-radius:12px;
   background:#fff;border:none;
@@ -57,11 +49,9 @@ h1{font-size:20px;font-weight:600;color:var(--text);text-align:center;margin-bot
 .google-btn:hover{opacity:.92;transform:translateY(-1px);}
 .google-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
 .google-btn svg{width:18px;height:18px;flex-shrink:0;}
-
 .divider{display:flex;align-items:center;gap:12px;margin:20px 0;}
 .divider-line{flex:1;height:0.5px;background:var(--border);}
 .divider-text{font-size:11px;color:var(--muted);}
-
 .email-field{
   width:100%;padding:11px 14px;border-radius:10px;
   background:rgba(255,255,255,0.04);border:0.5px solid var(--border2);
@@ -70,7 +60,6 @@ h1{font-size:20px;font-weight:600;color:var(--text);text-align:center;margin-bot
 }
 .email-field:focus{border-color:rgba(157,127,255,.5);}
 .email-field::placeholder{color:var(--muted);}
-
 .pass-field{
   width:100%;padding:11px 14px;border-radius:10px;
   background:rgba(255,255,255,0.04);border:0.5px solid var(--border2);
@@ -79,7 +68,6 @@ h1{font-size:20px;font-weight:600;color:var(--text);text-align:center;margin-bot
 }
 .pass-field:focus{border-color:rgba(157,127,255,.5);}
 .pass-field::placeholder{color:var(--muted);}
-
 .submit-btn{
   width:100%;padding:13px;border-radius:12px;
   background:var(--grad2);border:none;
@@ -88,13 +76,11 @@ h1{font-size:20px;font-weight:600;color:var(--text);text-align:center;margin-bot
 }
 .submit-btn:hover{opacity:.9;transform:translateY(-1px);}
 .submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
-
 .error-msg{
   margin-top:12px;padding:10px 14px;border-radius:9px;
   background:rgba(248,113,113,.08);border:0.5px solid rgba(248,113,113,.3);
   font-size:12px;color:#f87171;display:none;
 }
-
 .footer-note{
   margin-top:24px;text-align:center;
   font-size:11.5px;color:var(--muted);
@@ -109,9 +95,8 @@ h1{font-size:20px;font-weight:600;color:var(--text);text-align:center;margin-bot
 <div class="card">
   <div class="logo">AURA</div>
   <h1>Welcome back</h1>
-  <p class="sub">Sign in to continue your German learning journey</p>
+  <p class="sub">Sign in to continue your language learning journey</p>
 
-  <!-- Google Sign In -->
   <button class="google-btn" id="googleBtn">
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -128,7 +113,6 @@ h1{font-size:20px;font-weight:600;color:var(--text);text-align:center;margin-bot
     <div class="divider-line"></div>
   </div>
 
-  <!-- Email Sign In -->
   <input class="email-field" id="emailInput" type="email" placeholder="Email address" autocomplete="email"/>
   <input class="pass-field" id="passInput" type="password" placeholder="Password" autocomplete="current-password"/>
   <button class="submit-btn" id="emailBtn">Sign in</button>
@@ -141,12 +125,14 @@ h1{font-size:20px;font-weight:600;color:var(--text);text-align:center;margin-bot
 </div>
 
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, signInWithPopup, signInWithEmailAndPassword, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { FIREBASE_CONFIG } from '/src/config/constants.js';
 
-const app      = initializeApp(FIREBASE_CONFIG);
-const auth     = getAuth(app);
+const fbApp = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+const auth  = getAuth(fbApp);
+const db    = getFirestore(fbApp);
 const provider = new GoogleAuthProvider();
 
 const googleBtn  = document.getElementById('googleBtn');
@@ -159,23 +145,32 @@ function showError(msg) {
   errorMsg.textContent = msg;
   errorMsg.style.display = 'block';
 }
-
 function clearError() {
   errorMsg.style.display = 'none';
 }
 
-function afterSignIn() {
-  window.location.href = '/src/app/screens/app-screens.html';
+// After sign in: check Firestore profile — route to onboarding or dashboard
+async function afterSignIn(user) {
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (snap.exists() && snap.data().onboardingComplete) {
+      window.location.href = '/src/app/screens/app-screens.html';
+    } else {
+      window.location.href = '/src/app/screens/onboarding.html';
+    }
+  } catch (e) {
+    // If Firestore read fails, go to onboarding to be safe
+    window.location.href = '/src/app/screens/onboarding.html';
+  }
 }
 
-// Google sign in
 googleBtn.addEventListener('click', async () => {
   clearError();
   googleBtn.disabled = true;
   googleBtn.textContent = 'Signing in…';
   try {
-    await signInWithPopup(auth, provider);
-    afterSignIn();
+    const result = await signInWithPopup(auth, provider);
+    await afterSignIn(result.user);
   } catch (err) {
     showError(err.message || 'Google sign in failed.');
     googleBtn.disabled = false;
@@ -183,7 +178,6 @@ googleBtn.addEventListener('click', async () => {
   }
 });
 
-// Email sign in
 emailBtn.addEventListener('click', async () => {
   clearError();
   const email = emailInput.value.trim();
@@ -192,8 +186,8 @@ emailBtn.addEventListener('click', async () => {
   emailBtn.disabled = true;
   emailBtn.textContent = 'Signing in…';
   try {
-    await signInWithEmailAndPassword(auth, email, pass);
-    afterSignIn();
+    const result = await signInWithEmailAndPassword(auth, email, pass);
+    await afterSignIn(result.user);
   } catch (err) {
     const msg = err.code === 'auth/invalid-credential'
       ? 'Wrong email or password.'
