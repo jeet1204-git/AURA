@@ -228,16 +228,20 @@ async function initDeepgramSTT(targetLanguage) {
   const langCode = langMap[targetLanguage] || 'en';
 
   try {
-    const r = await fetch(`${DEEPGRAM_WORKER_URL}/deepgram-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
+    // Connect to the worker's WebSocket proxy — API key never reaches the browser
+    const workerWssUrl = DEEPGRAM_WORKER_URL.replace(/^https?:\/\//, 'wss://');
+    const dgParams = new URLSearchParams({
+      model:            'nova-2',
+      language:         langCode,
+      smart_format:     'false',
+      punctuate:        'false',
+      encoding:         'linear16',
+      sample_rate:      '16000',
+      endpointing:      '400',
+      utterance_end_ms: '1000',
+      interim_results:  'true',
     });
-    if (!r.ok) { console.warn('[Deepgram] token fetch failed', r.status); return; }
-    const { token } = await r.json();
-    if (!token) { console.warn('[Deepgram] no token returned'); return; }
-
-    const dgUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${langCode}&smart_format=false&punctuate=false&encoding=linear16&sample_rate=16000&endpointing=400&utterance_end_ms=1000&interim_results=true&access_token=${encodeURIComponent(token)}`;
+    const dgUrl = `${workerWssUrl}/listen?${dgParams.toString()}`;
     dgWs = new WebSocket(dgUrl);
     dgWs.binaryType = 'arraybuffer';
 
