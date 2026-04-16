@@ -34,6 +34,11 @@ let _corrections = [];
 // Timer
 let _timerSecs = 0, _timerInterval = null;
 
+// Session tracking — for eval and consolidate
+let _sessionId   = null;
+let _userId      = null;
+let _transcript  = []; // accumulates { role, text } turns
+
 // ── BLUEPRINT BUILDER ─────────────────────────────────────────────────────────
 // Builds a minimal but real blueprint from the user's Firestore profile.
 // Falls back to A2 guided daily conversation if profile fields are missing.
@@ -110,6 +115,9 @@ function updateStreamBubble(text) {
 function finaliseStreamBubble() {
   if (!_streamBubble) return;
   _streamBubble.classList.remove('streaming');
+  if (_dgBuffer.trim()) {
+    _transcript.push({ role: 'student', text: _dgBuffer.trim() });
+  }
   _streamBubble = null;
   _dgBuffer = '';
 }
@@ -346,6 +354,7 @@ function handleServerMessage(msg) {
     if (sc.turnComplete) {
       if (_currentAiText.trim()) {
         detectCorrection(_currentAiText);
+        _transcript.push({ role: 'aura', text: _currentAiText.trim() });
       }
       _currentAiText = '';
       _aiEntryEl     = null;
@@ -382,7 +391,47 @@ export async function endSession() {
   stopTimer();
   setOrbSpeaking(false);
   window.dispatchEvent(new CustomEvent('aura:session-ended'));
+
+  // Fire eval + consolidate to save session and update memory
+  if (_sessionId && _userId && _transcript.length > 0) {
+    const transcriptText = _transcript
+      .map(t => `${t.role === 'student' ? 'STUDENT' : 'AURA'}: ${t.text}`)
+      .join('\n');
+    evalAndConsolidate(_sessionId, _userId, transcriptText).catch(console.error);
+  }
+
   showSummary();
+}
+
+async function evalAndConsolidate(sessionId, userId, transcriptText) {
+  try {
+    // Step 1: eval
+    const evalRes = await fetch(`${WORKER_URL}/eval`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, sessionId, transcript: transcriptText }),
+    });
+    if (!evalRes.ok) {
+      console.warn('[AURA] /eval failed:', evalRes.status);
+    } else {
+      const evalData = await evalRes.json();
+      console.log('[AURA] session eval complete', evalData?.scores);
+    }
+
+    // Step 2: consolidate (updates memory)
+    const consRes = await fetch(`${WORKER_URL}/consolidate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, sessionId, transcript: transcriptText }),
+    });
+    if (!consRes.ok) {
+      console.warn('[AURA] /consolidate failed:', consRes.status);
+    } else {
+      console.log('[AURA] memory consolidated successfully');
+    }
+  } catch (e) {
+    console.warn('[AURA] evalAndConsolidate error:', e?.message);
+  }
 }
 
 function showSummary() {
@@ -424,6 +473,7 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
   // Reset
   _words = 0; _correct = 0; _errors = 0; _corrections = [];
   _dgBuffer = ''; _streamBubble = null; _currentAiText = ''; _aiEntryEl = null;
+  _sessionId = null; _userId = null; _transcript = [];
   updateStats();
 
   // Clear chat area
@@ -437,44 +487,10 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
   const langPref = profile?.langPref || profile?.nativeLanguage || 'English';
   const lang     = profile?.targetLanguage || 'German';
 
- let systemPrompt;
-try {
-  const targetLang = profile?.targetLanguage || 'German';
-  const level      = profile?.level          || 'A2';
-  const mode       = profile?.preferredMode  || 'guided';
-  const nativeLang = profile?.nativeLanguage || 'English';
-  const langPref2  = profile?.langPref       || nativeLang;
-
-  if (targetLang === 'German') {
+  let systemPrompt;
+  try {
     const blueprint = buildBlueprintFromProfile(profile);
-    systemPrompt = buildSystemPrompt(blueprint, langPref2);
-  } else {
-    const modeDesc = mode === 'immersion'
-      ? `Immersion mode — speak only in ${targetLang}, use ${langPref2} only when student is completely stuck`
-      : `Guided mode — supportive, use ${langPref2} for corrections`;
-    const levelDesc = level === 'A1'
-      ? 'very simple words, very short sentences, maximum encouragement'
-      : level === 'A2'
-      ? 'basic sentences, common vocabulary, gentle corrections'
-      : 'intermediate vocabulary, correct errors, encourage longer responses';
-    systemPrompt = `You are AURA, a warm and intelligent AI language tutor.
-
-Student name: ${userDisplayName}
-Target language: ${targetLang}
-Student level: ${level}
-Native language: ${nativeLang}
-Correction language: ${langPref2}
-Session mode: ${modeDesc}
-
-STRICT RULES:
-1. Speak ONLY in ${targetLang} during the session. Never default to German or English for conversation.
-2. Use ${langPref2} ONLY for brief corrections — one sentence maximum.
-3. When correcting a mistake: say a short signal in ${targetLang}, say the correct phrase once, wait for the student to repeat.
-4. Keep each turn to 2-3 sentences maximum.
-5. After every correction append on a new line: ##CORRECTION## wrong: [wrong phrase] | right: [correct phrase] | note: [brief note in ${langPref2}]
-6. Greet the student warmly in ${targetLang} right now to begin the session.
-7. For level ${level}: ${levelDesc}.`;
-  }
+    systemPrompt = buildSystemPrompt(blueprint, langPref);
     console.log('[AURA] system prompt built via prompts.js', {
       level: blueprint.level,
       mode:  blueprint.mode,
@@ -510,8 +526,13 @@ STRICT RULES:
       const e = await resp.json().catch(() => ({}));
       throw new Error(e.error || `Worker error ${resp.status}`);
     }
-    const { token } = await resp.json();
+    const tokenData = await resp.json();
+    const { token } = tokenData;
     if (!token) throw new Error('No token from Worker.');
+
+    // Store sessionId and userId for eval/consolidate on session end
+    _sessionId = tokenData.sessionId || null;
+    _userId    = tokenData.userId    || null;
 
     ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${token}`);
     ws.binaryType = 'arraybuffer';
@@ -676,17 +697,9 @@ export function initSession(callbacks) {
       const langPref  = profile?.langPref || profile?.nativeLanguage || 'English';
       let   textSystemPrompt;
 
-     try {
-  const targetLang2 = profile?.targetLanguage || 'German';
-  const lvl  = profile?.level          || 'A2';
-  const nat  = profile?.nativeLanguage || 'English';
-  const lp   = profile?.langPref       || nat;
-  if (targetLang2 === 'German') {
-    const blueprint  = buildBlueprintFromProfile(profile);
-    textSystemPrompt = buildSystemPrompt(blueprint, lp);
-  } else {
-    textSystemPrompt = `You are AURA, a warm AI language tutor. The student is learning ${targetLang2} at ${lvl} level. Their native language is ${nat}. Speak in ${targetLang2}. Use ${nat} only for corrections, one sentence max. Keep replies to 3 sentences. No bullet points.`;
-  }
+      try {
+        const blueprint    = buildBlueprintFromProfile(profile);
+        textSystemPrompt   = buildSystemPrompt(blueprint, langPref);
       } catch (e) {
         const nativeLang   = profile?.nativeLanguage || 'English';
         const targetLang   = profile?.targetLanguage || 'German';
