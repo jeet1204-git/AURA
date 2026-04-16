@@ -26,6 +26,7 @@ let userDoc       = null;
 initSession({
   getIdToken:         () => currentUser ? currentUser.getIdToken() : Promise.resolve(null),
   getUserDisplayName: () => currentUser?.displayName || currentUser?.email?.split('@')[0] || 'there',
+  getActiveProfile:   () => activeProfile,
 });
 
 onAuthStateChanged(auth, (user) => {
@@ -57,6 +58,7 @@ async function onUserReady(user) {
 
   const activeId = userDoc?.activeProfileId || allProfiles[0]?.id || null;
   activeProfile  = allProfiles.find(p => p.id === activeId) || allProfiles[0] || null;
+  window._activeProfile = activeProfile; // used by session-bridge for personalised prompt
 
   // Render everything
   renderSidebar(activeProfile, userDoc);
@@ -67,6 +69,7 @@ async function onUserReady(user) {
 
   // Load recent sessions
   loadRecentSessions(user.uid, activeProfile?.id || null);
+  renderSkillProgress(user.uid, activeProfile?.id || null);
 }
 
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
@@ -229,7 +232,10 @@ function enterSessionState() {
   document.getElementById('session-screen').classList.add('active');
   document.getElementById('liveStatsCard').style.display  = 'block';
   document.getElementById('endSessionBtn').style.display  = '';
+  document.getElementById('summaryBtn').style.display     = '';
   document.getElementById('sessionTimer').style.display   = '';
+  const sumBtn = document.getElementById('summaryBtn');
+  if (sumBtn) sumBtn.style.display = '';
 
   const badge    = document.getElementById('sessionStatusBadge');
   const badgeTxt = document.getElementById('sessionStatusText');
@@ -253,7 +259,10 @@ function enterIdleState() {
   document.getElementById('session-screen').classList.remove('active');
   document.getElementById('liveStatsCard').style.display  = 'none';
   document.getElementById('endSessionBtn').style.display  = 'none';
+  document.getElementById('summaryBtn').style.display     = 'none';
   document.getElementById('sessionTimer').style.display   = 'none';
+  const sumBtnIdle = document.getElementById('summaryBtn');
+  if (sumBtnIdle) sumBtnIdle.style.display = 'none';
 
   const badge    = document.getElementById('sessionStatusBadge');
   const badgeTxt = document.getElementById('sessionStatusText');
@@ -263,8 +272,11 @@ function enterIdleState() {
   setEl('topbarSessionInfo', '');
   setEl('rpTitle', 'Your Progress');
 
-  // Refresh recent sessions when session ends
-  if (currentUser) loadRecentSessions(currentUser.uid, activeProfile?.id || null);
+  // Refresh recent sessions and skill progress when session ends
+  if (currentUser) {
+    loadRecentSessions(currentUser.uid, activeProfile?.id || null);
+    renderSkillProgress(currentUser.uid, activeProfile?.id || null);
+  }
 }
 
 // End session button
@@ -273,6 +285,60 @@ document.getElementById('endSessionBtn')?.addEventListener('click', async () => 
   if (!confirm('End this session? Your progress will be saved.')) return;
   if (typeof window.endSession === 'function') await window.endSession();
 });
+
+// Summary button — show a toast with quick stats for now
+document.getElementById('summaryBtn')?.addEventListener('click', () => {
+  const words   = document.getElementById('wordsSpoken')?.textContent  || '0';
+  const correct = document.getElementById('correctCount')?.textContent || '0';
+  const errors  = document.getElementById('errCount')?.textContent     || '0';
+  const timer   = document.getElementById('sessionTimer')?.textContent || '00:00:00';
+  showToast(`Session: ${timer} · ${words} words · ${correct} correct · ${errors} errors`);
+});
+
+// Render skill progress from session history
+async function renderSkillProgress(uid, profileId) {
+  const container = document.getElementById('skillProgressContent');
+  if (!container) return;
+  try {
+    const { loadUserSessionHistory } = await import('./firestore.js');
+    const sessions = await loadUserSessionHistory(uid, 20);
+    const filtered = profileId ? sessions.filter(s => !s.profileId || s.profileId === profileId) : sessions;
+    if (!filtered.length) return;
+
+    // Aggregate scores from sessions that have them
+    const scored = filtered.filter(s => s.scores);
+    if (!scored.length) return;
+
+    const avg = (key) => {
+      const vals = scored.map(s => s.scores[key]).filter(v => typeof v === 'number');
+      return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+    };
+
+    const skills = [
+      { name: 'Overall',     val: avg('overall'),        color: 'linear-gradient(90deg,var(--purple),var(--blue))' },
+      { name: 'Grammar',     val: avg('grammar'),        color: 'linear-gradient(90deg,var(--amber),#f59e0b)' },
+      { name: 'Vocabulary',  val: avg('vocabulary'),     color: 'linear-gradient(90deg,var(--blue),#38bdf8)' },
+      { name: 'Fluency',     val: avg('fluency'),        color: 'linear-gradient(90deg,var(--green),#22c55e)' },
+    ].filter(s => s.val !== null);
+
+    if (!skills.length) return;
+
+    container.innerHTML = skills.map(s => `
+      <div class="prog-row">
+        <div class="prog-top">
+          <span class="prog-name">${s.name}</span>
+          <span class="prog-pct">${s.val}%</span>
+        </div>
+        <div class="prog-track">
+          <div class="prog-fill" style="width:${s.val}%;background:${s.color};"></div>
+        </div>
+      </div>
+    `).join('');
+
+    const note = document.getElementById('skillProgressNote');
+    if (note) note.textContent = `avg of ${scored.length} session${scored.length>1?'s':''}`;
+  } catch(e) {}
+}
 
 // ── LIVE STATS from session-bridge events ─────────────────────────────────────
 window.addEventListener('aura:stats', (e) => {
@@ -404,6 +470,7 @@ async function handleSwitchProfile(profile) {
     if (typeof window.endSession === 'function') await window.endSession().catch(() => {});
   }
   activeProfile = profile;
+  window._activeProfile = profile;
   await setActiveProfile(currentUser.uid, profile.id);
   renderSidebar(profile, userDoc);
   renderIdleScreen(profile, userDoc);
