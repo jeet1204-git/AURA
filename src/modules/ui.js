@@ -593,6 +593,8 @@ if (themeToggle) {
 // ── CUSTOM CURSOR ─────────────────────────────────────────────────────────────
 const dot  = document.getElementById('cursorDot');
 const ring = document.getElementById('cursorRing');
+if (dot)  dot.style.pointerEvents  = 'none';
+if (ring) ring.style.pointerEvents = 'none';
 let mx=0,my=0,rx=0,ry=0;
 document.addEventListener('mousemove', e => {
   mx=e.clientX; my=e.clientY;
@@ -646,6 +648,26 @@ document.querySelectorAll('.sug-chip').forEach(chip => {
     if (input) { input.value=chip.textContent.trim(); input.focus(); }
   });
 });
+
+// ── SESSION CHART (stub — real chart comes with session.js wiring) ────────────
+function buildSessionChart(uid, profileId) {
+  // Placeholder until post-session scoring is wired
+}
+
+// ── ACCURACY RING ─────────────────────────────────────────────────────────────
+function updateAccuracyRing(correct, errors) {
+  const total = correct + errors;
+  const pct   = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const label = document.getElementById('accuracyPct');
+  const ring  = document.getElementById('accuracyRing');
+  if (label) label.textContent = pct + '%';
+  if (ring) {
+    const circumference = 2 * Math.PI * 20;
+    const offset = circumference - (pct / 100) * circumference;
+    ring.style.strokeDasharray  = circumference;
+    ring.style.strokeDashoffset = offset;
+  }
+}
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function setEl(id, val) {
