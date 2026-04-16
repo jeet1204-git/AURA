@@ -9,7 +9,7 @@ import { FIREBASE_CONFIG, WORKER_URL } from '../config/constants.js';
 import {
   loadUserProfile, loadProfiles, loadUserSessionHistory,
   createProfile, deleteProfile, setActiveProfile,
-  migrateUserToProfiles, getLangFlag
+  migrateUserToProfiles, getLangFlag, ensureUserDoc
 } from './firestore.js';
 import { initSession } from './session-bridge.js';
 
@@ -48,13 +48,16 @@ async function onUserReady(user) {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   setEl('idleGreeting', `${greeting}, ${displayName.split(' ')[0]}`);
 
-  // Load root user doc
-  try { userDoc = await loadUserProfile(user.uid); } catch (e) {}
+  // Load root user doc + ensure AURA fields exist
+try {
+  await ensureUserDoc(user.uid, { name: user.displayName, email: user.email });
+  userDoc = await loadUserProfile(user.uid);
+} catch (e) {}
 
-  // Migrate / load profiles
-  try {
-    allProfiles = await migrateUserToProfiles(user.uid, userDoc || {});
-  } catch (e) { allProfiles = []; }
+// Migrate / load profiles
+try {
+  allProfiles = await migrateUserToProfiles(user.uid, userDoc || {});
+} catch (e) { allProfiles = []; }
 
   const activeId = userDoc?.activeProfileId || allProfiles[0]?.id || null;
   activeProfile  = allProfiles.find(p => p.id === activeId) || allProfiles[0] || null;
