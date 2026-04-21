@@ -1,30 +1,39 @@
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getIdToken } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getApps, getApp, initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { FIREBASE_CONFIG } from '../config/constants.js';
+/**
+ * auth.js — AURA Auth layer (Supabase edition)
+ * Drop-in replacement for the Firebase auth module.
+ * Keeps the same exported function signatures so other modules need minimal changes.
+ *
+ * Replaces:
+ *   firebase-app.js  initializeApp / getApp
+ *   firebase-auth.js getAuth / signInWithEmailAndPassword / createUserWithEmailAndPassword
+ *                    signInWithPopup / GoogleAuthProvider / getIdToken / onAuthStateChanged
+ */
+import { supabase } from './supabase-client.js';
 
-// ── Firebase init ─────────────────────────────────────────────────────────────
-export const fbApp = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-export const auth  = getAuth(fbApp);
+// Re-export supabase so other modules (ui.js) can import it from here
+export { supabase };
 
 // ── Auth tab switching ────────────────────────────────────────────────────────
+
 export function switchAuthTab(tab) {
-  const loginTab  = document.getElementById('auth-tab-login');
-  const signupTab = document.getElementById('auth-tab-signup');
-  const loginForm = document.getElementById('auth-form-login');
+  const loginTab   = document.getElementById('auth-tab-login');
+  const signupTab  = document.getElementById('auth-tab-signup');
+  const loginForm  = document.getElementById('auth-form-login');
   const signupForm = document.getElementById('auth-form-signup');
-  const errEl = document.getElementById('auth-error');
+  const errEl      = document.getElementById('auth-error');
+
   if (errEl) errEl.textContent = '';
 
   if (tab === 'signup') {
     loginTab.classList.remove('active');
     signupTab.classList.add('active');
-    loginForm.style.display = 'none';
+    loginForm.style.display  = 'none';
     signupForm.style.display = 'flex';
   } else {
     signupTab.classList.remove('active');
     loginTab.classList.add('active');
     signupForm.style.display = 'none';
-    loginForm.style.display = 'flex';
+    loginForm.style.display  = 'flex';
   }
 }
 
@@ -34,74 +43,88 @@ function showAuthError(msg) {
 }
 
 // ── Email login ───────────────────────────────────────────────────────────────
+
 export async function doEmailLogin() {
-  if (!auth) return;
   const email = document.getElementById('auth-email')?.value?.trim();
   const pass  = document.getElementById('auth-password')?.value;
+
   if (!email || !pass) { showAuthError('Please enter email and password.'); return; }
+
   const btn = document.getElementById('auth-login-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Signing in...'; }
-  try {
-    await signInWithEmailAndPassword(auth, email, pass);
-  } catch (e) {
-    const msg = e.code === 'auth/user-not-found'      ? 'No account found. Create one below.'
-      : e.code === 'auth/wrong-password'              ? 'Incorrect password.'
-      : e.code === 'auth/invalid-email'               ? 'Invalid email address.'
-      : e.code === 'auth/invalid-credential'          ? 'Invalid credentials. Check your email and password.'
-      : e.message || 'Sign in failed.';
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+
+  if (error) {
+    const msg = error.message.toLowerCase().includes('invalid')
+      ? 'Invalid credentials. Check your email and password.'
+      : error.message || 'Sign in failed.';
     showAuthError(msg);
   }
+
   if (btn) { btn.disabled = false; btn.textContent = 'Sign in'; }
 }
 
 // ── Email signup ──────────────────────────────────────────────────────────────
+
 export async function doEmailSignup() {
-  if (!auth) return;
   const email = document.getElementById('auth-signup-email')?.value?.trim();
   const pass  = document.getElementById('auth-signup-password')?.value;
+
   if (!email || !pass) { showAuthError('Please enter email and password.'); return; }
   if (pass.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+
   const btn = document.getElementById('auth-signup-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Creating account...'; }
-  try {
-    await createUserWithEmailAndPassword(auth, email, pass);
-  } catch (e) {
-    const msg = e.code === 'auth/email-already-in-use' ? 'Account exists. Sign in instead.'
-      : e.code === 'auth/weak-password'                ? 'Password too weak. Use 6+ characters.'
-      : e.code === 'auth/invalid-email'                ? 'Invalid email address.'
-      : e.message || 'Signup failed.';
+
+  const { error } = await supabase.auth.signUp({ email, password: pass });
+
+  if (error) {
+    const msg = error.message.toLowerCase().includes('already')
+      ? 'Account exists. Sign in instead.'
+      : error.message || 'Signup failed.';
     showAuthError(msg);
+  } else {
+    showAuthError('Check your email for a confirmation link!');
   }
+
   if (btn) { btn.disabled = false; btn.textContent = 'Create account'; }
 }
 
 // ── Google login ──────────────────────────────────────────────────────────────
+
 export async function doGoogleLogin() {
-  if (!auth) return;
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  } catch (e) {
-    if (e.code !== 'auth/popup-closed-by-user') {
-      showAuthError(e.message || 'Google sign-in failed.');
-    }
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      // After Google auth, redirect back to the app dashboard
+      redirectTo: window.location.origin + '/#aura',
+    },
+  });
+
+  if (error) {
+    showAuthError(error.message || 'Google sign-in failed.');
   }
+  // On success Supabase redirects the browser — no further action needed here.
 }
 
 // ── Hash-based routing ────────────────────────────────────────────────────────
-export function handleHashChange() {
-  const h     = window.location.hash;
+
+export async function handleHashChange() {
+  const h    = window.location.hash;
   const isApp = h === '#aura' || (h.indexOf('#aura') === 0 && h.length === 5);
   document.documentElement.setAttribute('data-route', isApp ? 'app' : 'landing');
+
   if (isApp) {
     document.body.style.background = 'var(--app-bg)';
-    if (auth && !auth.currentUser) {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
       const authScreen = document.getElementById('auth-screen');
       const checking   = document.getElementById('auth-checking');
       const formWrap   = document.getElementById('auth-form-wrap');
       if (authScreen) authScreen.classList.add('active');
       if (checking)   checking.style.display = 'none';
-      if (formWrap)   formWrap.style.display = '';
+      if (formWrap)   formWrap.style.display  = '';
     }
   } else {
     document.body.style.background = 'var(--white)';
@@ -109,11 +132,13 @@ export function handleHashChange() {
 }
 
 // ── Enter key support ─────────────────────────────────────────────────────────
+
 export function initAuthKeyListeners() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     const active = document.activeElement;
     if (!active) return;
+
     if (active.id === 'auth-email' || active.id === 'auth-password') {
       e.preventDefault(); doEmailLogin();
     }
@@ -129,5 +154,9 @@ window.doEmailLogin   = doEmailLogin;
 window.doEmailSignup  = doEmailSignup;
 window.doGoogleLogin  = doGoogleLogin;
 
-// ── Re-export getIdToken for use in other modules ────────────────────────────
-export { getIdToken };
+// ── getIdToken — returns the current Supabase access_token ───────────────────
+// Same usage as Firebase's getIdToken(user).
+export async function getIdToken() {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token || null;
+}
