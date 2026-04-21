@@ -189,9 +189,12 @@ export function initAuthKeyListeners() {
 }
 
 // ── Keep auth state synced and leave auth page when signed in ────────────────
-
+// IMPORTANT: Only redirect from auth.html — never from app-screens.html.
+// The old hash-based check (window.location.hash !== '#aura') was designed for
+// a single-page app. Now that the app uses separate HTML files, that check would
+// fire on every JWT auto-refresh while on the dashboard, causing an infinite reload.
 supabase.auth.onAuthStateChange((_event, session) => {
-  if (session && window.location.hash !== '#aura') {
+  if (session && window.location.pathname.includes('auth.html')) {
     window.location.replace('/src/app/screens/app-screens.html');
   }
 });
