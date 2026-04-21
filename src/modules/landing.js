@@ -261,19 +261,19 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 supabase.auth.onAuthStateChange((event, session) => {
   const loginEl = document.querySelector('.nav-login');
   if (!loginEl) return;
+
+  loginEl.style.cursor = 'pointer';
   if (session?.user) {
     loginEl.textContent = 'Dashboard';
-    loginEl.style.cursor = 'pointer';
     loginEl.style.color = 'var(--text)';
-    loginEl.addEventListener('click', () => {
-      window.location.href = '/#aura';
-    });
+    loginEl.onclick = () => {
+      window.location.href = '/src/app/screens/app-screens.html';
+    };
   } else {
     loginEl.textContent = 'Log in';
-    loginEl.style.cursor = 'pointer';
-    loginEl.addEventListener('click', () => {
-      window.location.href = '/';
-    });
+    loginEl.onclick = () => {
+      window.location.href = '/src/app/screens/auth.html';
+    };
   }
 });
 
@@ -290,11 +290,11 @@ async function handleCtaClick() {
   try {
     const { data: row } = await supabase
       .from('users')
-      .select('extra_data')
+      .select('extra_data,active_profile_id')
       .eq('id', user.id)
       .single();
 
-    if (row?.extra_data?.onboardingComplete) {
+    if (row?.extra_data?.onboardingComplete && row?.active_profile_id) {
       window.location.href = '/src/app/screens/app-screens.html';
     } else {
       window.location.href = '/src/app/screens/onboarding.html';

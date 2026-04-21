@@ -924,27 +924,85 @@
     };
 
     try {
-      // Upsert the users row — safe to call even if row exists
-      const { error } = await supabase
-        .from('users')
-        .upsert({
-          id:           user.id,
-          email:        user.email || '',
-          name:         user.user_metadata?.full_name || user.user_metadata?.display_name || '',
-          extra_data:   extraData,
-          // These only matter on first insert; upsert won't overwrite if row exists
-          // because we use onConflict:'id' (default)
-          xp:           0,
-          streak:       0,
-          total_sessions: 0,
-          total_minutes:  0,
-          is_paid:        false,
-          free_sessions_used_this_month: 0,
-          free_sessions_month_key: now.slice(0, 7),
-          created_at:   now,
-        }, { onConflict: 'id', ignoreDuplicates: false });
+      const displayName = user.user_metadata?.full_name || user.user_metadata?.display_name || '';
 
-      if (error) throw error;
+      // 1) Write users row using existing schema columns
+      const { data: existingUser, error: existingErr } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (existingErr) throw existingErr;
+
+      if (existingUser?.id) {
+        const { error: updateErr } = await supabase
+          .from('users')
+          .update({
+            email: user.email || '',
+            display_name: displayName,
+            extra_data: extraData,
+          })
+          .eq('id', user.id);
+        if (updateErr) throw updateErr;
+      } else {
+        const { error: insertErr } = await supabase
+          .from('users')
+          .insert({
+            id: user.id,
+            email: user.email || '',
+            display_name: displayName,
+            is_paid: false,
+            free_sessions_used_this_month: 0,
+            free_sessions_month_key: now.slice(0, 7),
+            extra_data: extraData,
+          });
+        if (insertErr) throw insertErr;
+      }
+
+      // 2) Ensure a profile row exists and mark it active
+      const profilePayload = {
+        user_id: user.id,
+        target_language: data.targetLanguage,
+        level: data.level === 'unknown' ? 'A1' : data.level,
+        native_language: data.nativeLanguage,
+        lang_pref: data.langPref || data.nativeLanguage,
+        goal: data.goal,
+        preferred_mode: 'guided',
+        exam_name: data.goal === 'exam' ? (data.examName || null) : null,
+        exam_date: data.goal === 'exam' ? (data.examDate || null) : null,
+        exam_date_confirmed: data.goal === 'exam' ? (data.examDateStatus === 'booked') : false,
+        daily_minutes: data.dailyMinutes,
+      };
+
+      const { data: existingProfiles, error: profReadErr } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1);
+      if (profReadErr) throw profReadErr;
+
+      if (existingProfiles?.length) {
+        const activeId = existingProfiles[0].id;
+        const { error: profileUpdateErr } = await supabase
+          .from('profiles')
+          .update(profilePayload)
+          .eq('id', activeId)
+          .eq('user_id', user.id);
+        if (profileUpdateErr) throw profileUpdateErr;
+
+        await supabase.from('users').update({ active_profile_id: activeId }).eq('id', user.id);
+      } else {
+        const { data: newProfile, error: profileInsertErr } = await supabase
+          .from('profiles')
+          .insert(profilePayload)
+          .select('id')
+          .single();
+        if (profileInsertErr) throw profileInsertErr;
+
+        if (newProfile?.id) {
+          await supabase.from('users').update({ active_profile_id: newProfile.id }).eq('id', user.id);
+        }
+      }
 
       window.location.href = './app-screens.html';
     } catch (err) {
