@@ -98,7 +98,7 @@ const HERO_SCREEN = {
     exp: '"行きました" — past tense chhe. Tame bilkul saru bol\'yu!',
     userRight: 'ありがとう、AURA！',
     perfect: '素晴らしい！That\'s great! ✓',
-    input: 'How do I say "I like" in Japanese?',
+    input: 'How do I like" in Japanese?',
     voiceLines: [
       'こんにちは！私はAURAです。',
       '週末はどうでしたか？',
@@ -252,21 +252,16 @@ function setBilling(mode) {
 // ── CTA BUTTONS — check auth before navigating ──
 // "Start for free" and "Try free" / "nav-cta" go to auth if not signed in,
 // or straight to dashboard if already signed in.
-import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config/constants.js';
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const auth  = getAuth(fbApp);
-const db    = getFirestore(fbApp);
 
 // Update "Log in" link in nav based on auth state
-onAuthStateChanged(auth, (user) => {
+supabase.auth.onAuthStateChange((event, session) => {
   const loginEl = document.querySelector('.nav-login');
   if (!loginEl) return;
-  if (user) {
+  if (session?.user) {
     loginEl.textContent = 'Dashboard';
     loginEl.style.cursor = 'pointer';
     loginEl.style.color = 'var(--text)';
@@ -283,16 +278,23 @@ onAuthStateChanged(auth, (user) => {
 });
 
 async function handleCtaClick() {
-  const user = auth.currentUser;
+  const { data } = await supabase.auth.getSession();
+  const user = data.session?.user;
+
   if (!user) {
-    // Not signed in — go to auth
     window.location.href = '/src/app/screens/auth.html';
     return;
   }
-  // Signed in — check if onboarding is complete
+
+  // Signed in — check onboarding status in Supabase
   try {
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    if (snap.exists() && snap.data().onboardingComplete) {
+    const { data: row } = await supabase
+      .from('users')
+      .select('extra_data')
+      .eq('id', user.id)
+      .single();
+
+    if (row?.extra_data?.onboardingComplete) {
       window.location.href = '/src/app/screens/app-screens.html';
     } else {
       window.location.href = '/src/app/screens/onboarding.html';
