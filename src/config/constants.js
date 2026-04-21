@@ -26,5 +26,5 @@ export const DEFAULT_SESSION_SECONDS = 20 * 60;
 
 export const SUPABASE_URL = 'https://wkdwjhpeaahonuixqgwq.supabase.co';
 
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndrZHdqaHBlYWFob251aXhxZ3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDc5NzEsImV4cCI6MjA5MDgyMzk3MX0.FQU7NE4GpyBDJiAy3gOPpzBSLOaxIyscckZOehTgYeU';
+export const SUPABASE_ANON_KEY = 'sb_publishable_BOaLqpuJ1KeH6tLihDEKEQ_TsEMcPrz';
  
