@@ -622,6 +622,9 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
   }
 }
 
+// ── Expose endSession globally so external code can call window.endSession() ──
+window.endSession = endSession;
+
 // ── PUBLIC API ────────────────────────────────────────────────────────────────
 export function toggleMic() {
   micMuted = !micMuted;
