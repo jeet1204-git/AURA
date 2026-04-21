@@ -122,7 +122,14 @@ font-size:11.5px;color:var(--muted);
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '/src/config/constants.js';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    flowType: 'implicit',
+    detectSessionInUrl: true,
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});
 
 const googleBtn  = document.getElementById('googleBtn');
 const emailBtn   = document.getElementById('emailBtn');
@@ -142,6 +149,33 @@ function clearError() {
 
 const AUTH_PAGE_URL = `${window.location.origin}/src/app/screens/auth.html`;
 let hasRedirectedAfterSignIn = false;
+
+function parseAuthHashTokens() {
+  const h = window.location.hash || '';
+  if (!h.includes('access_token=')) return null;
+
+  const params = new URLSearchParams(h.startsWith('#') ? h.slice(1) : h);
+  const access_token = params.get('access_token');
+  const refresh_token = params.get('refresh_token');
+  if (!access_token || !refresh_token) return null;
+
+  return { access_token, refresh_token };
+}
+
+async function recoverSessionFromHash() {
+  const tokens = parseAuthHashTokens();
+  if (!tokens) return null;
+
+  const { data, error } = await supabase.auth.setSession(tokens);
+  if (error) {
+    console.error('[AURA auth] setSession from hash failed:', error.message || error);
+    return null;
+  }
+
+  // Remove sensitive OAuth hash params from URL after session is stored.
+  window.history.replaceState({}, document.title, '/src/app/screens/auth');
+  return data?.session || null;
+}
 
 // ── After a successful sign-in, check Supabase for onboarding status ──────────
 async function afterSignIn(userId) {
@@ -176,7 +210,17 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
 // Fallback bootstrap for cases where onAuthStateChange event is missed on load.
 (async function bootstrapSession() {
-  const { data } = await supabase.auth.getSession();
+  const hashSession = await recoverSessionFromHash();
+  if (hashSession?.user) {
+    await afterSignIn(hashSession.user.id);
+    return;
+  }
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    console.error('[AURA auth] getSession failed:', error.message || error);
+    return;
+  }
   if (data?.session?.user) {
     await afterSignIn(data.session.user.id);
   }
