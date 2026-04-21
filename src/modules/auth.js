@@ -98,7 +98,7 @@ export async function doGoogleLogin() {
     provider: 'google',
     options: {
       // After Google auth, redirect back to the app dashboard
-      redirectTo: window.location.origin + '/#aura',
+redirectTo: 'https://auraspeak.in/#aura',
     },
   });
 
