@@ -109,20 +109,43 @@ export async function doGoogleLogin() {
 // ── Hash-based routing ────────────────────────────────────────────────────────
 
 export async function handleHashChange() {
-  const h    = window.location.hash;
-  const isApp = h === '#aura' || (h.indexOf('#aura') === 0 && h.length === 5);
+  const h = window.location.hash || '';
+
+  // Supabase OAuth callback comes back in the hash
+  const isAuthCallback =
+    h.includes('access_token=') ||
+    h.includes('refresh_token=') ||
+    h.includes('token_type=');
+
+  if (isAuthCallback) {
+    // Let Supabase read/store the session from the URL first
+    const { data } = await supabase.auth.getSession();
+
+    if (data.session) {
+      window.location.replace(`${window.location.pathname}#aura`);
+      return;
+    }
+  }
+
+  const isApp = h === '#aura' || h.startsWith('#aura');
   document.documentElement.setAttribute('data-route', isApp ? 'app' : 'landing');
 
   if (isApp) {
     document.body.style.background = 'var(--app-bg)';
+
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
       const authScreen = document.getElementById('auth-screen');
-      const checking   = document.getElementById('auth-checking');
-      const formWrap   = document.getElementById('auth-form-wrap');
+      const checking = document.getElementById('auth-checking');
+      const formWrap = document.getElementById('auth-form-wrap');
+
       if (authScreen) authScreen.classList.add('active');
-      if (checking)   checking.style.display = 'none';
-      if (formWrap)   formWrap.style.display  = '';
+      if (checking) checking.style.display = 'none';
+      if (formWrap) formWrap.style.display = '';
+    } else {
+      // already signed in, keep user in app
+      const authScreen = document.getElementById('auth-screen');
+      if (authScreen) authScreen.classList.remove('active');
     }
   } else {
     document.body.style.background = 'var(--white)';
