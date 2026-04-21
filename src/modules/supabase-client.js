@@ -6,4 +6,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config/constants.js';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const usingLegacyJwtApiKey = typeof SUPABASE_ANON_KEY === 'string' && SUPABASE_ANON_KEY.startsWith('eyJ');
+if (usingLegacyJwtApiKey) {
+  console.error(
+    '[AURA auth] Supabase project has Legacy API keys disabled. ' +
+    'Replace SUPABASE_ANON_KEY with your new sb_publishable_ key in src/config/constants.js.'
+  );
+}
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    flowType: 'implicit',
+    detectSessionInUrl: true,
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});
