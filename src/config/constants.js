@@ -26,5 +26,13 @@ export const DEFAULT_SESSION_SECONDS = 20 * 60;
 
 export const SUPABASE_URL = 'https://wkdwjhpeaahonuixqgwq.supabase.co';
 
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndrZHdqaHBlYWFob251aXhxZ3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDc5NzEsImV4cCI6MjA5MDgyMzk3MX0.FQU7NE4GpyBDJiAy3gOPpzBSLOaxIyscckZOehTgYeU';
- 
+// IMPORTANT:
+// - Use Supabase publishable key (starts with sb_publishable_)
+// - Do NOT use legacy JWT anon key (starts with eyJ) when legacy keys are disabled
+// Priority: runtime global override -> Vite env -> placeholder.
+const runtimePublishable = globalThis.__AURA_SUPABASE_PUBLISHABLE_KEY;
+const vitePublishable = (typeof import.meta !== 'undefined' && import.meta.env)
+  ? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  : undefined;
+
+export const SUPABASE_ANON_KEY = runtimePublishable || vitePublishable || 'sb_publishable_REPLACE_ME';
