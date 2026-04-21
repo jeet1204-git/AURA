@@ -1,13 +1,3 @@
-/**
- * auth.js — AURA Auth layer (Supabase edition)
- * Drop-in replacement for the Firebase auth module.
- * Keeps the same exported function signatures so other modules need minimal changes.
- *
- * Replaces:
- *   firebase-app.js  initializeApp / getApp
- *   firebase-auth.js getAuth / signInWithEmailAndPassword / createUserWithEmailAndPassword
- *                    signInWithPopup / GoogleAuthProvider / getIdToken / onAuthStateChanged
- */
 import { supabase } from './supabase-client.js';
 
 // Re-export supabase so other modules (ui.js) can import it from here
@@ -25,15 +15,15 @@ export function switchAuthTab(tab) {
   if (errEl) errEl.textContent = '';
 
   if (tab === 'signup') {
-    loginTab.classList.remove('active');
-    signupTab.classList.add('active');
-    loginForm.style.display  = 'none';
-    signupForm.style.display = 'flex';
+    loginTab?.classList.remove('active');
+    signupTab?.classList.add('active');
+    if (loginForm) loginForm.style.display = 'none';
+    if (signupForm) signupForm.style.display = 'flex';
   } else {
-    signupTab.classList.remove('active');
-    loginTab.classList.add('active');
-    signupForm.style.display = 'none';
-    loginForm.style.display  = 'flex';
+    signupTab?.classList.remove('active');
+    loginTab?.classList.add('active');
+    if (signupForm) signupForm.style.display = 'none';
+    if (loginForm) loginForm.style.display = 'flex';
   }
 }
 
@@ -48,10 +38,16 @@ export async function doEmailLogin() {
   const email = document.getElementById('auth-email')?.value?.trim();
   const pass  = document.getElementById('auth-password')?.value;
 
-  if (!email || !pass) { showAuthError('Please enter email and password.'); return; }
+  if (!email || !pass) {
+    showAuthError('Please enter email and password.');
+    return;
+  }
 
   const btn = document.getElementById('auth-login-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Signing in...'; }
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+  }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
 
@@ -60,9 +56,15 @@ export async function doEmailLogin() {
       ? 'Invalid credentials. Check your email and password.'
       : error.message || 'Sign in failed.';
     showAuthError(msg);
+  } else {
+    window.location.replace('https://auraspeak.in/#aura');
+    return;
   }
 
-  if (btn) { btn.disabled = false; btn.textContent = 'Sign in'; }
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Sign in';
+  }
 }
 
 // ── Email signup ──────────────────────────────────────────────────────────────
@@ -71,11 +73,21 @@ export async function doEmailSignup() {
   const email = document.getElementById('auth-signup-email')?.value?.trim();
   const pass  = document.getElementById('auth-signup-password')?.value;
 
-  if (!email || !pass) { showAuthError('Please enter email and password.'); return; }
-  if (pass.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+  if (!email || !pass) {
+    showAuthError('Please enter email and password.');
+    return;
+  }
+
+  if (pass.length < 6) {
+    showAuthError('Password must be at least 6 characters.');
+    return;
+  }
 
   const btn = document.getElementById('auth-signup-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Creating account...'; }
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Creating account...';
+  }
 
   const { error } = await supabase.auth.signUp({ email, password: pass });
 
@@ -88,7 +100,10 @@ export async function doEmailSignup() {
     showAuthError('Check your email for a confirmation link!');
   }
 
-  if (btn) { btn.disabled = false; btn.textContent = 'Create account'; }
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Create account';
+  }
 }
 
 // ── Google login ──────────────────────────────────────────────────────────────
@@ -106,23 +121,23 @@ export async function doGoogleLogin() {
   }
 }
 
-// ── Hash-based routing ────────────────────────────────────────────────────────
+// ── Hash-based routing + OAuth callback handling ─────────────────────────────
 
 export async function handleHashChange() {
   const h = window.location.hash || '';
 
-  // Supabase OAuth callback comes back in the hash
-  const isAuthCallback =
+  const isOAuthCallback =
     h.includes('access_token=') ||
     h.includes('refresh_token=') ||
     h.includes('token_type=');
 
-  if (isAuthCallback) {
-    // Let Supabase read/store the session from the URL first
+  if (isOAuthCallback) {
+    // Give Supabase a chance to parse/store the session from the URL
     const { data } = await supabase.auth.getSession();
 
-    if (data.session) {
-      window.location.replace(`${window.location.pathname}#aura`);
+    if (data?.session) {
+      // Important: leave the auth page completely and go to the real app entry
+      window.location.replace('https://auraspeak.in/#aura');
       return;
     }
   }
@@ -134,16 +149,16 @@ export async function handleHashChange() {
     document.body.style.background = 'var(--app-bg)';
 
     const { data } = await supabase.auth.getSession();
-    if (!data.session) {
+
+    if (!data?.session) {
       const authScreen = document.getElementById('auth-screen');
-      const checking = document.getElementById('auth-checking');
-      const formWrap = document.getElementById('auth-form-wrap');
+      const checking   = document.getElementById('auth-checking');
+      const formWrap   = document.getElementById('auth-form-wrap');
 
       if (authScreen) authScreen.classList.add('active');
       if (checking) checking.style.display = 'none';
       if (formWrap) formWrap.style.display = '';
     } else {
-      // already signed in, keep user in app
       const authScreen = document.getElementById('auth-screen');
       if (authScreen) authScreen.classList.remove('active');
     }
@@ -157,27 +172,40 @@ export async function handleHashChange() {
 export function initAuthKeyListeners() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
+
     const active = document.activeElement;
     if (!active) return;
 
     if (active.id === 'auth-email' || active.id === 'auth-password') {
-      e.preventDefault(); doEmailLogin();
+      e.preventDefault();
+      doEmailLogin();
     }
+
     if (active.id === 'auth-signup-email' || active.id === 'auth-signup-password') {
-      e.preventDefault(); doEmailSignup();
+      e.preventDefault();
+      doEmailSignup();
     }
   });
 }
 
+// ── Keep auth state synced and leave auth page when signed in ────────────────
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  if (session && window.location.hash !== '#aura') {
+    window.location.replace('https://auraspeak.in/#aura');
+  }
+});
+
 // ── Expose to window for inline HTML onclick handlers ────────────────────────
-window.switchAuthTab  = switchAuthTab;
-window.doEmailLogin   = doEmailLogin;
-window.doEmailSignup  = doEmailSignup;
-window.doGoogleLogin  = doGoogleLogin;
+
+window.switchAuthTab = switchAuthTab;
+window.doEmailLogin = doEmailLogin;
+window.doEmailSignup = doEmailSignup;
+window.doGoogleLogin = doGoogleLogin;
 
 // ── getIdToken — returns the current Supabase access_token ───────────────────
-// Same usage as Firebase's getIdToken(user).
+
 export async function getIdToken() {
   const { data } = await supabase.auth.getSession();
-  return data.session?.access_token || null;
+  return data?.session?.access_token || null;
 }
