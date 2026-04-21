@@ -266,13 +266,13 @@ supabase.auth.onAuthStateChange((event, session) => {
     loginEl.style.cursor = 'pointer';
     loginEl.style.color = 'var(--text)';
     loginEl.addEventListener('click', () => {
-      window.location.href = '/src/app/screens/app-screens.html';
+      window.location.href = '/#aura';
     });
   } else {
     loginEl.textContent = 'Log in';
     loginEl.style.cursor = 'pointer';
     loginEl.addEventListener('click', () => {
-      window.location.href = '/src/app/screens/auth.html';
+      window.location.href = '/';
     });
   }
 });
