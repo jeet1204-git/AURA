@@ -961,6 +961,7 @@
 
       // 2) Ensure a profile row exists and mark it active
       const profilePayload = {
+        id: crypto.randomUUID(),   // explicit UUID — belt-and-suspenders alongside DB default
         user_id: user.id,
         target_language: data.targetLanguage,
         level: data.level === 'unknown' ? 'A1' : data.level,
