@@ -151,8 +151,8 @@ async function afterSignIn(userId) {
 
     const onboardingComplete = data?.extra_data?.onboardingComplete;
     window.location.href = onboardingComplete
-      ? '/src/app/screens/app-screens.html'
-      : '/src/app/screens/onboarding.html';
+    ? '/#aura'
+    : '/src/app/screens/onboarding.html';
   } catch (e) {
     // If the row doesn't exist yet, go to onboarding
     window.location.href = '/src/app/screens/onboarding.html';
