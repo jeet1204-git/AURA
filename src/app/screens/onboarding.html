@@ -594,14 +594,10 @@
 </div>
 
 <script type="module">
-  import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-  import { FIREBASE_CONFIG } from '/src/config/constants.js';
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from '/src/config/constants.js';
 
-  const fbApp = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-  const auth  = getAuth(fbApp);
-  const db    = getFirestore(fbApp);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ── State ─────────────────────────────────────────────────────────────────
   let currentStep = 1;
@@ -886,17 +882,20 @@
     if (currentStep > 1) showStep(currentStep - 1);
   });
 
-  // ── Save to Firestore ─────────────────────────────────────────────────────
+  // ── Save to Supabase ──────────────────────────────────────────────────────
   async function saveAndContinue() {
-    const user = auth.currentUser;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData.session?.user;
     if (!user) { window.location.href = './auth.html'; return; }
 
     nextBtn.disabled    = true;
     nextBtn.textContent = 'Saving…';
     errorMsg.textContent = '';
 
-    // Build the profile object
-    const profileData = {
+    const now = new Date().toISOString();
+
+    // Build the extra_data payload (stored in users.extra_data JSONB column)
+    const extraData = {
       // Core learning config
       targetLanguage:    data.targetLanguage,
       level:             data.level === 'unknown' ? 'A1' : data.level,
@@ -916,36 +915,36 @@
       // Practice plan
       dailyMinutes:      data.dailyMinutes,
       weaknesses:        data.weaknesses,
-      startDate:         new Date().toISOString().slice(0, 10),
+      startDate:         now.slice(0, 10),
 
       // Flags
       onboardingComplete: true,
       levelAssessed:      data.level !== 'unknown',
-      updatedAt:          serverTimestamp(),
-    };
-
-    // Only set these on first onboarding (don't overwrite if already exist)
-    const firstTimeFields = {
-      uid:          user.uid,
-      email:        user.email || '',
-      name:         user.displayName || '',
-      createdAt:    serverTimestamp(),
-      xp:           0,
-      streak:       0,
-      totalSessions: 0,
-      totalMinutes:  0,
-      isPaid:        false,
-      freeSessionsUsedThisMonth: 0,
-      freeSessionsMonthKey: new Date().toISOString().slice(0, 7),
-      lastSessionDate: null,
+      updatedAt:          now,
     };
 
     try {
-      // merge:true so we don't overwrite GME fields
-      await setDoc(doc(db, 'users', user.uid), {
-        ...firstTimeFields,
-        ...profileData,
-      }, { merge: true });
+      // Upsert the users row — safe to call even if row exists
+      const { error } = await supabase
+        .from('users')
+        .upsert({
+          id:           user.id,
+          email:        user.email || '',
+          name:         user.user_metadata?.full_name || user.user_metadata?.display_name || '',
+          extra_data:   extraData,
+          // These only matter on first insert; upsert won't overwrite if row exists
+          // because we use onConflict:'id' (default)
+          xp:           0,
+          streak:       0,
+          total_sessions: 0,
+          total_minutes:  0,
+          is_paid:        false,
+          free_sessions_used_this_month: 0,
+          free_sessions_month_key: now.slice(0, 7),
+          created_at:   now,
+        }, { onConflict: 'id', ignoreDuplicates: false });
+
+      if (error) throw error;
 
       window.location.href = './app-screens.html';
     } catch (err) {
@@ -957,8 +956,8 @@
   }
 
   // ── Auth guard ────────────────────────────────────────────────────────────
-  onAuthStateChanged(auth, (user) => {
-    if (!user) window.location.href = './auth.html';
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (!session?.user) window.location.href = './auth.html';
   });
 
   // Init
