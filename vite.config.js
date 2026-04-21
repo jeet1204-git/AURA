@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-function injectHtmlFragments() {
+function injectHtmlFragments() { 
   return {
     name: 'inject-html-fragments',
     transformIndexHtml(html) {
