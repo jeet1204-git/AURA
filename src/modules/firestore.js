@@ -1,24 +1,16 @@
 /**
- * firestore.js — AURA Firestore layer
+ * firestore.js — AURA data layer (Supabase edition)
+ * Drop-in replacement for the Firestore module.
+ * Same exported function signatures — no changes needed in ui.js imports.
  *
- * Collections:
- *   users/{uid}                        — root profile (shared with GME, AURA adds its own fields)
- *   users/{uid}/profiles/{profileId}   — one doc per learning profile (language/level/mode/goal)
- *   users/{uid}/sessions/{sessionId}   — one doc per completed session (Worker-write only)
- *   users/{uid}/memory/{profileId}     — AURA's persistent memory per profile (Worker-write only)
- *   analytics_events/{auto}            — lightweight event log
+ * Table mapping:
+ *   users/{uid}              → public.users          (id = Supabase UUID)
+ *   users/{uid}/profiles     → public.profiles       (user_id = Supabase UUID)
+ *   users/{uid}/sessions     → public.aura_sessions  (user_id = Supabase UUID)
+ *   users/{uid}/memory       → public.user_memory    (user_id + doc_id='core')
+ *   analytics_events         → public.analytics_events
  */
-
-import {
-  getFirestore,
-  collection, doc,
-  getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc,
-  query, orderBy, limit,
-  serverTimestamp, increment,
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { fbApp, auth } from './auth.js';
-
-export const db = getFirestore(fbApp);
+import { supabase } from './supabase-client.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LANGUAGE HELPERS
@@ -35,17 +27,39 @@ export function getLangFlag(language) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ROOT USER PROFILE
+// ROOT USER PROFILE  (public.users)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Load the root user document (shared between AURA and GME).
- */
 export async function loadUserProfile(uid) {
   if (!uid) return null;
   try {
-    const snap = await getDoc(doc(db, 'users', uid));
-    return snap.exists() ? snap.data() : null;
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', uid)
+      .single();
+
+    if (error || !data) return null;
+
+    // Merge top-level columns + extra_data into a flat object
+    const ex = data.extra_data || {};
+    return {
+      isPaid:                      data.is_paid                      || false,
+      isPaidStudent:               data.is_paid_student              || false,
+      freeSessionsUsedThisMonth:   data.free_sessions_used_this_month || 0,
+      freeSessionsMonthKey:        data.free_sessions_month_key       || null,
+      activeProfileId:             data.active_profile_id             || null,
+      subscription:                data.subscription                  || null,
+      email:                       data.email                         || null,
+      displayName:                 data.display_name                  || null,
+      // AURA-specific fields stored in extra_data
+      xp:               ex.xp               || 0,
+      streak:           ex.streak           || 0,
+      lastSessionDate:  ex.lastSessionDate  || null,
+      totalSessions:    ex.totalSessions    || 0,
+      totalMinutes:     ex.totalMinutes     || 0,
+      ...ex,
+    };
   } catch (e) {
     console.warn('[AURA] loadUserProfile failed:', e?.message);
     return null;
@@ -53,181 +67,220 @@ export async function loadUserProfile(uid) {
 }
 
 /**
- * Ensure the root user document has AURA's required fields.
- * Safe to call on every login — only writes if fields are missing.
- * Does NOT touch any GME fields.
+ * Ensure the user row has AURA's required fields.
+ * Safe to call on every login — only writes missing fields.
  */
 export async function ensureUserDoc(uid, { name, email }) {
   if (!uid) return;
   try {
-    const snap = await getDoc(doc(db, 'users', uid));
-    const data = snap.exists() ? snap.data() : {};
+    const { data } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', uid)
+      .single();
 
-    const patch = {};
-    if (!data.name  && name)  patch.name  = name;
-    if (!data.email && email) patch.email = email;
-    if (!data.createdAt)      patch.createdAt = serverTimestamp();
+    const ex = data?.extra_data || {};
+    const needsPatch = !ex.xp_initialized;
 
-    // AURA-specific fields — only set if not already present
-    if (data.xp              === undefined) patch.xp              = 0;
-    if (data.streak          === undefined) patch.streak          = 0;
-    if (data.lastSessionDate === undefined) patch.lastSessionDate = null;
-    if (data.totalSessions   === undefined) patch.totalSessions   = 0;
-    if (data.totalMinutes    === undefined) patch.totalMinutes    = 0;
-    if (data.isPaid          === undefined) patch.isPaid          = false;
-    if (data.freeSessionsUsedThisMonth === undefined) patch.freeSessionsUsedThisMonth = 0;
-    if (data.freeSessionsMonthKey      === undefined) patch.freeSessionsMonthKey      = monthKey();
-    if (data.activeProfileId === undefined) patch.activeProfileId = null;
+    if (needsPatch) {
+      const patch = {
+        xp_initialized:          true,
+        xp:                      ex.xp               !== undefined ? ex.xp              : 0,
+        streak:                  ex.streak            !== undefined ? ex.streak           : 0,
+        lastSessionDate:         ex.lastSessionDate   !== undefined ? ex.lastSessionDate  : null,
+        totalSessions:           ex.totalSessions     !== undefined ? ex.totalSessions    : 0,
+        totalMinutes:            ex.totalMinutes      !== undefined ? ex.totalMinutes     : 0,
+        ...ex,
+      };
 
-    if (Object.keys(patch).length > 0) {
-      if (snap.exists()) {
-        await updateDoc(doc(db, 'users', uid), patch);
-      } else {
-        await setDoc(doc(db, 'users', uid), patch);
-      }
+      await supabase
+        .from('users')
+        .update({
+          display_name: data?.display_name || name || null,
+          email:        data?.email        || email || null,
+          extra_data:   patch,
+        })
+        .eq('id', uid);
     }
-
-    patch.lastActiveAt = serverTimestamp();
-    await updateDoc(doc(db, 'users', uid), { lastActiveAt: serverTimestamp() }).catch(() => {});
   } catch (e) {
     console.warn('[AURA] ensureUserDoc failed:', e?.message);
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PROFILES SUBCOLLECTION
-// Each profile = one language + level + mode + goal combination.
-// Paid users can have multiple. Free users get one.
+// PROFILES  (public.profiles)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Load all profiles for a user.
- */
 export async function loadProfiles(uid) {
   if (!uid) return [];
   try {
-    const snap = await getDocs(collection(db, 'users', uid, 'profiles'));
-    const profiles = [];
-    snap.forEach(d => profiles.push({ id: d.id, ...d.data() }));
-    return profiles;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map(rowToProfile);
   } catch (e) {
     console.warn('[AURA] loadProfiles failed:', e?.message);
     return [];
   }
 }
 
-/**
- * Create a new learning profile.
- */
 export async function createProfile(uid, { targetLanguage, level, nativeLanguage, langPref, goal, preferredMode }) {
   if (!uid) return null;
   try {
     const profileId = `prof_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const profileDoc = {
-      id:             profileId,
-      targetLanguage: targetLanguage || 'German',
-      level:          level          || 'A2',
-      nativeLanguage: nativeLanguage || 'English',
-      langPref:       langPref       || nativeLanguage || 'English',
-      goal:           goal           || 'Daily conversation',
-      preferredMode:  preferredMode  || 'guided',
-      flag:           getLangFlag(targetLanguage || 'German'),
-      createdAt:      serverTimestamp(),
+    const row = {
+      id:              profileId,
+      user_id:         uid,
+      target_language: targetLanguage  || 'German',
+      level:           level           || 'A2',
+      native_language: nativeLanguage  || 'English',
+      lang_pref:       langPref        || nativeLanguage || 'English',
+      goal:            goal            || 'Daily conversation',
+      preferred_mode:  preferredMode   || 'guided',
+      flag:            getLangFlag(targetLanguage || 'German'),
     };
-    await setDoc(doc(db, 'users', uid, 'profiles', profileId), profileDoc);
 
-    // If this is the first profile, set it as active
-    const userSnap = await getDoc(doc(db, 'users', uid));
-    if (!userSnap.data()?.activeProfileId) {
-      await updateDoc(doc(db, 'users', uid), { activeProfileId: profileId });
+    const { error } = await supabase.from('profiles').insert(row);
+    if (error) throw error;
+
+    // If this is the first profile, mark it active on the users row
+    const { data: u } = await supabase
+      .from('users')
+      .select('active_profile_id')
+      .eq('id', uid)
+      .single();
+
+    if (!u?.active_profile_id) {
+      await supabase
+        .from('users')
+        .update({ active_profile_id: profileId })
+        .eq('id', uid);
     }
 
-    console.log('[AURA] createProfile ok', profileId);
-    return profileDoc;
+    return rowToProfile(row);
   } catch (e) {
     console.warn('[AURA] createProfile failed:', e?.message);
     return null;
   }
 }
 
-/**
- * Delete a profile. Does not delete its sessions or memory (historical data kept).
- */
 export async function deleteProfile(uid, profileId) {
   if (!uid || !profileId) return;
   try {
-    await deleteDoc(doc(db, 'users', uid, 'profiles', profileId));
+    await supabase.from('profiles').delete().eq('id', profileId).eq('user_id', uid);
   } catch (e) {
     console.warn('[AURA] deleteProfile failed:', e?.message);
   }
 }
 
-/**
- * Set the active profile on the root user doc.
- */
 export async function setActiveProfile(uid, profileId) {
   if (!uid) return;
   try {
-    await updateDoc(doc(db, 'users', uid), { activeProfileId: profileId });
+    await supabase
+      .from('users')
+      .update({ active_profile_id: profileId })
+      .eq('id', uid);
   } catch (e) {
     console.warn('[AURA] setActiveProfile failed:', e?.message);
   }
 }
 
 /**
- * Migration helper: if user has no profiles subcollection yet, create one
- * from whatever fields exist on the root user doc (from old AURA or GME).
- * Safe to call on every login — no-ops if profiles already exist.
+ * Update a profile row. Also syncs key fields to users.extra_data
+ * so the Cloudflare Worker's readUserProfile() picks up the latest values.
+ */
+export async function updateProfile(uid, profileId, updates) {
+  if (!uid || !profileId) return;
+  try {
+    const profileRow = {
+      target_language:      updates.targetLanguage,
+      level:                updates.level,
+      native_language:      updates.nativeLanguage,
+      lang_pref:            updates.langPref,
+      goal:                 updates.goal,
+      preferred_mode:       updates.preferredMode,
+      flag:                 getLangFlag(updates.targetLanguage || 'German'),
+      exam_name:            updates.examName     || null,
+      exam_date:            updates.examDate     || null,
+      exam_date_confirmed:  updates.examDateConfirmed || false,
+      daily_minutes:        updates.dailyMinutes || 20,
+    };
+    // Remove undefined fields
+    Object.keys(profileRow).forEach(k => profileRow[k] === undefined && delete profileRow[k]);
+
+    await supabase
+      .from('profiles')
+      .update(profileRow)
+      .eq('id', profileId)
+      .eq('user_id', uid);
+
+    // Sync to users.extra_data for the Worker
+    const { data: u } = await supabase.from('users').select('extra_data').eq('id', uid).single();
+    const ex = u?.extra_data || {};
+    await supabase.from('users').update({
+      extra_data: {
+        ...ex,
+        targetLanguage:  updates.targetLanguage,
+        currentLevel:    updates.level,
+        level:           updates.level,
+        nativeLanguage:  updates.nativeLanguage,
+        langPref:        updates.langPref,
+        preferredMode:   updates.preferredMode,
+        goal:            updates.goal,
+        examName:        updates.examName     || null,
+        examDate:        updates.examDate     || null,
+        dailyMinutes:    updates.dailyMinutes || ex.dailyMinutes || 20,
+      },
+    }).eq('id', uid);
+  } catch (e) {
+    console.warn('[AURA] updateProfile failed:', e?.message);
+    throw e;
+  }
+}
+
+/**
+ * Migration helper: if user has no profiles yet, create one from existing fields.
  */
 export async function migrateUserToProfiles(uid, userDoc) {
   if (!uid) return [];
 
-  // Check if profiles already exist
   const existing = await loadProfiles(uid);
   if (existing.length > 0) return existing;
 
-  // Try to build a profile from existing root doc fields
   const lang   = userDoc?.targetLanguage || 'German';
   const level  = ['A1','A2','B1','B2','C1','C2'].includes(userDoc?.level) ? userDoc.level : 'A2';
   const native = userDoc?.nativeLanguage || userDoc?.langPref || 'English';
-  const goal   = userDoc?.goal || 'Daily conversation';
-  const mode   = userDoc?.preferredMode || 'guided';
+  const goal   = userDoc?.goal           || 'Daily conversation';
+  const mode   = userDoc?.preferredMode  || 'guided';
 
   const newProfile = await createProfile(uid, {
-    targetLanguage: lang,
-    level,
-    nativeLanguage: native,
-    langPref:       native,
-    goal,
-    preferredMode:  mode,
+    targetLanguage: lang, level, nativeLanguage: native,
+    langPref: native, goal, preferredMode: mode,
   });
 
   return newProfile ? [newProfile] : [];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SESSION HISTORY
-// Sessions are written by the Cloudflare Worker (Service Account).
-// Client can only read.
+// SESSION HISTORY  (public.aura_sessions)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Load last N sessions for a user (most recent first).
- * Optionally filter by profileId.
- */
 export async function loadUserSessionHistory(uid, maxSessions = 20) {
   if (!uid) return [];
   try {
-    const ref  = collection(db, 'users', uid, 'sessions');
-    let snap;
-    try {
-      snap = await getDocs(query(ref, orderBy('endedAt', 'desc'), limit(maxSessions)));
-    } catch {
-      snap = await getDocs(query(ref, limit(maxSessions)));
-    }
-    const sessions = [];
-    snap.forEach(d => sessions.push({ id: d.id, ...d.data() }));
-    return sessions;
+    const { data, error } = await supabase
+      .from('aura_sessions')
+      .select('*')
+      .eq('user_id', uid)
+      .order('ended_at', { ascending: false })
+      .limit(maxSessions);
+
+    if (error) throw error;
+    return (data || []).map(sessionRowToObj);
   } catch (e) {
     console.warn('[AURA] loadUserSessionHistory failed:', e?.message);
     return [];
@@ -235,29 +288,30 @@ export async function loadUserSessionHistory(uid, maxSessions = 20) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AURA MEMORY
-// Memory is written by the Cloudflare Worker after each session.
-// Client reads it at session start to inject into the system prompt.
+// AURA MEMORY  (public.user_memory)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Load AURA's persistent memory for a specific profile.
- */
 export async function loadMemory(uid, profileId) {
-  if (!uid || !profileId) return null;
+  if (!uid) return null;
   try {
-    const snap = await getDoc(doc(db, 'users', uid, 'memory', profileId));
-    return snap.exists() ? snap.data() : null;
+    // Try profile-specific doc first, fall back to 'core' (written by the Worker)
+    const docIds = profileId ? [profileId, 'core'] : ['core'];
+    for (const docId of docIds) {
+      const { data } = await supabase
+        .from('user_memory')
+        .select('content')
+        .eq('user_id', uid)
+        .eq('doc_id', docId)
+        .single();
+      if (data?.content && Object.keys(data.content).length) return data.content;
+    }
+    return null;
   } catch (e) {
     console.warn('[AURA] loadMemory failed:', e?.message);
     return null;
   }
 }
 
-/**
- * Build the auraContextBlock string injected into the system prompt.
- * Summarises recurring mistakes and current focus for this profile.
- */
 export async function buildAuraContext(uid, profileId) {
   const memory = await loadMemory(uid, profileId);
   if (!memory) return '';
@@ -267,7 +321,8 @@ export async function buildAuraContext(uid, profileId) {
   if (memory.recurringMistakes?.length) {
     lines.push('STUDENT HISTORY — recurring mistakes from previous sessions:');
     memory.recurringMistakes.slice(0, 5).forEach(m => {
-      lines.push(`- "${m.pattern}" (seen ${m.seenCount}x) → correct form: "${m.example}"`);
+      const text = typeof m === 'string' ? m : `"${m.pattern}" (seen ${m.seenCount}x) → correct: "${m.example}"`;
+      lines.push(`- ${text}`);
     });
   }
 
@@ -276,12 +331,10 @@ export async function buildAuraContext(uid, profileId) {
   }
 
   if (memory.currentFocus) {
-    lines.push(`Current focus: ${memory.currentFocus} — pay gentle extra attention here.`);
+    lines.push(`Current focus: ${memory.currentFocus}`);
   }
 
-  return lines.length
-    ? '\n\nSTUDENT CONTEXT:\n' + lines.join('\n')
-    : '';
+  return lines.length ? '\n\nSTUDENT CONTEXT:\n' + lines.join('\n') : '';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -293,6 +346,7 @@ const FREE_SESSIONS_PER_MONTH = 3;
 export async function checkSessionAccess(uid) {
   const profile = await loadUserProfile(uid);
   if (!profile) return { allowed: false, reason: 'no_profile' };
+
   if (profile.isPaid || profile.isPaidStudent) return { allowed: true, reason: 'paid' };
 
   const currentMonthKey = monthKey();
@@ -303,29 +357,29 @@ export async function checkSessionAccess(uid) {
   if (used >= FREE_SESSIONS_PER_MONTH) {
     return { allowed: false, reason: 'trial_limit', used, limit: FREE_SESSIONS_PER_MONTH };
   }
+
   return { allowed: true, reason: 'trial', used, remaining: FREE_SESSIONS_PER_MONTH - used };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ANALYTICS
+// ANALYTICS  (public.analytics_events)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function logAnalyticsEvent(eventName, metadata = {}) {
   if (!eventName) return;
   try {
-    const uid = auth?.currentUser?.uid || null;
-    await addDoc(collection(db, 'analytics_events'), {
-      userId:    uid,
-      eventName,
-      createdAt: serverTimestamp(),
-      metadata:  compactMeta(metadata),
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('analytics_events').insert({
+      user_id:    user?.id || null,
+      event_type: eventName,
+      extra_data: compactMeta(metadata),
     });
   } catch (e) {}
 }
 
 function compactMeta(m = {}) {
   const out = {};
-  ['level', 'scenarioId', 'mode', 'score', 'reason', 'durationSeconds', 'profileId'].forEach(k => {
+  ['level','scenarioId','mode','score','reason','durationSeconds','profileId'].forEach(k => {
     if (m[k] !== undefined) out[k] = m[k];
   });
   return out;
@@ -337,4 +391,49 @@ function compactMeta(m = {}) {
 
 function monthKey() {
   return new Date().toISOString().slice(0, 7); // "YYYY-MM"
+}
+
+function rowToProfile(row) {
+  return {
+    id:             row.id,
+    targetLanguage: row.target_language,
+    level:          row.level,
+    nativeLanguage: row.native_language,
+    langPref:       row.lang_pref,
+    goal:           row.goal,
+    preferredMode:  row.preferred_mode,
+    flag:           row.flag || getLangFlag(row.target_language || 'German'),
+    examName:       row.exam_name            || null,
+    examDate:       row.exam_date            || null,
+    examDateConfirmed: row.exam_date_confirmed || false,
+    dailyMinutes:   row.daily_minutes        || 20,
+    createdAt:      row.created_at,
+  };
+}
+
+function sessionRowToObj(s) {
+  const startMs = s.started_at ? new Date(s.started_at).getTime() : null;
+  const endMs   = s.ended_at   ? new Date(s.ended_at).getTime()   : null;
+  const durationSeconds = (startMs && endMs) ? Math.round((endMs - startMs) / 1000) : null;
+
+  const accuracy = typeof s.accuracy === 'number' ? s.accuracy : null;
+
+  return {
+    id:              s.id,
+    endedAt:         s.ended_at,
+    startedAt:       s.started_at,
+    durationSeconds,
+    transcript:      s.transcript,
+    corrections:     s.corrections,
+    topicsCovered:   s.topics_covered,
+    xpEarned:        s.xp_earned,
+    wordsSpoken:     s.words_spoken,
+    accuracy,
+    // ui.js renders s.scores.overall as a percentage score
+    scores: accuracy !== null ? { overall: accuracy * 100 } : null,
+    mode:          s.mode,
+    scenarioTitle: s.scenario_title,
+    level:         s.level,
+    endedNaturally: s.ended_naturally,
+  };
 }
