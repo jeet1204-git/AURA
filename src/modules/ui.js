@@ -276,19 +276,27 @@ window.addEventListener('aura:session-started', () => enterSessionState());
 window.addEventListener('aura:session-ended',   () => enterIdleState());
 
 let _statePoller = null;
+let _viewState = 'unknown';
 function startStatePoller() {
   if (_statePoller) return;
   _statePoller = setInterval(() => {
-    if (window.sessionActive && document.getElementById('idle-screen').style.display !== 'none') {
+    const idleEl = document.getElementById('idle-screen');
+    const sessionEl = document.getElementById('session-screen');
+    if (!idleEl || !sessionEl) return;
+
+    if (window.sessionActive === true && _viewState !== 'session') {
       enterSessionState();
-    } else if (!window.sessionActive && document.getElementById('session-screen').classList.contains('active')) {
+    } else if (window.sessionActive !== true && _viewState !== 'idle') {
       enterIdleState();
     }
-  }, 300);
+  }, 500);
 }
 startStatePoller();
+enterIdleState();
 
 function enterSessionState() {
+  if (_viewState === 'session') return;
+  _viewState = 'session';
   document.getElementById('idle-screen').style.display    = 'none';
   document.getElementById('session-screen').classList.add('active');
   document.getElementById('liveStatsCard').style.display  = 'block';
@@ -314,6 +322,8 @@ function enterSessionState() {
 }
 
 function enterIdleState() {
+  if (_viewState === 'idle') return;
+  _viewState = 'idle';
   document.getElementById('idle-screen').style.display    = 'flex';
   document.getElementById('session-screen').classList.remove('active');
   document.getElementById('liveStatsCard').style.display  = 'none';
