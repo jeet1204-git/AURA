@@ -255,9 +255,10 @@ function setBilling(mode) {
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { FIREBASE_CONFIG } from '../config/constants.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config/constants.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-const fbApp = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const auth  = getAuth(fbApp);
 const db    = getFirestore(fbApp);
 
