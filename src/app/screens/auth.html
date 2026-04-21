@@ -140,8 +140,14 @@ function clearError() {
   errorMsg.style.display = 'none';
 }
 
+const AUTH_PAGE_URL = `${window.location.origin}/src/app/screens/auth.html`;
+let hasRedirectedAfterSignIn = false;
+
 // ── After a successful sign-in, check Supabase for onboarding status ──────────
 async function afterSignIn(userId) {
+  if (hasRedirectedAfterSignIn) return;
+  hasRedirectedAfterSignIn = true;
+
   try {
     const { data } = await supabase
       .from('users')
@@ -151,8 +157,8 @@ async function afterSignIn(userId) {
 
     const onboardingComplete = data?.extra_data?.onboardingComplete;
     window.location.href = onboardingComplete
-    ? '/#aura'
-    : '/src/app/screens/onboarding.html';
+      ? '/#aura'
+      : '/src/app/screens/onboarding.html';
   } catch (e) {
     // If the row doesn't exist yet, go to onboarding
     window.location.href = '/src/app/screens/onboarding.html';
@@ -160,13 +166,21 @@ async function afterSignIn(userId) {
 }
 
 // ── On page load: handle OAuth redirect callback ──────────────────────────────
-// Supabase automatically exchanges the code/token in the URL for a session.
-// The INITIAL_SESSION / SIGNED_IN event fires if auth params are in the URL.
+// Important: redirectTo must be a clean auth URL (without stale hash tokens),
+// otherwise Supabase can repeatedly parse an expired token and loop on auth.
 supabase.auth.onAuthStateChange(async (event, session) => {
   if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
     await afterSignIn(session.user.id);
   }
 });
+
+// Fallback bootstrap for cases where onAuthStateChange event is missed on load.
+(async function bootstrapSession() {
+  const { data } = await supabase.auth.getSession();
+  if (data?.session?.user) {
+    await afterSignIn(data.session.user.id);
+  }
+})();
 
 // ── Google OAuth ──────────────────────────────────────────────────────────────
 googleBtn.addEventListener('click', async () => {
@@ -177,8 +191,9 @@ googleBtn.addEventListener('click', async () => {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      // Supabase handles the callback; after success it redirects here
-      redirectTo: window.location.href,
+      // Always use a clean callback URL. Never use window.location.href because
+      // it may contain stale OAuth hash params after a failed attempt.
+      redirectTo: AUTH_PAGE_URL,
     },
   });
 
