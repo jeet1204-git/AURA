@@ -33,11 +33,15 @@ initSession({
 
 // ── AUTH STATE ────────────────────────────────────────────────────────────────
 supabase.auth.onAuthStateChange((event, session) => {
-  if (!session?.user) {
+  // Avoid redirect loops during auth bootstrap/refresh events.
+  // Only hard-redirect on explicit sign-out.
+  if (event === 'SIGNED_OUT') {
     _initialized = false;
-    window.location.href = '/';
+    window.location.href = '/src/app/screens/auth.html';
     return;
   }
+
+  if (!session?.user) return;
 
   const wrapped = wrapUser(session.user);
   currentUser        = wrapped;
@@ -48,6 +52,23 @@ supabase.auth.onAuthStateChange((event, session) => {
     onUserReady(wrapped);
   }
 });
+
+
+// Bootstrap current session once on initial page load.
+(async function bootstrapDashboardSession() {
+  const { data } = await supabase.auth.getSession();
+  const user = data?.session?.user;
+  if (!user) {
+    window.location.href = '/src/app/screens/auth.html';
+    return;
+  }
+  if (_initialized) return;
+  const wrapped = wrapUser(user);
+  currentUser = wrapped;
+  window.currentUser = wrapped;
+  _initialized = true;
+  onUserReady(wrapped);
+})();
 
 /**
  * Wraps a Supabase user into a Firebase-compatible shape so the rest of the
@@ -85,6 +106,12 @@ async function onUserReady(user) {
     await ensureUserDoc(user.uid, { name: user.displayName, email: user.email });
     userDoc = await loadUserProfile(user.uid);
   } catch (e) {}
+
+  // If onboarding isn't complete, force onboarding flow for this user.
+  if (!userDoc?.onboardingComplete) {
+    window.location.href = '/src/app/screens/onboarding.html';
+    return;
+  }
 
   // Migrate / load profiles
   try {
