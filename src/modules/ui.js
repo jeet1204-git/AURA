@@ -35,7 +35,7 @@ initSession({
 supabase.auth.onAuthStateChange((event, session) => {
   if (!session?.user) {
     _initialized = false;
-    window.location.href = '/src/app/screens/auth.html';
+    window.location.href = '/';
     return;
   }
 
