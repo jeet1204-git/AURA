@@ -132,6 +132,7 @@ export async function createProfile(uid, { targetLanguage, level, nativeLanguage
   if (!uid) return null;
   try {
     const row = {
+      id:              crypto.randomUUID(),   // explicit UUID — safety net alongside DB default
       user_id:         uid,
       target_language: targetLanguage  || 'German',
       level:           level           || 'A2',
