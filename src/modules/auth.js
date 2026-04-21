@@ -57,7 +57,7 @@ export async function doEmailLogin() {
       : error.message || 'Sign in failed.';
     showAuthError(msg);
   } else {
-    window.location.replace('https://auraspeak.in/#aura');
+    window.location.replace('/src/app/screens/app-screens.html');
     return;
   }
 
@@ -137,7 +137,7 @@ export async function handleHashChange() {
 
     if (data?.session) {
       // Important: leave the auth page completely and go to the real app entry
-      window.location.replace('https://auraspeak.in/#aura');
+      window.location.replace('/src/app/screens/app-screens.html');
       return;
     }
   }
@@ -192,7 +192,7 @@ export function initAuthKeyListeners() {
 
 supabase.auth.onAuthStateChange((_event, session) => {
   if (session && window.location.hash !== '#aura') {
-    window.location.replace('https://auraspeak.in/#aura');
+    window.location.replace('/src/app/screens/app-screens.html');
   }
 });
 

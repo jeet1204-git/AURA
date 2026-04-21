@@ -131,9 +131,7 @@ export async function loadProfiles(uid) {
 export async function createProfile(uid, { targetLanguage, level, nativeLanguage, langPref, goal, preferredMode }) {
   if (!uid) return null;
   try {
-    const profileId = `prof_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const row = {
-      id:              profileId,
       user_id:         uid,
       target_language: targetLanguage  || 'German',
       level:           level           || 'A2',
@@ -144,7 +142,11 @@ export async function createProfile(uid, { targetLanguage, level, nativeLanguage
       flag:            getLangFlag(targetLanguage || 'German'),
     };
 
-    const { error } = await supabase.from('profiles').insert(row);
+    const { data: inserted, error } = await supabase
+      .from('profiles')
+      .insert(row)
+      .select('*')
+      .single();
     if (error) throw error;
 
     // If this is the first profile, mark it active on the users row
@@ -154,14 +156,14 @@ export async function createProfile(uid, { targetLanguage, level, nativeLanguage
       .eq('id', uid)
       .single();
 
-    if (!u?.active_profile_id) {
+    if (!u?.active_profile_id && inserted?.id) {
       await supabase
         .from('users')
-        .update({ active_profile_id: profileId })
+        .update({ active_profile_id: inserted.id })
         .eq('id', uid);
     }
 
-    return rowToProfile(row);
+    return rowToProfile(inserted || row);
   } catch (e) {
     console.warn('[AURA] createProfile failed:', e?.message);
     return null;
