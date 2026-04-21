@@ -97,15 +97,13 @@ export async function doGoogleLogin() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      // After Google auth, redirect back to the app dashboard
-redirectTo: 'https://auraspeak.in/#aura',
+      redirectTo: 'https://auraspeak.in/',
     },
   });
 
   if (error) {
     showAuthError(error.message || 'Google sign-in failed.');
   }
-  // On success Supabase redirects the browser — no further action needed here.
 }
 
 // ── Hash-based routing ────────────────────────────────────────────────────────
