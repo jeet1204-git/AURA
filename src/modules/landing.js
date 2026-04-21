@@ -290,11 +290,11 @@ async function handleCtaClick() {
   try {
     const { data: row } = await supabase
       .from('users')
-      .select('extra_data')
+      .select('extra_data,active_profile_id')
       .eq('id', user.id)
       .single();
 
-    if (row?.extra_data?.onboardingComplete) {
+    if (row?.extra_data?.onboardingComplete && row?.active_profile_id) {
       window.location.href = '/src/app/screens/app-screens.html';
     } else {
       window.location.href = '/src/app/screens/onboarding.html';

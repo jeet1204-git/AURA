@@ -118,6 +118,12 @@ async function onUserReady(user) {
     allProfiles = await migrateUserToProfiles(user.uid, userDoc || {});
   } catch (e) { allProfiles = []; }
 
+  // If onboarding is marked complete but no profile exists, send user back to onboarding.
+  if (!allProfiles.length) {
+    window.location.href = '/src/app/screens/onboarding.html';
+    return;
+  }
+
   const activeId = userDoc?.activeProfileId || allProfiles[0]?.id || null;
   activeProfile  = allProfiles.find(p => p.id === activeId) || allProfiles[0] || null;
   window._activeProfile = activeProfile;

@@ -196,12 +196,13 @@ async function afterSignIn(userId) {
   try {
     const { data } = await supabase
       .from('users')
-      .select('extra_data')
+      .select('extra_data,active_profile_id')
       .eq('id', userId)
       .single();
 
     const onboardingComplete = data?.extra_data?.onboardingComplete;
-    window.location.href = onboardingComplete
+    const hasActiveProfile   = !!data?.active_profile_id;
+    window.location.href = (onboardingComplete && hasActiveProfile)
       ? '/src/app/screens/app-screens.html'
       : '/src/app/screens/onboarding.html';
   } catch (e) {
