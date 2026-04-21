@@ -190,10 +190,7 @@ function renderIdleScreen(profile, doc) {
     setEl('idleSubtext', 'Set up your first learning profile to get started.');
   }
 
-  // Wire idle start button
-  document.getElementById('idleStartBtn')?.addEventListener('click', () => {
-    document.getElementById('liveSessionBtn')?.click();
-  });
+  // idleStartBtn is wired by session-bridge.js (via initSession) — no duplicate listener needed here.
 }
 
 // ── RECENT SESSIONS ───────────────────────────────────────────────────────────
@@ -268,13 +265,13 @@ function renderRightPanel(doc) {
 }
 
 function renderWeekDots(streak) {
-  const today = new Date().getDay();
-  const ids   = ['wd-Su','wd-M','wd-T','wd-W','wd-Th','wd-F','wd-S'];
-  ids.forEach((id, jsDay) => {
+  // HTML IDs are wd-0 (Sun) through wd-6 (Sat), matching JS getDay() values.
+  const today = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  for (let jsDay = 0; jsDay <= 6; jsDay++) {
     const daysAgo = (today - jsDay + 7) % 7;
-    const el = document.getElementById(id);
+    const el = document.getElementById('wd-' + jsDay);
     if (el) el.classList.toggle('on', daysAgo < Math.min(streak, 7));
-  });
+  }
 }
 
 // ── TWO-STATE SWITCHING ───────────────────────────────────────────────────────
@@ -352,19 +349,10 @@ function enterIdleState() {
   }
 }
 
-document.getElementById('endSessionBtn')?.addEventListener('click', async () => {
-  if (!window.sessionActive) return;
-  if (!confirm('End this session? Your progress will be saved.')) return;
-  if (typeof window.endSession === 'function') await window.endSession();
-});
+// endSessionBtn click is handled by session-bridge.js (via initSession).
+// Do NOT add a second listener here — it would cause a double confirm() dialog.
 
-document.getElementById('summaryBtn')?.addEventListener('click', () => {
-  const words   = document.getElementById('wordsSpoken')?.textContent  || '0';
-  const correct = document.getElementById('correctCount')?.textContent || '0';
-  const errors  = document.getElementById('errCount')?.textContent     || '0';
-  const timer   = document.getElementById('sessionTimer')?.textContent  || '00:00:00';
-  showToast(`Session: ${timer} · ${words} words · ${correct} correct · ${errors} errors`);
-});
+// summaryBtn is handled by session-bridge.js (via initSession) — shows the full summary overlay.
 
 async function renderSkillProgress(uid, profileId) {
   const container = document.getElementById('skillProgressContent');
@@ -939,12 +927,13 @@ function buildSessionChart(uid, profileId) {
 function updateAccuracyRing(correct, errors) {
   const total = correct + errors;
   const pct   = total > 0 ? Math.round((correct / total) * 100) : 0;
-  const label = document.getElementById('accuracyPct');
-  const ring  = document.getElementById('accuracyRing');
+  // IDs match the SVG elements in app-screens.html
+  const label = document.getElementById('accPct');
+  const ring  = document.getElementById('accRing');
 
   if (label) label.textContent = pct + '%';
   if (ring) {
-    const circumference = 2 * Math.PI * 20;
+    const circumference = 2 * Math.PI * 22; // r=22 matches the SVG circle
     ring.style.strokeDasharray  = circumference;
     ring.style.strokeDashoffset = circumference - (pct / 100) * circumference;
   }
