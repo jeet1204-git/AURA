@@ -90,9 +90,10 @@ function buildBlueprintFromProfile(profile) {
   };
 
   return {
+    programType:   'general',          // ← THIS WAS MISSING
     level,
     mode,
-    scenarioId:   scenario.id,
+    scenarioId:    scenario.id,
     scenarioLevel: scenario.level,
     title:         scenario.title,
     role:          scenario.role,
