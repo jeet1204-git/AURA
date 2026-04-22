@@ -6,7 +6,7 @@ import { buildPracticeEvalPrompt, buildExamEvalPrompt, renderScore, renderPostSe
 import { getWorkletBlobUrl, createWorklet, ensurePlaybackWorklet, enqueueAudio } from '../audio/worklets.js';
 import { auth, getIdToken } from './auth.js';
 import { db, persistSessionProgress, loadUserSessionHistory, loadDailyState, saveDailyState, logAnalyticsEvent } from './firestore.js';
-import { resetSession as storeResetSession } from '../state/store.js';
+import { resetSession as storeResetSession, setAudioCtx, setMicCtx, setMicStream, setWorkletNode, setPlaybackNode, setWs, setDgWs, setSessionActive, setDgClosingByApp } from '../state/store.js';
 
 // ── STORE STATE SHADOWS ───────────────────────────────────────────────────────
 // store.js owns these variables and exposes them on window via Object.defineProperties.
@@ -1018,6 +1018,9 @@ async function _doStartSession() {
     if (audioCtx.state==='suspended') await audioCtx.resume();
     if (!micCtx) micCtx = new (window.AudioContext||window.webkitAudioContext)();
     if (micCtx.state==='suspended') await micCtx.resume();
+    // Push to store.js live binding AND window so worklets.js sees the real context
+    setAudioCtx(audioCtx); window.audioCtx = audioCtx;
+    setMicCtx(micCtx);     window.micCtx   = micCtx;
   } catch(e){}
 
   if (!isPaidStudent) {
@@ -1145,7 +1148,9 @@ async function _doStartSession() {
         throw new Error('Microphone access denied. Please allow mic access and retry.');
       }
     }
-    await ensurePlaybackWorklet();
+    setMicStream(micStream); window.micStream = micStream;
+    playbackNode = await ensurePlaybackWorklet(audioCtx);
+    setPlaybackNode(playbackNode); window.playbackNode = playbackNode;
 
 
     // Fetch student memory context before opening session
@@ -1201,7 +1206,7 @@ const resp = await fetch(`${WORKER_URL}/token`, {
 
     // Open Gemini WebSocket
     updateListeningPill('thinking');
-ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(token)}`);
+ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(token)}`); setWs(ws); window.ws = ws;
      ws.binaryType = 'arraybuffer';
     // Timeout if WS doesn't open in 10s
     const wsTimeout = setTimeout(()=>{
@@ -1234,9 +1239,22 @@ ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(tok
           systemInstruction:{parts:[{text:systemPromptText}]}
         }
       }));
-      workletNode = await createWorklet(micCtx, micStream);
+      workletNode = await createWorklet(micCtx, micStream, {
+        onAudioChunk: (buffer) => {
+          if (!ws || ws.readyState !== WebSocket.OPEN || micMuted) return;
+          // Convert ArrayBuffer (Int16 PCM) to base64 for Gemini realtimeInput
+          const bytes  = new Uint8Array(buffer);
+          let binary   = '';
+          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+          const b64 = btoa(binary);
+          ws.send(JSON.stringify({
+            realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }] }
+          }));
+        }
+      });
+      setWorkletNode(workletNode); window.workletNode = workletNode;
       sessionStartedAt = new Date();
-      sessionActive = true;
+      sessionActive = true; setSessionActive(true); window.sessionActive = true;
       _syncToStore();
       transitionSessionState(SESSION_STATES.READY, { trigger: 'ws_onopen' });
       transitionSessionState(SESSION_STATES.TASK_ACTIVE, { trigger: 'ws_onopen_auto_advance' });
@@ -1334,7 +1352,7 @@ function handleServerMessage(msg) {
           if (typeof window._flushDgBuffer === 'function') window._flushDgBuffer();
           updateListeningPill('speaking');
           clearSilenceTimer();
-          enqueueAudio(part.inlineData.data);
+          enqueueAudio(playbackNode, part.inlineData.data);
         }
       });
     }
