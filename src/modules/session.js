@@ -587,6 +587,204 @@ function restartSessionIfRunning(reason = 'config_changed') {
   return true;
 }
 
+// ── MISSING HELPERS (migrated from old monolithic HTML) ───────────────────────
+
+/**
+ * Returns true when the user has selected exam / mock-test program type.
+ * Reads from window.selectedProgramType which store.js exposes on window.
+ */
+function isExamModeActive() {
+  return (window.selectedProgramType === 'exam') || false;
+}
+
+/**
+ * Builds a session blueprint for exam / mock-test mode.
+ * Reads selectedExamPart, selectedExamRunType, selectedExamTopicId,
+ * selectedExaminerStyle from window (all exposed by store.js).
+ */
+function buildExamBlueprint() {
+  const examPart      = window.selectedExamPart      || 'teil1';
+  const examRunType   = window.selectedExamRunType   || 'practice';
+  const examTopicId   = window.selectedExamTopicId   || null;
+  const examinerStyle = window.selectedExaminerStyle || 'standard';
+  const level         = window.selectedLevel         || 'A2';
+  const langPref      = window.selectedLangPref      || 'English';
+
+  return {
+    programType:    'exam',
+    examPart,
+    examRunType,
+    examTopicId,
+    examinerStyle,
+    level,
+    langPref,
+    mode:           'guided',
+    scenarioId:     `exam_${examPart}`,
+    title:          `A2 Exam Mock — ${examPart.toUpperCase()}`,
+    role:           'Examiner',
+    emoji:          '📝',
+    desc:           `Telc A2 exam practice — ${examPart}`,
+    interaction_policy: {
+      support_language_usage: 'corrections_only',
+    },
+    stage_sequence: [],
+    stage_timings:  {},
+  };
+}
+
+/**
+ * Returns correction language config based on the user's selected support language.
+ * Used in stage anchors and system prompt builders.
+ */
+function buildPromptLanguageConfig() {
+  const lang = window.selectedLangPref || selectedLangPref || 'English';
+  const greetWords = {
+    Gujarati: 'નમસ્તે',
+    Hindi:    'नमस्ते',
+    English:  'Hello',
+    German:   'Hallo',
+    French:   'Bonjour',
+    Spanish:  'Hola',
+    Portuguese: 'Olá',
+    Arabic:   'مرحبا',
+    Mandarin: '你好',
+    Japanese: 'こんにちは',
+    Korean:   '안녕하세요',
+  };
+  return {
+    correctionLang: lang,
+    greetWord:      greetWords[lang] || 'Hello',
+  };
+}
+
+/**
+ * Updates the debug info panel (#aura-debug) if it exists in the DOM.
+ * Silently no-ops when the panel is absent (production dashboard).
+ */
+function refreshAuraDebug() {
+  const panel = document.getElementById('aura-debug');
+  if (!panel) return;
+  try {
+    panel.textContent = JSON.stringify({
+      level:    window.selectedLevel,
+      mode:     window.selectedSessionMode,
+      scenario: window.selectedScenario?.id,
+      state:    window.sessionActive ? 'active' : 'idle',
+      blueprint: activeBlueprint ? { level: activeBlueprint.level, mode: activeBlueprint.mode, programType: activeBlueprint.programType } : null,
+    }, null, 2);
+  } catch (e) {}
+}
+
+/**
+ * Sets the active session mode (guided / immersion).
+ * Updates selectedSessionMode and toggles the active class on mode-tab buttons.
+ */
+function setSessionMode(mode) {
+  selectedSessionMode = mode || 'guided';
+  window.selectedSessionMode = selectedSessionMode;
+  document.querySelectorAll('.mode-tab, [data-mode]').forEach(el => {
+    const elMode = el.dataset.mode || el.dataset.value;
+    if (elMode) el.classList.toggle('active', elMode === selectedSessionMode);
+  });
+}
+
+/**
+ * Sets the active support/explanation language preference.
+ * Updates selectedLangPref and toggles active class on lang-pref-tab buttons.
+ */
+window.setLangPref = function setLangPref(lang) {
+  selectedLangPref = lang || 'English';
+  window.selectedLangPref = selectedLangPref;
+  document.querySelectorAll('.lang-pref-tab').forEach(el => {
+    el.classList.toggle('active', (el.dataset.lang || el.dataset.value) === selectedLangPref);
+  });
+};
+
+/**
+ * Hides all exam-specific overlay elements in the DOM.
+ * Safe no-op when those elements don't exist (standard dashboard).
+ */
+function hideAllExamOverlays() {
+  const examOverlayIds = [
+    'teil1-overlay', 'teil2-overlay', 'teil3-overlay',
+    'exam-overlay', 'exam-brief', 'exam-score-overlay',
+  ];
+  examOverlayIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  document.querySelectorAll('.exam-overlay, .teil-overlay').forEach(el => {
+    el.style.display = 'none';
+  });
+}
+
+/**
+ * Renders Teil 1 (Karten) exam cards into the exam overlay.
+ * No-op when the overlay element is absent.
+ */
+function renderTeil1Cards(bp) {
+  const container = document.getElementById('teil1-overlay') || document.getElementById('exam-overlay');
+  if (!container || !bp) return;
+  const cards = bp.cards || [];
+  container.style.display = 'flex';
+  const body = container.querySelector('.teil-body, .exam-body');
+  if (body) body.innerHTML = cards.map(c => `<div class="teil-card">${c}</div>`).join('');
+}
+
+/**
+ * Renders Teil 2 (Bildbeschreibung) card into the exam overlay.
+ * No-op when the overlay element is absent.
+ */
+function renderTeil2Card(bp) {
+  const container = document.getElementById('teil2-overlay') || document.getElementById('exam-overlay');
+  if (!container || !bp) return;
+  container.style.display = 'flex';
+  const body = container.querySelector('.teil-body, .exam-body');
+  if (body) body.innerHTML = `<div class="teil-card">${bp.topicTitle || 'Teil 2'}</div>`;
+}
+
+/**
+ * Renders Teil 3 (Terminkalender) calendar into the exam overlay.
+ * No-op when the overlay element is absent.
+ */
+function renderTeil3Calendar(bp) {
+  const container = document.getElementById('teil3-overlay') || document.getElementById('exam-overlay');
+  if (!container || !bp) return;
+  container.style.display = 'flex';
+  const body = container.querySelector('.teil-body, .exam-body');
+  if (body) {
+    const cal = bp.teil3Calendar || {};
+    body.innerHTML = `<div class="teil-card">${cal.label || bp.topicTitle || 'Teil 3'}</div>`;
+  }
+}
+
+/**
+ * Renders the recent practice list in the setup screen.
+ * No-op stub — the dashboard (ui.js) owns this panel in the new architecture.
+ */
+function renderRecentPractice(sessions) {
+  // Handled by ui.js renderIdleScreen in the new dashboard.
+  // This stub prevents ReferenceErrors from goBackToSetup() calls.
+}
+
+/**
+ * Shows the main speaking / session interface.
+ * In the new dashboard architecture this is handled by ui.js;
+ * this stub prevents ReferenceErrors from goBackToHomepage().
+ */
+function _showSpeakingInterface() {
+  // ui.js owns navigation in the new dashboard.
+  // Dispatch an event so ui.js can react if needed.
+  window.dispatchEvent(new CustomEvent('aura:show-speaking-interface'));
+}
+
+/**
+ * Navigates to the onboarding screen.
+ */
+function showOnboarding() {
+  window.location.href = '/src/app/screens/onboarding.html';
+}
+
 // ── PAYWALL HELPERS ───────────────────────────
 
 /**
