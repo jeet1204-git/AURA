@@ -55,16 +55,28 @@ let selectedLevel       = window.selectedLevel       ?? 'A1';
 let selectedScenario    = window.selectedScenario    ?? null;
 let selectedSessionMode = window.selectedSessionMode ?? 'guided';
 let selectedLangPref    = window.selectedLangPref    ?? 'English';
-let selectedProgramType = window.selectedProgramType ?? 'general';
-let isPaidStudent       = window.isPaidStudent       ?? false;
-let currentUser         = window.currentUser         ?? null;
-let userProfile         = window.userProfile         ?? null;
-let userSessionHistory  = window.userSessionHistory  ?? [];
+let selectedProgramType      = window.selectedProgramType      ?? 'general';
+let selectedExamPart         = window.selectedExamPart         ?? 'teil1';
+let selectedExamRunType      = window.selectedExamRunType      ?? 'practice';
+let selectedExamTopicId      = window.selectedExamTopicId      ?? null;
+let selectedExaminerStyle    = window.selectedExaminerStyle    ?? 'standard';
+let selectedInputMode        = window.selectedInputMode        ?? 'both';
+let isPaidStudent            = window.isPaidStudent            ?? false;
+let currentUser              = window.currentUser              ?? null;
+let userProfile              = window.userProfile              ?? null;
+let userSessionHistory       = window.userSessionHistory       ?? [];
+let lastUserSpeechTime       = window.lastUserSpeechTime       ?? null;
+let userMemorySnapshot       = window.userMemorySnapshot       ?? null;
 
 // Local-only state (not in store.js)
-let currentUserText     = '';
-let currentUserEntryEl  = null;
-let sessionDerivedMetrics = {
+let currentUserText          = '';
+let currentUserEntryEl       = null;
+let currentAiText            = '';
+let currentAiEntryEl         = null;
+let chalkEraseTimer          = null;
+let silenceTimer             = null;
+let silenceCountdownInterval = null;
+let sessionDerivedMetrics    = {
   totalUserTurns: 0, averageUserTurnLength: 0, oneWordUserAnswerCount: 0,
   clarificationPromptCount: 0, estimatedIndependentResponseCount: 0, totalAssistantTurns: 0,
 };
@@ -101,6 +113,13 @@ function _syncToStore() {
   window.selectedSessionMode  = selectedSessionMode;
   window.selectedLangPref     = selectedLangPref;
   window.selectedProgramType  = selectedProgramType;
+  window.selectedInputMode    = selectedInputMode;
+  window.selectedExamPart     = selectedExamPart;
+  window.selectedExamRunType  = selectedExamRunType;
+  window.selectedExamTopicId  = selectedExamTopicId;
+  window.selectedExaminerStyle= selectedExaminerStyle;
+  window.lastUserSpeechTime   = lastUserSpeechTime;
+  window.userMemorySnapshot   = userMemorySnapshot;
 }
 
 // Re-read all mutable store vars from window (call at session start so we
@@ -122,6 +141,13 @@ function _syncFromStore() {
   currentUser          = window.currentUser          ?? currentUser;
   userProfile          = window.userProfile          ?? userProfile;
   userSessionHistory   = window.userSessionHistory   ?? userSessionHistory;
+  selectedInputMode    = window.selectedInputMode    ?? selectedInputMode;
+  selectedExamPart     = window.selectedExamPart     ?? selectedExamPart;
+  selectedExamRunType  = window.selectedExamRunType  ?? selectedExamRunType;
+  selectedExamTopicId  = window.selectedExamTopicId  ?? selectedExamTopicId;
+  selectedExaminerStyle= window.selectedExaminerStyle?? selectedExaminerStyle;
+  lastUserSpeechTime   = window.lastUserSpeechTime   ?? lastUserSpeechTime;
+  userMemorySnapshot   = window.userMemorySnapshot   ?? userMemorySnapshot;
 }
 // ── END STORE STATE SHADOWS ───────────────────────────────────────────────────
 
@@ -714,7 +740,7 @@ function restartSessionIfRunning(reason = 'config_changed') {
  * Reads from window.selectedProgramType which store.js exposes on window.
  */
 function isExamModeActive() {
-  return (window.selectedProgramType === 'exam') || false;
+  return (selectedProgramType === 'exam') || false;
 }
 
 /**
@@ -723,12 +749,12 @@ function isExamModeActive() {
  * selectedExaminerStyle from window (all exposed by store.js).
  */
 function buildExamBlueprint() {
-  const examPart      = window.selectedExamPart      || 'teil1';
-  const examRunType   = window.selectedExamRunType   || 'practice';
-  const examTopicId   = window.selectedExamTopicId   || null;
-  const examinerStyle = window.selectedExaminerStyle || 'standard';
-  const level         = window.selectedLevel         || 'A2';
-  const langPref      = window.selectedLangPref      || 'English';
+  const examPart      = selectedExamPart      || 'teil1';
+  const examRunType   = selectedExamRunType   || 'practice';
+  const examTopicId   = selectedExamTopicId   || null;
+  const examinerStyle = selectedExaminerStyle || 'standard';
+  const level         = selectedLevel         || 'A2';
+  const langPref      = selectedLangPref      || 'English';
 
   return {
     programType:    'exam',
@@ -1416,7 +1442,6 @@ function setDeepgramStatusVisible(visible) {
 }
 
 // ── BLACKBOARD ────────────────────────────────
-let chalkEraseTimer = null;
 function showStructuredCorrection(wrong, right, note) {
   // Show on blackboard
   showOnBlackboard(wrong, right, note);
