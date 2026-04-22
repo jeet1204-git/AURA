@@ -1,6 +1,12 @@
 /**
  * session-bridge.js — AURA Live Session Engine
  * Uses real buildSystemPrompt() from prompts.js for both voice and text fallback.
+ *
+ * CHANGES FROM PREVIOUS VERSION:
+ *  1. /token — now sends `language` field so the brain worker queries correct memory/curriculum
+ *  2. /eval  — now called per-utterance with structured payload (not full transcript dump)
+ *             sends: userId, sessionId, transcript, confidence, utteranceIndex, nodeId, language, evalResult
+ *  3. /consolidate — now sends `language` + `profileId` (worker reads utterances from DB itself)
  */
 
 import { WORKER_URL, DEEPGRAM_WORKER_URL, GEMINI_WS_EPHEMERAL } from '../config/constants.js';
@@ -10,7 +16,7 @@ import { BLUEPRINT_POLICIES } from '../config/scoring.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let ws            = null;
-let dgWs          = null;   // Deepgram WebSocket for live STT
+let dgWs          = null;
 let micStream     = null;
 let micCtx        = null;
 let audioCtx      = null;
@@ -34,20 +40,37 @@ let _corrections = [];
 // Timer
 let _timerSecs = 0, _timerInterval = null;
 
-// Session tracking — for eval and consolidate
-let _sessionId   = null;
-let _userId      = null;
-let _transcript  = []; // accumulates { role, text } turns
+// Session tracking
+let _sessionId       = null;
+let _userId          = null;
+let _profileId       = null;          // NEW: needed for /consolidate
+let _language        = 'German';      // NEW: target language for all worker calls
+let _currentNodeId   = null;          // NEW: curriculum node from /token response
+let _utteranceIndex  = 0;             // NEW: track utterance count for /eval
+let _transcript      = [];            // accumulates { role, text } turns
 
 // ── BLUEPRINT BUILDER ─────────────────────────────────────────────────────────
-// Builds a minimal but real blueprint from the user's Firestore profile.
-// Falls back to A2 guided daily conversation if profile fields are missing.
-
 function stripMetaTags(text) {
   return text
     .replace(/##CORRECTION##.*?##END##/gs, '')
     .replace(/##STUDENT##.*?##END##/gs, '')
     .trim();
+}
+
+/**
+ * Parse ##CORRECTION## tag from Gemini's output.
+ * Returns { wrong, right, note } or null if no correction.
+ */
+function parseCorrectionTag(text) {
+  const match = text.match(/##CORRECTION##([\s\S]*?)##END##/);
+  if (!match) return null;
+  const raw = match[1].trim();
+  if (!raw || raw === 'none') return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
 function buildBlueprintFromProfile(profile) {
@@ -57,7 +80,6 @@ function buildBlueprintFromProfile(profile) {
   const policyKey = `${level.toLowerCase()}_${mode}`;
   const policy    = BLUEPRINT_POLICIES[policyKey] || BLUEPRINT_POLICIES['a2_guided'];
 
-  // Default A2 daily-conversation scenario
   const scenario = {
     id:    'daily_conversation',
     title: 'Daily Conversation',
@@ -250,6 +272,7 @@ async function initDeepgramSTT(targetLanguage) {
         const msg = JSON.parse(evt.data);
         if (msg.type === 'Results') {
           const transcript  = msg.channel?.alternatives?.[0]?.transcript || '';
+          const confidence  = msg.channel?.alternatives?.[0]?.confidence || 0;
           const isFinal     = msg.is_final;
           const speechFinal = msg.speech_final;
 
@@ -267,6 +290,14 @@ async function initDeepgramSTT(targetLanguage) {
             _words += words.length;
             _correct++;
             updateStats();
+
+            // ── CHANGE 2: Fire /eval per utterance ───────────────────────────
+            // We fire this async — does not block conversation flow.
+            // evalResult comes from the last ##CORRECTION## tag Gemini output.
+            const utteranceText = _dgBuffer.trim();
+            fireUtteranceEval(utteranceText, confidence).catch(console.error);
+            // ─────────────────────────────────────────────────────────────────
+
             finaliseStreamBubble();
           }
         }
@@ -290,36 +321,52 @@ function sendToDeeepgram(pcmBuffer) {
   }
 }
 
-// ── CORRECTION DETECTION ─────────────────────────────────────────────────────
-function detectCorrection(text) {
-  if (!text || text.length < 10) return false;
-  let wrong = '', right = '', note = '';
+// ── CHANGE 2: Per-utterance eval call ─────────────────────────────────────────
+// Called after each student utterance is finalised by Deepgram.
+// Sends structured payload to the new brain worker's /eval endpoint.
+// The evalResult (corrections) come from the last ##CORRECTION## tag
+// that Gemini output — stored in _lastCorrectionResult.
+let _lastCorrectionResult = null; // set by handleServerMessage when ##CORRECTION## parsed
 
-  const arrow = text.match(/["""»]?([^"""»\n]{3,50})["""«]?\s*[→\->]+\s*["""»]?([^"""«.!?\n]{3,60})/);
-  if (arrow) { wrong = arrow[1].trim(); right = arrow[2].trim(); }
+async function fireUtteranceEval(utteranceText, confidence) {
+  if (!_sessionId || !_userId || !utteranceText) return;
 
-  if (!right) {
-    const sondern = text.match(/nicht\s+["""»]?([^,»"""]{1,30})["""«]?,?\s+sondern\s+["""»]?([^.<!?\n]{3,50})/i);
-    if (sondern) { wrong = sondern[1].trim(); right = sondern[2].trim(); }
+  const evalResult = _lastCorrectionResult
+    ? {
+        corrections: [{
+          wrong:    _lastCorrectionResult.wrong || '',
+          right:    _lastCorrectionResult.right || '',
+          rule:     _lastCorrectionResult.note  || '',
+          category: 'grammar',
+        }],
+        accuracy:  _lastCorrectionResult.wrong ? 0.6 : 1.0,
+        xpDelta:   _lastCorrectionResult.wrong ? 5   : 15,
+      }
+    : { corrections: [], accuracy: 1.0, xpDelta: 15 };
+
+  try {
+    await fetch(`${WORKER_URL}/eval`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId:         _userId,
+        sessionId:      _sessionId,
+        transcript:     utteranceText,
+        confidence:     confidence || null,
+        utteranceIndex: _utteranceIndex++,
+        nodeId:         _currentNodeId || null,
+        language:       _language,
+        evalResult,
+      }),
+    });
+  } catch(e) {
+    console.warn('[AURA] /eval failed (non-fatal):', e?.message);
   }
 
-  if (!right) {
-    const tryPat = text.match(/(?:try|say|use|sag(?:en Sie)?)\s*:\s*["""»]?([^.!?\n"»]{4,60})/i);
-    if (tryPat) right = tryPat[1].trim();
-  }
-
-  const isCorrecting = /(?:kleiner fehler|fast richtig|kleine korrektur|small mistake|small fix|almost|not quite|fast perfekt)/i.test(text);
-
-  if ((wrong && right) || (isCorrecting && right)) {
-    const noteMatch = text.match(/(?:because|da |weil |denn |remember|note that)[^.!?\n]{5,100}/i);
-    if (noteMatch) note = noteMatch[0].trim();
-    addCorrectionCard(wrong, right, note);
-    if (_correct > 0) _correct--;
-    updateStats();
-    return true;
-  }
-  return false;
+  // Reset after firing so we don't double-apply the same correction
+  _lastCorrectionResult = null;
 }
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ── SERVER MESSAGE HANDLER ────────────────────────────────────────────────────
 function handleServerMessage(msg) {
@@ -341,10 +388,10 @@ function handleServerMessage(msg) {
     }
 
     if (sc.outputTranscription?.text) {
-  _currentAiText += sc.outputTranscription.text;
-  const el = getOrCreateAiBubble();
-  const b  = el?.querySelector('.bubble');
-  if (b) b.textContent = stripMetaTags(_currentAiText);
+      _currentAiText += sc.outputTranscription.text;
+      const el = getOrCreateAiBubble();
+      const b  = el?.querySelector('.bubble');
+      if (b) b.textContent = stripMetaTags(_currentAiText);
       scrollBottom();
     }
 
@@ -361,7 +408,17 @@ function handleServerMessage(msg) {
 
     if (sc.turnComplete) {
       if (_currentAiText.trim()) {
-        detectCorrection(_currentAiText);
+        // Parse the ##CORRECTION## tag from Gemini's full output
+        // and store it so fireUtteranceEval() can pick it up
+        const correction = parseCorrectionTag(_currentAiText);
+        if (correction) {
+          _lastCorrectionResult = correction;
+          // Show correction card in UI immediately
+          if (correction.wrong || correction.right) {
+            addCorrectionCard(correction.wrong, correction.right, correction.note);
+          }
+        }
+
         _transcript.push({ role: 'aura', text: _currentAiText.trim() });
       }
       _currentAiText = '';
@@ -387,7 +444,13 @@ function cleanup() {
   if (audioCtx)     { try { audioCtx.close(); } catch(e){} audioCtx = null; }
   if (micCtx)       { try { micCtx.close();   } catch(e){} micCtx   = null; }
   if (ws)           { try { ws.close();        } catch(e){} ws       = null; }
-  micMuted = false; _streamBubble = null; _currentAiText = ''; _aiEntryEl = null; _dgBuffer = '';
+  micMuted = false;
+  _streamBubble = null;
+  _currentAiText = '';
+  _aiEntryEl = null;
+  _dgBuffer = '';
+  _lastCorrectionResult = null;
+  _utteranceIndex = 0;
 }
 
 // ── END SESSION ───────────────────────────────────────────────────────────────
@@ -400,47 +463,47 @@ export async function endSession() {
   setOrbSpeaking(false);
   window.dispatchEvent(new CustomEvent('aura:session-ended'));
 
-  // Fire eval + consolidate to save session and update memory
-  if (_sessionId && _userId && _transcript.length > 0) {
-    const transcriptText = _transcript
-      .map(t => `${t.role === 'student' ? 'STUDENT' : 'AURA'}: ${t.text}`)
-      .join('\n');
-    evalAndConsolidate(_sessionId, _userId, transcriptText).catch(console.error);
+  // ── CHANGE 3: Fire /consolidate with new payload ──────────────────────────
+  if (_sessionId && _userId) {
+    fireConsolidate(_sessionId, _userId, _language, _profileId).catch(console.error);
   }
+  // ─────────────────────────────────────────────────────────────────────────
 
   showSummary();
 }
 
-async function evalAndConsolidate(sessionId, userId, transcriptText) {
+// ── CHANGE 3: New consolidate function ────────────────────────────────────────
+// The new brain worker reads session_utterances from DB itself.
+// We only need to tell it which session to consolidate + language + profileId.
+async function fireConsolidate(sessionId, userId, language, profileId) {
   try {
-    // Step 1: eval
-    const evalRes = await fetch(`${WORKER_URL}/eval`, {
+    const res = await fetch(`${WORKER_URL}/consolidate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, sessionId, transcript: transcriptText }),
+      body: JSON.stringify({
+        userId,
+        sessionId,
+        language:  language  || 'German',
+        profileId: profileId || null,
+      }),
     });
-    if (!evalRes.ok) {
-      console.warn('[AURA] /eval failed:', evalRes.status);
+    if (!res.ok) {
+      console.warn('[AURA] /consolidate failed:', res.status, await res.text());
     } else {
-      const evalData = await evalRes.json();
-      console.log('[AURA] session eval complete', evalData?.scores);
+      const data = await res.json();
+      console.log('[AURA] memory consolidated:', {
+        summary:    data.summary,
+        nextFocus:  data.nextFocus,
+        totalXp:    data.totalXp,
+        newStreak:  data.newStreak,
+        levelUp:    data.levelUp,
+      });
     }
-
-    // Step 2: consolidate (updates memory)
-    const consRes = await fetch(`${WORKER_URL}/consolidate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, sessionId, transcript: transcriptText }),
-    });
-    if (!consRes.ok) {
-      console.warn('[AURA] /consolidate failed:', consRes.status);
-    } else {
-      console.log('[AURA] memory consolidated successfully');
-    }
-  } catch (e) {
-    console.warn('[AURA] evalAndConsolidate error:', e?.message);
+  } catch(e) {
+    console.warn('[AURA] /consolidate error (non-fatal):', e?.message);
   }
 }
+// ─────────────────────────────────────────────────────────────────────────────
 
 function showSummary() {
   const mins = Math.floor(_timerSecs / 60);
@@ -478,10 +541,15 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
   if (sessionActive) return;
   if (!idToken) { addMsg('ai', '⚠️ Please sign in to start a session.'); return; }
 
-  // Reset
+  // Reset all state
   _words = 0; _correct = 0; _errors = 0; _corrections = [];
   _dgBuffer = ''; _streamBubble = null; _currentAiText = ''; _aiEntryEl = null;
-  _sessionId = null; _userId = null; _transcript = [];
+  _sessionId = null; _userId = null; _profileId = null;
+  _language = profile?.targetLanguage || 'German';
+  _currentNodeId = null;
+  _utteranceIndex = 0;
+  _lastCorrectionResult = null;
+  _transcript = [];
   updateStats();
 
   // Clear chat area
@@ -491,27 +559,20 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
   const btn = document.getElementById('liveSessionBtn');
   if (btn) btn.disabled = true;
 
-  // ── BUILD REAL SYSTEM PROMPT ──────────────────────────────────────────────
+  // Build system prompt
   const langPref = profile?.langPref || profile?.nativeLanguage || 'English';
-  const lang     = profile?.targetLanguage || 'German';
 
   let systemPrompt;
   try {
     const blueprint = buildBlueprintFromProfile(profile);
     systemPrompt = buildSystemPrompt(blueprint, langPref);
-    console.log('[AURA] system prompt built via prompts.js', {
-      level: blueprint.level,
-      mode:  blueprint.mode,
-      langPref,
-    });
+    console.log('[AURA] system prompt built', { level: blueprint.level, mode: blueprint.mode, langPref });
   } catch (promptErr) {
-    console.error('[AURA] buildSystemPrompt failed, using minimal fallback', promptErr);
-    // Minimal safe fallback — should only trigger if prompts.js has a bug
+    console.error('[AURA] buildSystemPrompt failed, using fallback', promptErr);
     const nativeLang = profile?.nativeLanguage || 'English';
     const level      = profile?.level || 'A2';
-    systemPrompt = `You are AURA, a warm AI language tutor. The student is learning ${lang} at ${level} level. Their native language is ${nativeLang}. Use ${nativeLang} only for corrections (one sentence max). Keep each turn to 2-3 sentences. Greet the student warmly in ${lang} to begin.`;
+    systemPrompt = `You are AURA, a warm AI language tutor. The student is learning ${_language} at ${level} level. Their native language is ${nativeLang}. Use ${nativeLang} only for corrections (one sentence max). Keep each turn to 2-3 sentences. Greet the student warmly in ${_language} to begin.`;
   }
-  // ── END SYSTEM PROMPT BUILD ───────────────────────────────────────────────
 
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
@@ -525,11 +586,17 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
 
     playbackNode = await ensurePlaybackWorklet(audioCtx);
 
+    // ── CHANGE 1: Send `language` to /token ──────────────────────────────────
     const resp = await fetch(`${WORKER_URL}/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken })
+      body: JSON.stringify({
+        idToken,
+        language: _language,          // NEW: tells brain worker which language context to load
+      })
     });
+    // ─────────────────────────────────────────────────────────────────────────
+
     if (!resp.ok) {
       const e = await resp.json().catch(() => ({}));
       throw new Error(e.error || `Worker error ${resp.status}`);
@@ -538,9 +605,17 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
     const { token } = tokenData;
     if (!token) throw new Error('No token from Worker.');
 
-    // Store sessionId and userId for eval/consolidate on session end
-    _sessionId = tokenData.sessionId || null;
-    _userId    = tokenData.userId    || null;
+    // Store session metadata returned by new brain worker
+    _sessionId     = tokenData.sessionId   || null;
+    _userId        = tokenData.userId      || null;
+    _currentNodeId = tokenData.currentNode?.id || null;  // NEW: curriculum node
+    _profileId     = profile?.id           || null;       // NEW: from active profile
+
+    console.log('[AURA] session started', {
+      sessionId:       _sessionId,
+      currentNode:     tokenData.currentNode?.title,
+      curriculumReason: tokenData.curriculumReason,
+    });
 
     ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${token}`);
     ws.binaryType = 'arraybuffer';
@@ -583,7 +658,7 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
       setOrbSpeaking(true);
       if (btn) btn.disabled = false;
 
-      initDeepgramSTT(lang);
+      initDeepgramSTT(_language);
 
       window.dispatchEvent(new CustomEvent('aura:session-started'));
 
@@ -622,9 +697,6 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
   }
 }
 
-// ── Expose endSession globally so external code can call window.endSession() ──
-window.endSession = endSession;
-
 // ── PUBLIC API ────────────────────────────────────────────────────────────────
 export function toggleMic() {
   micMuted = !micMuted;
@@ -643,8 +715,6 @@ export function sendText(text) {
 
 export function getSessionState() { return sessionActive ? 'active' : 'idle'; }
 
-// Module-level callback refs — set once by initSession, used everywhere.
-// Stored this way to survive Vite's minifier renaming destructured params.
 let _tokenFn   = () => Promise.resolve(null);
 let _nameFn    = () => 'there';
 let _profileFn = () => null;
@@ -694,8 +764,7 @@ export function initSession(callbacks) {
       return;
     }
 
-    // ── ANTHROPIC TEXT FALLBACK ───────────────────────────────────────────
-    // Uses real buildSystemPrompt so the text fallback is identical to voice.
+    // Text fallback when no live session
     sending = true;
     const sendBtnEl = document.getElementById('sendBtn');
     if (sendBtnEl) sendBtnEl.disabled = true;
@@ -738,7 +807,6 @@ export function initSession(callbacks) {
 
     sending = false;
     if (sendBtnEl) sendBtnEl.disabled = false;
-    // ── END ANTHROPIC TEXT FALLBACK ───────────────────────────────────────
   }
 
   document.getElementById('sendBtn')?.addEventListener('click', handleSend);
