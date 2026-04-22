@@ -1123,7 +1123,7 @@ async function _doStartSession() {
   const seshEmoji = document.getElementById('sesh-emoji'); if(seshEmoji) seshEmoji.textContent = activeBlueprint?.emoji || selectedScenario?.emoji || '🎭';
   renderSessionLabels();
   const addTimeBtn = document.getElementById('add-time-btn'); if(addTimeBtn) addTimeBtn.disabled = false;
-  const convArea = document.getElementById('conversation-area'); if(convArea) convArea.innerHTML = '';
+  const convArea = document.getElementById('messagesWrap'); if(convArea) { Array.from(convArea.children).forEach(c => { if(c.id !== 'typingIndicator') c.remove(); }); }
 
   const boardIdle = document.getElementById('board-idle');
   if (boardIdle) { boardIdle.style.display = 'block'; }
@@ -1512,52 +1512,65 @@ window.requestHint = () => {
   }));
 };
 
+// ── MESSAGE RENDERING ─────────────────────────────────────────────────────────
+// Uses the dashboard's actual DOM: id="messagesWrap", typingIndicator,
+// CSS classes: .msg.ai/.msg.me, .msg-label, .bubble
+
+function _getWrap() {
+  return document.getElementById('messagesWrap');
+}
+function _scrollBottom() {
+  const w = _getWrap();
+  if (w) w.scrollTop = w.scrollHeight;
+}
+function _insertBeforeTyping(el) {
+  const wrap    = _getWrap(); if (!wrap) return;
+  const typing  = document.getElementById('typingIndicator');
+  typing ? wrap.insertBefore(el, typing) : wrap.appendChild(el);
+  _scrollBottom();
+}
+
+// Creates a streaming AURA bubble and returns the element.
 function createMsgEntry() {
-  const area = document.getElementById('conversation-area');
-  if(!area) return null;
-  const div=document.createElement('div'); div.className='msg-block';
-  div.innerHTML=`<span class="msg-who aura">AURA</span><div class="msg-text aura-msg streaming"></div>`;
-  area.appendChild(div); area.scrollTop=area.scrollHeight;
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = '<div class="msg-label">AURA</div><div class="bubble streaming"></div>';
+  _insertBeforeTyping(div);
   return div;
 }
-function updateMsgEntry(el,text){
-  const t=el?.querySelector('.msg-text');
-  if(t){t.textContent=text;t.classList.add('streaming');}
-  const area=document.getElementById('conversation-area');
-  if(area) area.scrollTop=area.scrollHeight;
+function updateMsgEntry(el, text) {
+  const b = el?.querySelector('.bubble');
+  if (b) b.textContent = text;
+  _scrollBottom();
 }
-function finaliseMsgEntry(el){
-  const t=el?.querySelector('.msg-text');
-  if(t) t.classList.remove('streaming');
+function finaliseMsgEntry(el) {
+  el?.querySelector('.bubble')?.classList.remove('streaming');
 }
+
+// Creates a streaming student bubble and returns the element.
 function _createStudentEntry() {
-  const area = document.getElementById('conversation-area');
-  if (!area) return null;
   const div = document.createElement('div');
-  div.className = 'msg-block student-block';
-  div.innerHTML = `<span class="msg-who student">You</span><div class="msg-text student-msg streaming"></div>`;
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
+  div.className = 'msg me streaming';
+  div.innerHTML = '<div class="msg-label">YOU</div><div class="bubble"></div>';
+  _insertBeforeTyping(div);
   return div;
 }
 function _updateStudentEntry(el, text) {
-  const t = el?.querySelector('.msg-text');
-  if (t) t.textContent = text;
-  const area = document.getElementById('conversation-area');
-  if (area) area.scrollTop = area.scrollHeight;
+  const b = el?.querySelector('.bubble');
+  if (b) b.textContent = text;
+  _scrollBottom();
 }
 function _finaliseStudentEntry(el) {
-  const t = el?.querySelector('.msg-text');
-  if (t) t.classList.remove('streaming');
+  el?.classList.remove('streaming');
 }
+
+// Renders a finalised student bubble (used by Deepgram flush).
 function _renderStudentBubble(text) {
-  const area = document.getElementById('conversation-area');
-  if (!area || !text) return;
+  if (!text) return;
   const div = document.createElement('div');
-  div.className = 'msg-block student-block';
-  div.innerHTML = `<span class="msg-who student">You</span><div class="msg-text student-msg">${escHtml(text)}</div>`;
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
+  div.className = 'msg me';
+  div.innerHTML = `<div class="msg-label">YOU</div><div class="bubble">${escHtml(text)}</div>`;
+  _insertBeforeTyping(div);
 }
   // Replace your existing initDeepgramSTT() function in session.js with this.
 // The browser now connects to YOUR worker at /listen (wss://),
@@ -1793,15 +1806,16 @@ window.addTime=()=>{
 
 // ── SEND TEXT ─────────────────────────────────
 window.sendTextMessage=()=>{
-  const inp=document.getElementById('msg-input');
+  const inp=document.getElementById('chatInput') || document.getElementById('text-input') || document.getElementById('msg-input');
+  if (!inp) return;
   const text=inp.value.trim();
   if(!text) return;
   if(!activeBlueprint||!ws||ws.readyState!==WebSocket.OPEN){ toast('Session not active. Please restart.'); return; }
   inp.value='';
-  const area=document.getElementById('conversation-area');
+  const area=document.getElementById('messagesWrap');
   if(area){
-    const div=document.createElement('div'); div.className='msg-block';
-    div.innerHTML=`<span class="msg-who user" style="text-align:right">You</span><div class="msg-text user-msg">${escHtml(text)}</div>`;
+    const div=document.createElement('div'); div.className='msg me';
+    div.innerHTML=`<div class="msg-label">YOU</div><div class="bubble">${escHtml(text)}</div>`;
     area.appendChild(div); area.scrollTop=area.scrollHeight;
   }
   text.toLowerCase().split(/\s+/).forEach(w=>{const c=w.replace(/[^a-zäöüß]/gi,'');if(c.length>2)wordsUsed.add(c);});
@@ -1834,7 +1848,7 @@ window.changeScenario=async()=>{
   setSessionMode(selectedSessionMode || 'guided');
   const _se=document.getElementById('sesh-emoji'); if(_se)_se.textContent=selectedScenario.emoji;
   renderSessionLabels();
-  const _ca=document.getElementById('conversation-area'); if(_ca)_ca.innerHTML='';
+  const _ca=document.getElementById('messagesWrap'); if(_ca) { Array.from(_ca.children).forEach(c => { if(c.id !== 'typingIndicator') c.remove(); }); }
   updateSessionModeRecommendation();
   toast(`New scenario: ${selectedScenario.title}`);
   logAnalyticsEvent('scenario_selected', { scenarioId: newBlueprint?.scenarioId || selectedScenario.id, level: newBlueprint?.level || selectedLevel, mode: newBlueprint?.mode || getActiveSessionMode(selectedLevel) }).catch(()=>{});
@@ -1949,14 +1963,6 @@ window.resumeSession  = () => { sessionPaused = false; clearSilenceTimer(); docu
 window.addTime        = () => { if (!addTimeUsed) { sessionSeconds += 10*60; addTimeUsed = true; toast('+10 min added'); } };
 window.requestHint    = () => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ clientContent: { turns: [{ role:'user', parts:[{ text:'[HINT REQUEST] Please give me a hint for what to say next in German, in my support language.' }] }], turnComplete: true } })); };
 window.dismissCorrection = () => { clearTimeout(correctionTimeout); };
-window.sendTextMessage = () => {
-  const inp = document.getElementById('text-input'); if (!inp) return;
-  const text = inp.value.trim(); if (!text) return;
-  if (ws?.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ clientContent: { turns: [{ role:'user', parts:[{ text }] }], turnComplete: true } }));
-    inp.value = '';
-  }
-};
 window.goBackToSetup    = () => { cleanupLive(); if(_el('speak-session')) _el('speak-session').style.display='none'; if(_el('speak-setup')) _el('speak-setup').style.display=''; };
 window.goBackToHomepage = () => { cleanupLive(); window.location.hash = ''; };
 window.changeScenario   = async () => { await restartSessionIfRunning('scenario_change'); };
