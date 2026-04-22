@@ -813,20 +813,6 @@ export function initSession(callbacks) {
   document.getElementById('sendBtn')?.addEventListener('click', handleSend);
   document.getElementById('chatInput')?.addEventListener('keydown', e => { if (e.key==='Enter') handleSend(); });
 }
-
-// Auto-close session on tab close / refresh
-window.addEventListener('beforeunload', () => {
-  if (!_sessionId || !_userId) return;
-  const payload = JSON.stringify({
-    userId:    _userId,
-    sessionId: _sessionId,
-    language:  _language,
-    profileId: _profileId || null,
-  });
-  // sendBeacon survives page unload where fetch does not
-  navigator.sendBeacon(`${WORKER_URL}/consolidate`, new Blob([payload], { type: 'application/json' }));
-});
-
 function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
