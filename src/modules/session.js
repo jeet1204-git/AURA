@@ -125,6 +125,9 @@ function _syncFromStore() {
 }
 // ── END STORE STATE SHADOWS ───────────────────────────────────────────────────
 
+// Shorthand used throughout this module — safe null-returning getElementById.
+const _el = id => document.getElementById(id);
+
 let _sessionState = SESSION_STATES.IDLE;
 
 function getSessionState() {
@@ -1063,9 +1066,11 @@ async function _doStartSession() {
   sessionStartedAt = null;
   _syncToStore();
 
-  document.getElementById('speak-setup').style.display = 'none';
-  document.getElementById('speak-session').style.display = 'flex';
-  document.getElementById('speak-score').style.display = 'none';
+  // Screen switching — safe for both old monolithic HTML and new dashboard.
+  if (_el('speak-setup'))   _el('speak-setup').style.display   = 'none';
+  if (_el('speak-session')) _el('speak-session').style.display = 'flex';
+  if (_el('speak-score'))   _el('speak-score').style.display   = 'none';
+  window.dispatchEvent(new CustomEvent('aura:session-started', { detail: { blueprint: activeBlueprint } }));
 
   // Exam mode body class + correct overlay per Teil
   const isExam  = activeBlueprint?.programType === 'exam';
@@ -1792,18 +1797,18 @@ window.changeScenario=async()=>{
 
 window.goBackToSetup=()=>{
   clearInterval(sessionTimerInterval); cleanupLive();
-  document.getElementById('speak-session').style.display='none';
-  document.getElementById('speak-score').style.display='none';
-  document.getElementById('speak-setup').style.display='block';
+  if(_el('speak-session')) _el('speak-session').style.display='none';
+  if(_el('speak-score'))   _el('speak-score').style.display='none';
+  if(_el('speak-setup'))   _el('speak-setup').style.display='block';
   updateTrialBadge();
   renderRecentPractice(userSessionHistory);
 };
 
 window.goBackToHomepage=()=>{
   clearInterval(sessionTimerInterval); cleanupLive();
-  document.getElementById('speak-session').style.display='none';
-  document.getElementById('speak-score').style.display='none';
-  document.getElementById('speaking-interface').style.display='none';
+  if(_el('speak-session'))        _el('speak-session').style.display='none';
+  if(_el('speak-score'))          _el('speak-score').style.display='none';
+  if(_el('speaking-interface'))   _el('speaking-interface').style.display='none';
   document.body.classList.remove('exam-active');
   hideAllExamOverlays();
   const navCta=document.querySelector('.gnav-cta');
@@ -1903,7 +1908,7 @@ window.sendTextMessage = () => {
     inp.value = '';
   }
 };
-window.goBackToSetup    = () => { cleanupLive(); document.getElementById('speak-session').style.display='none'; document.getElementById('speak-setup').style.display=''; };
+window.goBackToSetup    = () => { cleanupLive(); if(_el('speak-session')) _el('speak-session').style.display='none'; if(_el('speak-setup')) _el('speak-setup').style.display=''; };
 window.goBackToHomepage = () => { cleanupLive(); window.location.hash = ''; };
 window.changeScenario   = async () => { await restartSessionIfRunning('scenario_change'); };
 window.endSession = async () => {
