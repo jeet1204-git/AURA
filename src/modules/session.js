@@ -587,6 +587,67 @@ function restartSessionIfRunning(reason = 'config_changed') {
   return true;
 }
 
+// ── PAYWALL HELPERS ───────────────────────────
+
+/**
+ * Returns true (and shows the upgrade modal) when a free-tier user has hit
+ * their monthly session limit. Returns false if the session is allowed.
+ * Reads freeSessionsUsedThisMonth and freeSessionsMonthKey from window.userProfile,
+ * which is seeded by session-adapter.js at login time.
+ * FREE_SESSION_LIMIT is imported from constants.js.
+ */
+function checkPaywallGate() {
+  const profile          = window.userProfile || {};
+  const currentMonthKey  = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+  const storedKey        = profile.freeSessionsMonthKey ?? null;
+  const used             = (storedKey === currentMonthKey)
+    ? (profile.freeSessionsUsedThisMonth ?? 0)
+    : 0;
+
+  if (used >= (FREE_SESSION_LIMIT ?? 3)) {
+    showUpgradeModal();
+    return true; // blocked
+  }
+  return false; // allowed
+}
+
+/**
+ * Shows the upgrade / paywall modal.
+ * Looks for #upgrade-modal or #paywall-modal in the DOM.
+ * Safe to call even if neither element exists yet.
+ */
+function showUpgradeModal() {
+  const modal = document.getElementById('upgrade-modal')
+             || document.getElementById('paywall-modal');
+  if (modal) {
+    modal.classList.add('open');
+  } else {
+    // Fallback toast when modal markup is not yet in the DOM
+    toast('You\'ve used your free sessions for this month. Upgrade to continue.');
+  }
+}
+
+/**
+ * Updates the trial badge / session-count indicator in the UI.
+ * Safe no-op when the element is absent (paid users, or badge not yet built).
+ */
+function updateTrialBadge() {
+  const badge = document.getElementById('trial-badge')
+             || document.getElementById('trialBadge');
+  if (!badge) return;
+
+  const profile         = window.userProfile || {};
+  const currentMonthKey = new Date().toISOString().slice(0, 7);
+  const storedKey       = profile.freeSessionsMonthKey ?? null;
+  const used            = (storedKey === currentMonthKey)
+    ? (profile.freeSessionsUsedThisMonth ?? 0)
+    : 0;
+  const remaining = Math.max(0, (FREE_SESSION_LIMIT ?? 3) - used);
+
+  badge.textContent = `${remaining} free session${remaining !== 1 ? 's' : ''} left`;
+  badge.style.display = isPaidStudent ? 'none' : '';
+}
+
 // ── SYSTEM PROMPT ─────────────────────────────
 
 window.startSession = async () => {
