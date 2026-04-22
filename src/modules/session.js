@@ -1,13 +1,11 @@
 import { WORKER_URL, DEEPGRAM_WORKER_URL, GEMINI_WS_EPHEMERAL, MODEL, SILENCE_MS, DEFAULT_SESSION_SECONDS, FREE_SESSION_LIMIT } from '../config/constants.js';
-import { SESSION_STATES, SESSION_TRANSITIONS, STAGE, BLUEPRINT_POLICIES, resolveScenarioForLevel } from '../config/scoring.js';
+import { SESSION_STATES, SESSION_TRANSITIONS, STAGE, BLUEPRINT_POLICIES, SCENARIOS, resolveScenarioForLevel } from '../config/scoring.js';
 import { A2_EXAM_TOPICS, A2_EXAM_CUE_SETS, EXAM_DEFAULT_PASS_THRESHOLDS, EXAM_CUE_KEYWORD_GROUPS } from '../config/exam-topics.js';
 import { buildSystemPrompt } from './prompts.js';
 import { buildPracticeEvalPrompt, buildExamEvalPrompt, renderScore, renderPostSessionCoaching, buildFeedbackRecord, resetPostSessionCoaching, escHtml, toast } from './evaluation.js';
 import { getWorkletBlobUrl, createWorklet, ensurePlaybackWorklet, enqueueAudio } from '../audio/worklets.js';
 import { auth, getIdToken } from './auth.js';
 import { db, persistSessionProgress, loadUserSessionHistory, loadDailyState, saveDailyState, logAnalyticsEvent } from './firestore.js';
-import { initSession } from './session-adapter.js';
-
 
 
 let _sessionState = SESSION_STATES.IDLE;
@@ -1532,3 +1530,5 @@ window.endSession = async () => {
   handleSessionClose(1000, 'user_ended');
   window.dispatchEvent(new CustomEvent('aura:session-ended'));
 };
+window.SCENARIOS = SCENARIOS;
+window.collectSessionEvidence = collectSessionEvidence;
