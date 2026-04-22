@@ -719,6 +719,26 @@ document.querySelectorAll('.sug-chip').forEach(chip => {
   });
 });
 
+// ── CHAT INPUT + SEND BUTTON ──────────────────────────────────────────────────
+(function wireChatInput() {
+  const input   = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  if (!input) return;
+
+  function submitChat() {
+    const text = input.value.trim();
+    if (!text) return;
+    if (typeof window.sendTextMessage === 'function') {
+      window.sendTextMessage();
+    }
+  }
+
+  sendBtn?.addEventListener('click', submitChat);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChat(); }
+  });
+})();
+
 // ── EDIT PROFILE MODAL ────────────────────────────────────────────────────────
 // NOTE: All Firebase Firestore dynamic imports replaced with Supabase via updateProfile()
 function showEditProfileModal(profile) {
