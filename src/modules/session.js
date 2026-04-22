@@ -1220,7 +1220,7 @@ ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(tok
       clearTimeout(wsTimeout);
       let systemPromptText;
       try {
-        systemPromptText = buildSystemPrompt();
+        systemPromptText = buildSystemPrompt(activeBlueprint, selectedLangPref, auraContextBlock);
       } catch (promptErr) {
         toast(`Session configuration error: ${promptErr.message}`);
         console.error('[AURA] buildSystemPrompt failed in ws.onopen:', promptErr);
@@ -1241,15 +1241,21 @@ ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(tok
       }));
       workletNode = await createWorklet(micCtx, micStream, {
         onAudioChunk: (buffer) => {
-          if (!ws || ws.readyState !== WebSocket.OPEN || micMuted) return;
-          // Convert ArrayBuffer (Int16 PCM) to base64 for Gemini realtimeInput
-          const bytes  = new Uint8Array(buffer);
-          let binary   = '';
-          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-          const b64 = btoa(binary);
-          ws.send(JSON.stringify({
-            realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }] }
-          }));
+          if (micMuted) return;
+          // Forward to Gemini Live
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            const bytes  = new Uint8Array(buffer);
+            let binary   = '';
+            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+            const b64 = btoa(binary);
+            ws.send(JSON.stringify({
+              realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }] }
+            }));
+          }
+          // Forward to Deepgram for transcription
+          if (dgWs && dgWs.readyState === WebSocket.OPEN) {
+            dgWs.send(buffer);
+          }
         }
       });
       setWorkletNode(workletNode); window.workletNode = workletNode;
