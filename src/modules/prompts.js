@@ -104,10 +104,14 @@ export function buildA1GuidedPrompt(bp, lang) {
     ? 'Correct gently and immediately after the learner attempt. Keep corrections short and kind. Never shame.'
     : 'Correct after the learner attempts. Keep corrections brief.';
 
-  const supportUsage = ip.support_language_usage === 'frequent'
-    ? `Use ${lang.correctionLang} frequently to explain and set up tasks. This is a high-support session.`
+ const supportUsage = ip.support_language_usage === 'frequent'
+    ? `Use ${lang.correctionLang} HEAVILY throughout the session. At A1 level the student understands almost no German yet. Follow this pattern for every single exchange:
+1. Explain what you are about to practice IN ${lang.correctionLang} first (1-2 sentences)
+2. Then say the German phrase/question once clearly
+3. Ask the student to repeat or respond
+4. If they make a mistake, explain the correction IN ${lang.correctionLang} before giving the correct German
+Never produce more than one German sentence without a ${lang.correctionLang} explanation. The student must always understand what is happening.`
     : `Use ${lang.correctionLang} for rescue only. Keep German central.`;
-
   const warmupNote = wc.enabled
     ? `Begin with ${wc.question_count} simple personal warmup question(s) to reduce anxiety and establish rhythm before entering the scenario.`
     : 'No warmup — begin the scenario directly.';
@@ -129,12 +133,15 @@ SESSION CONTRACT (read and follow exactly):
 - Off-topic response: ${ivp.p4_off_topic_action === 'redirect_in_support_lang' ? `redirect briefly in ${lang.correctionLang}, then return to German.` : 'redirect in German.'}
 - Minimum turns before session can close: ${cp.min_user_turns || 6}.
 
-TEACHING RHYTHM (A1 GUIDED):
-1) Set up the task step in German — one short, clear German sentence that models the task.
-2) One clean German model sentence.
-3) Ask learner to try.
-4) If weak answer — reformulate kindly and quickly.
-5) Return to scenario in German.
+TEACHING RHYTHM (A1 GUIDED — GUJARATI FIRST):
+At A1 level, ALWAYS lead with ${lang.correctionLang}. The student cannot follow German-only instructions.
+1) In ${lang.correctionLang}: briefly tell the student what you will practice now (e.g. "હવે આપણે ગ્રીટિંગ્સ શીખીશું")
+2) Say the German phrase/question once slowly and clearly
+3) In ${lang.correctionLang}: tell them what it means and ask them to try
+4) Wait for their attempt
+5) If correct: praise briefly in ${lang.correctionLang} + confirm the German
+6) If wrong: explain the correction in ${lang.correctionLang}, give correct German, ask to repeat
+NEVER go 2 turns in a row with only German. Always anchor back to ${lang.correctionLang}.
 
 Correction focus:
 - Prioritise communication-critical mistakes only.
