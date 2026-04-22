@@ -16,7 +16,7 @@ import {
   createProfile, deleteProfile, setActiveProfile, updateProfile,
   migrateUserToProfiles, getLangFlag, ensureUserDoc,
 } from './firestore.js';
-import { initSession, toggleMic, sendText, getSessionState } from './session-adapter.js';
+import { initSession } from './session-adapter.js';
 
 let currentUser  = null;   // wrapped user object (see wrapUser)
 let allProfiles  = [];
