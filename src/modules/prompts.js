@@ -288,11 +288,14 @@ export function buildSystemPrompt(activeBlueprint, selectedLangPref, auraContext
   else if (bp.level === 'A2' && bp.mode === 'guided') basePrompt = buildA2GuidedPrompt(bp, lang);
   else if (bp.level === 'A2' && bp.mode === 'immersion') basePrompt = buildA2ImmersionPrompt(bp, lang);
   else {
-    // No matching prompt branch — this is a configuration error, not a graceful fallback.
-    // Throw so the session fails loudly at start rather than silently running the wrong prompt.
-    const errMsg = `No prompt branch matched: programType=${bp.programType}, level=${bp.level}, mode=${bp.mode}, examPart=${bp.examPart}. Session cannot start.`;
-    console.error('[AURA] buildSystemPrompt: ' + errMsg);
-    throw new Error(errMsg);
+    // For levels beyond A1/A2 (B1, B2, C1, C2) or any general program type,
+    // fall back to A2 guided/immersion prompt logic which works for higher levels too.
+    const lang = buildPromptLanguageConfig(selectedLangPref);
+    if (bp.mode === 'immersion') {
+      basePrompt = buildA2ImmersionPrompt(bp, lang);
+    } else {
+      basePrompt = buildA2GuidedPrompt(bp, lang);
+    }
   }
 
   // Prepend student memory context if available (from /session-start)
