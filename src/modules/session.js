@@ -6,6 +6,9 @@ import { buildPracticeEvalPrompt, buildExamEvalPrompt, renderScore, renderPostSe
 import { getWorkletBlobUrl, createWorklet, ensurePlaybackWorklet, enqueueAudio } from '../audio/worklets.js';
 import { auth, getIdToken } from './auth.js';
 import { db, persistSessionProgress, loadUserSessionHistory, loadDailyState, saveDailyState, logAnalyticsEvent } from './firestore.js';
+import { initSession } from './session-adapter.js';
+import './session.js'; // registers window.startSession, window.endSession, window.toggleMic
+
 
 let _sessionState = SESSION_STATES.IDLE;
 
