@@ -6,83 +6,124 @@ import { buildPracticeEvalPrompt, buildExamEvalPrompt, renderScore, renderPostSe
 import { getWorkletBlobUrl, createWorklet, ensurePlaybackWorklet, enqueueAudio } from '../audio/worklets.js';
 import { auth, getIdToken } from './auth.js';
 import { db, persistSessionProgress, loadUserSessionHistory, loadDailyState, saveDailyState, logAnalyticsEvent } from './firestore.js';
+import { resetSession as storeResetSession } from '../state/store.js';
 
-// ── STORE GLOBALS ─────────────────────────────────────────────────────────────
-// session.js was originally written against bare window globals set by store.js.
-// These proxy accessors keep all reads/writes in sync with window so store.js
-// remains the single source of truth, while bare variable names keep working.
+// ── STORE STATE SHADOWS ───────────────────────────────────────────────────────
+// store.js owns these variables and exposes them on window via Object.defineProperties.
+// session.js reads them as bare names. Because ES module imports of `let` bindings
+// are live but read-only, we instead declare local `let` shadows here that stay
+// in sync with window (which store.js already keeps up to date).
+// Rule: always assign via the setter below so window (and therefore store.js) also updates.
 
-function _proxyGlobal(name, defaultVal) {
-  if (window[name] === undefined) window[name] = defaultVal;
-  Object.defineProperty(
-    typeof globalThis !== 'undefined' ? globalThis : window,
-    name,
-    {
-      get()  { return window[name]; },
-      set(v) { window[name] = v; },
-      configurable: true,
-    }
-  );
+function _get(k)    { return window[k]; }
+function _set(k, v) { window[k] = v; }   // store.js setter is wired on window
+
+// Declare every store variable as a local that proxies window on first read.
+// We use getters on a plain object and destructure — but the simplest correct
+// approach for a module that mutates state is just to use window.X everywhere.
+// However that would require touching every line. Instead we use a Proxy on
+// the module's local binding via a tiny helper that makes bare names work:
+
+// The following are the only variables session.js WRITES to. We declare them
+// as local lets initialised from window, and every assignment uses a small
+// inline helper defined immediately after.
+let sessionActive       = window.sessionActive       ?? false;
+let sessionSeconds      = window.sessionSeconds      ?? 1200;
+let sessionStartedAt    = window.sessionStartedAt    ?? null;
+let sessionPaused       = window.sessionPaused       ?? false;
+let sessionTimerInterval= window.sessionTimerInterval?? null;
+let correctionTimeout   = window.correctionTimeout   ?? null;
+let addTimeUsed         = window.addTimeUsed         ?? false;
+let turnCount           = window.turnCount           ?? 0;
+let micMuted            = window.micMuted            ?? false;
+let dgClosingByApp      = window.dgClosingByApp      ?? false;
+let ws                  = window.ws                  ?? null;
+let dgWs                = window.dgWs                ?? null;
+let audioCtx            = window.audioCtx            ?? null;
+let micCtx              = window.micCtx              ?? null;
+let micStream           = window.micStream           ?? null;
+let workletNode         = window.workletNode         ?? null;
+let playbackNode        = window.playbackNode        ?? null;
+let conversationHistory = window.conversationHistory ?? [];
+let wordsUsed           = window.wordsUsed           ?? new Set();
+let errorPatterns       = window.errorPatterns       ?? {};
+let auraContextBlock    = window.auraContextBlock    ?? '';
+let liveEventLog        = window.liveEventLog        ?? [];
+let canonicalTurns      = window.canonicalTurns      ?? [];
+let activeBlueprint     = window.activeBlueprint     ?? null;
+let selectedLevel       = window.selectedLevel       ?? 'A1';
+let selectedScenario    = window.selectedScenario    ?? null;
+let selectedSessionMode = window.selectedSessionMode ?? 'guided';
+let selectedLangPref    = window.selectedLangPref    ?? 'English';
+let selectedProgramType = window.selectedProgramType ?? 'general';
+let isPaidStudent       = window.isPaidStudent       ?? false;
+let currentUser         = window.currentUser         ?? null;
+let userProfile         = window.userProfile         ?? null;
+let userSessionHistory  = window.userSessionHistory  ?? [];
+
+// Local-only state (not in store.js)
+let currentUserText     = '';
+let currentUserEntryEl  = null;
+let sessionDerivedMetrics = {
+  totalUserTurns: 0, averageUserTurnLength: 0, oneWordUserAnswerCount: 0,
+  clarificationPromptCount: 0, estimatedIndependentResponseCount: 0, totalAssistantTurns: 0,
+};
+
+// Sync all local shadows back to window after every assignment.
+// We wrap this in a function called after any batch of assignments.
+function _syncToStore() {
+  window.sessionActive        = sessionActive;
+  window.sessionSeconds       = sessionSeconds;
+  window.sessionStartedAt     = sessionStartedAt;
+  window.sessionPaused        = sessionPaused;
+  window.sessionTimerInterval = sessionTimerInterval;
+  window.correctionTimeout    = correctionTimeout;
+  window.addTimeUsed          = addTimeUsed;
+  window.turnCount            = turnCount;
+  window.micMuted             = micMuted;
+  window.dgClosingByApp       = dgClosingByApp;
+  window.ws                   = ws;
+  window.dgWs                 = dgWs;
+  window.audioCtx             = audioCtx;
+  window.micCtx               = micCtx;
+  window.micStream            = micStream;
+  window.workletNode          = workletNode;
+  window.playbackNode         = playbackNode;
+  window.conversationHistory  = conversationHistory;
+  window.wordsUsed            = wordsUsed;
+  window.errorPatterns        = errorPatterns;
+  window.auraContextBlock     = auraContextBlock;
+  window.liveEventLog         = liveEventLog;
+  window.canonicalTurns       = canonicalTurns;
+  window.activeBlueprint      = activeBlueprint;
+  window.selectedLevel        = selectedLevel;
+  window.selectedScenario     = selectedScenario;
+  window.selectedSessionMode  = selectedSessionMode;
+  window.selectedLangPref     = selectedLangPref;
+  window.selectedProgramType  = selectedProgramType;
 }
 
-// Session runtime
-_proxyGlobal('sessionActive',        false);
-_proxyGlobal('sessionSeconds',       DEFAULT_SESSION_SECONDS ?? 1200);
-_proxyGlobal('sessionStartedAt',     null);
-_proxyGlobal('sessionPaused',        false);
-_proxyGlobal('sessionTimerInterval', null);
-_proxyGlobal('correctionTimeout',    null);
-_proxyGlobal('addTimeUsed',          false);
-_proxyGlobal('turnCount',            0);
-_proxyGlobal('micMuted',             false);
-_proxyGlobal('dgClosingByApp',       false);
-
-// WebSocket / audio handles
-_proxyGlobal('ws',           null);
-_proxyGlobal('dgWs',         null);
-_proxyGlobal('audioCtx',     null);
-_proxyGlobal('micCtx',       null);
-_proxyGlobal('micStream',    null);
-_proxyGlobal('workletNode',  null);
-_proxyGlobal('playbackNode', null);
-
-// Conversation state
-_proxyGlobal('conversationHistory', []);
-_proxyGlobal('wordsUsed',           new Set());
-_proxyGlobal('errorPatterns',       {});
-_proxyGlobal('auraContextBlock',    '');
-_proxyGlobal('currentUserText',     '');
-_proxyGlobal('currentUserEntryEl',  null);
-_proxyGlobal('liveEventLog',        []);
-_proxyGlobal('canonicalTurns',      []);
-_proxyGlobal('sessionDerivedMetrics', {
-  totalUserTurns: 0,
-  averageUserTurnLength: 0,
-  oneWordUserAnswerCount: 0,
-  clarificationPromptCount: 0,
-  estimatedIndependentResponseCount: 0,
-  totalAssistantTurns: 0,
-});
-
-// Blueprint / scenario selection
-_proxyGlobal('activeBlueprint',      null);
-_proxyGlobal('selectedLevel',        'A1');
-_proxyGlobal('selectedScenario',     null);
-_proxyGlobal('selectedSessionMode',  'guided');
-_proxyGlobal('selectedLangPref',     'English');
-_proxyGlobal('selectedProgramType',  'general');
-_proxyGlobal('selectedExamPart',     'teil1');
-_proxyGlobal('selectedExamRunType',  'practice');
-_proxyGlobal('selectedExamTopicId',  null);
-_proxyGlobal('selectedExaminerStyle','standard');
-
-// User / profile
-_proxyGlobal('currentUser',        null);
-_proxyGlobal('userProfile',        null);
-_proxyGlobal('isPaidStudent',      false);
-_proxyGlobal('userSessionHistory', []);
-
-// ── END STORE GLOBALS ─────────────────────────────────────────────────────────
+// Re-read all mutable store vars from window (call at session start so we
+// pick up anything store.js or session-adapter.js set after module init).
+function _syncFromStore() {
+  sessionActive        = window.sessionActive        ?? sessionActive;
+  sessionSeconds       = window.sessionSeconds       ?? sessionSeconds;
+  sessionPaused        = window.sessionPaused        ?? sessionPaused;
+  addTimeUsed          = window.addTimeUsed          ?? addTimeUsed;
+  turnCount            = window.turnCount            ?? turnCount;
+  micMuted             = window.micMuted             ?? micMuted;
+  activeBlueprint      = window.activeBlueprint      ?? activeBlueprint;
+  selectedLevel        = window.selectedLevel        ?? selectedLevel;
+  selectedScenario     = window.selectedScenario     ?? selectedScenario;
+  selectedSessionMode  = window.selectedSessionMode  ?? selectedSessionMode;
+  selectedLangPref     = window.selectedLangPref     ?? selectedLangPref;
+  selectedProgramType  = window.selectedProgramType  ?? selectedProgramType;
+  isPaidStudent        = window.isPaidStudent        ?? isPaidStudent;
+  currentUser          = window.currentUser          ?? currentUser;
+  userProfile          = window.userProfile          ?? userProfile;
+  userSessionHistory   = window.userSessionHistory   ?? userSessionHistory;
+}
+// ── END STORE STATE SHADOWS ───────────────────────────────────────────────────
 
 let _sessionState = SESSION_STATES.IDLE;
 
@@ -933,6 +974,9 @@ window.confirmPrivacyAndStart = async () => {
 };
 
 async function _doStartSession() {
+  // Pull latest values from store.js / session-adapter before doing anything.
+  _syncFromStore();
+
   // State machine guard: only allow starting from IDLE.
   if (getSessionState() !== SESSION_STATES.IDLE) {
     console.warn('[AURA][SSM] _doStartSession blocked — session not in IDLE', { current: getSessionState() });
@@ -1017,6 +1061,7 @@ async function _doStartSession() {
   };
   sessionSeconds=20*60; addTimeUsed=false; turnCount=0;
   sessionStartedAt = null;
+  _syncToStore();
 
   document.getElementById('speak-setup').style.display = 'none';
   document.getElementById('speak-session').style.display = 'flex';
@@ -1161,6 +1206,7 @@ ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(tok
       workletNode = await createWorklet(micCtx, micStream);
       sessionStartedAt = new Date();
       sessionActive = true;
+      _syncToStore();
       transitionSessionState(SESSION_STATES.READY, { trigger: 'ws_onopen' });
       transitionSessionState(SESSION_STATES.TASK_ACTIVE, { trigger: 'ws_onopen_auto_advance' });
       updateListeningPill('listening');
@@ -1809,6 +1855,7 @@ function cleanupLive({ clearBlueprint = true, resetState = true } = {}) {
   dismissCorrection(); updateListeningPill('idle');
   setDeepgramStatusVisible(false);
   const btn=document.getElementById('mic-btn');if(btn){btn.classList.remove('muted','active');btn.textContent='🎙';}
+  _syncToStore();
   refreshAuraDebug();
 }
 
