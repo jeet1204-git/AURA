@@ -7,6 +7,82 @@ import { getWorkletBlobUrl, createWorklet, ensurePlaybackWorklet, enqueueAudio }
 import { auth, getIdToken } from './auth.js';
 import { db, persistSessionProgress, loadUserSessionHistory, loadDailyState, saveDailyState, logAnalyticsEvent } from './firestore.js';
 
+// ── STORE GLOBALS ─────────────────────────────────────────────────────────────
+// session.js was originally written against bare window globals set by store.js.
+// These proxy accessors keep all reads/writes in sync with window so store.js
+// remains the single source of truth, while bare variable names keep working.
+
+function _proxyGlobal(name, defaultVal) {
+  if (window[name] === undefined) window[name] = defaultVal;
+  Object.defineProperty(
+    typeof globalThis !== 'undefined' ? globalThis : window,
+    name,
+    {
+      get()  { return window[name]; },
+      set(v) { window[name] = v; },
+      configurable: true,
+    }
+  );
+}
+
+// Session runtime
+_proxyGlobal('sessionActive',        false);
+_proxyGlobal('sessionSeconds',       DEFAULT_SESSION_SECONDS ?? 1200);
+_proxyGlobal('sessionStartedAt',     null);
+_proxyGlobal('sessionPaused',        false);
+_proxyGlobal('sessionTimerInterval', null);
+_proxyGlobal('correctionTimeout',    null);
+_proxyGlobal('addTimeUsed',          false);
+_proxyGlobal('turnCount',            0);
+_proxyGlobal('micMuted',             false);
+_proxyGlobal('dgClosingByApp',       false);
+
+// WebSocket / audio handles
+_proxyGlobal('ws',           null);
+_proxyGlobal('dgWs',         null);
+_proxyGlobal('audioCtx',     null);
+_proxyGlobal('micCtx',       null);
+_proxyGlobal('micStream',    null);
+_proxyGlobal('workletNode',  null);
+_proxyGlobal('playbackNode', null);
+
+// Conversation state
+_proxyGlobal('conversationHistory', []);
+_proxyGlobal('wordsUsed',           new Set());
+_proxyGlobal('errorPatterns',       {});
+_proxyGlobal('auraContextBlock',    '');
+_proxyGlobal('currentUserText',     '');
+_proxyGlobal('currentUserEntryEl',  null);
+_proxyGlobal('liveEventLog',        []);
+_proxyGlobal('canonicalTurns',      []);
+_proxyGlobal('sessionDerivedMetrics', {
+  totalUserTurns: 0,
+  averageUserTurnLength: 0,
+  oneWordUserAnswerCount: 0,
+  clarificationPromptCount: 0,
+  estimatedIndependentResponseCount: 0,
+  totalAssistantTurns: 0,
+});
+
+// Blueprint / scenario selection
+_proxyGlobal('activeBlueprint',      null);
+_proxyGlobal('selectedLevel',        'A1');
+_proxyGlobal('selectedScenario',     null);
+_proxyGlobal('selectedSessionMode',  'guided');
+_proxyGlobal('selectedLangPref',     'English');
+_proxyGlobal('selectedProgramType',  'general');
+_proxyGlobal('selectedExamPart',     'teil1');
+_proxyGlobal('selectedExamRunType',  'practice');
+_proxyGlobal('selectedExamTopicId',  null);
+_proxyGlobal('selectedExaminerStyle','standard');
+
+// User / profile
+_proxyGlobal('currentUser',        null);
+_proxyGlobal('userProfile',        null);
+_proxyGlobal('isPaidStudent',      false);
+_proxyGlobal('userSessionHistory', []);
+
+// ── END STORE GLOBALS ─────────────────────────────────────────────────────────
 
 let _sessionState = SESSION_STATES.IDLE;
 
