@@ -1,0 +1,13 @@
+name = "aura-worker"
+main = "index.js"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Set sensitive values via `wrangler secret put <KEY>` — never commit them.
+# SUPABASE_URL           = "https://xxx.supabase.co"
+# SUPABASE_SERVICE_KEY   = "<service-role key>"
+# SUPABASE_ANON_KEY      = "<anon/publishable key>"
+# GEMINI_API_KEY         = "<google ai studio key>"
+# CLAUDE_API_KEY         = "<anthropic key>"
+# ALLOWED_ORIGIN         = "https://your-frontend.pages.dev,http://localhost:5173"
