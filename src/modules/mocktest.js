@@ -502,7 +502,8 @@ export async function mtStartMicCapture() {
       if (mtWs?.readyState !== WebSocket.OPEN || !mtSessionActive || mtExamPhase !== 'speaking') return;
       const bytes = new Uint8Array(e.data);
       let bin = ''; for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
-      mtWs.send(JSON.stringify({ realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: btoa(bin) }] } }));
+      // NEW
+mtWs.send(JSON.stringify({ realtimeInput: { audio: { data: btoa(bin), mimeType: 'audio/pcm;rate=16000' } } }));
       if(dgWs&&dgWs.readyState===WebSocket.OPEN) dgWs.send(bytes.buffer);
     };
 
