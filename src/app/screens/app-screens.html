@@ -168,7 +168,28 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .msg.ai .bubble{background:var(--chat-ai-bg);color:var(--chat-ai-color);border-radius:3px 14px 14px 14px;}
 .msg.me .bubble{background:var(--grad2);color:#fff;border-radius:14px 14px 3px 14px;}
 /* Streaming bubble for live transcription */
-.msg.me.streaming .bubble{opacity:.7;border:0.5px dashed rgba(124,92,252,.4);}
+.msg.me.streaming .bubble{opacity:.85;border:0.5px dashed rgba(124,92,252,.5);min-height:38px;position:relative;}
+/* Pulsing dots shown while user is speaking but text hasn't arrived yet */
+.msg.me.streaming .bubble:empty::after{
+  content:'';display:inline-flex;gap:4px;align-items:center;
+  width:32px;height:8px;
+  background:radial-gradient(circle,rgba(255,255,255,.7) 30%,transparent 70%) 0 0/8px 8px no-repeat,
+             radial-gradient(circle,rgba(255,255,255,.7) 30%,transparent 70%) 12px 0/8px 8px no-repeat,
+             radial-gradient(circle,rgba(255,255,255,.7) 30%,transparent 70%) 24px 0/8px 8px no-repeat;
+  animation:streamDots 1s ease-in-out infinite;
+}
+@keyframes streamDots{
+  0%,100%{opacity:.3}
+  33%{opacity:.9}
+  66%{opacity:.5}
+}
+/* Blinking cursor at end of interim text */
+.msg.me.streaming .bubble:not(:empty)::after{
+  content:'|';margin-left:2px;opacity:.8;
+  animation:streamCursor .7s step-end infinite;
+  font-weight:300;color:rgba(255,255,255,.6);
+}
+@keyframes streamCursor{0%,100%{opacity:.8}50%{opacity:0}}
 /* Correction card */
 .correction-card{align-self:flex-start;max-width:85%;padding:10px 14px;border-radius:3px 14px 14px 14px;background:rgba(248,113,113,.07);border-left:2.5px solid rgba(248,113,113,.5);}
 .cc-label{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:rgba(248,113,113,.7);margin-bottom:6px;display:flex;align-items:center;gap:5px;}
