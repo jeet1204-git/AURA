@@ -25,6 +25,9 @@ let workletNode   = null;
 export let sessionActive = false;
 let micMuted      = false;
 
+// Stored idToken — needed so initDeepgramSTT can authenticate with the worker
+let _idToken      = null;
+
 // Transcription state
 let _dgBuffer        = '';
 let _streamBubble    = null;
@@ -251,16 +254,19 @@ async function initDeepgramSTT(targetLanguage) {
   const langCode = langMap[targetLanguage] || 'en';
 
   try {
+    // idToken is required by the Deepgram worker for Supabase auth verification
+    if (!_idToken) { console.warn('[Deepgram] no idToken — skipping STT init'); return; }
+
     const r = await fetch(`${DEEPGRAM_WORKER_URL}/deepgram-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
+      body: JSON.stringify({ idToken: _idToken })   // ← FIXED: was sending empty {}
     });
-    if (!r.ok) { console.warn('[Deepgram] token fetch failed', r.status); return; }
+    if (!r.ok) { console.warn('[Deepgram] token fetch failed', r.status, await r.text()); return; }
     const { token } = await r.json();
     if (!token) { console.warn('[Deepgram] no token returned'); return; }
 
-    const dgUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${langCode}&smart_format=false&punctuate=false&encoding=linear16&sample_rate=16000&endpointing=400&utterance_end_ms=1000&interim_results=true&access_token=${encodeURIComponent(token)}`;
+    const dgUrl = `wss://api.deepgram.com/v1/listen?model=nova-3&language=${langCode}&smart_format=true&punctuate=true&encoding=linear16&sample_rate=16000&endpointing=400&utterance_end_ms=1000&interim_results=true&access_token=${encodeURIComponent(token)}`;
     dgWs = new WebSocket(dgUrl);
     dgWs.binaryType = 'arraybuffer';
 
@@ -396,14 +402,34 @@ function handleServerMessage(msg) {
       scrollBottom();
     }
 
-    if (sc.inputTranscription?.isFinal) {
-      const text = (sc.inputTranscription.text || '').trim();
-      if (text && !_streamBubble && _dgBuffer === '') {
-        addMsg('me', text);
-        const words = text.split(/\s+/).filter(Boolean);
-        _words += words.length;
-        _correct++;
-        updateStats();
+    // ── Gemini input transcription (what the user said) ─────────────────────
+    // PRIMARY path:   Deepgram WebSocket is live — it shows the streaming bubble
+    //                 in real-time. Gemini's copy is ignored to avoid duplicates.
+    // FALLBACK path:  Deepgram is not connected — use Gemini's transcription
+    //                 so the user always sees their speech on screen.
+    if (sc.inputTranscription) {
+      const text    = (sc.inputTranscription.text || '').trim();
+      const isFinal = !!sc.inputTranscription.isFinal;
+      if (text) {
+        const dgLive = dgWs && dgWs.readyState === WebSocket.OPEN;
+        if (!dgLive) {
+          // Deepgram offline — drive the streaming bubble from Gemini events
+          updateStreamBubble(text);
+          if (isFinal) {
+            const words = text.split(/\s+/).filter(Boolean);
+            _words += words.length;
+            _correct++;
+            updateStats();
+            finaliseStreamBubble();
+          }
+        } else if (isFinal && !_streamBubble && _dgBuffer === '') {
+          // Deepgram online but somehow missed this final utterance — show it
+          addMsg('me', text);
+          const words = text.split(/\s+/).filter(Boolean);
+          _words += words.length;
+          _correct++;
+          updateStats();
+        }
       }
     }
 
@@ -452,6 +478,7 @@ function cleanup() {
   _dgBuffer = '';
   _lastCorrectionResult = null;
   _utteranceIndex = 0;
+  _idToken = null;
 }
 
 // ── END SESSION ───────────────────────────────────────────────────────────────
@@ -546,6 +573,7 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
   _words = 0; _correct = 0; _errors = 0; _corrections = [];
   _dgBuffer = ''; _streamBubble = null; _currentAiText = ''; _aiEntryEl = null;
   _sessionId = null; _userId = null; _profileId = null;
+  _idToken = idToken || null;                    // store so Deepgram token fetch can auth
   _language = profile?.targetLanguage || 'German';
   _currentNodeId = null;
   _utteranceIndex = 0;
