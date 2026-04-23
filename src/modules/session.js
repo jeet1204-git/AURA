@@ -1261,6 +1261,7 @@ ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(tok
       setWorkletNode(workletNode); window.workletNode = workletNode;
       sessionStartedAt = new Date();
       sessionActive = true; setSessionActive(true); window.sessionActive = true;
+      window._geminiStreamEl = null; // reset any stale Gemini fallback bubble from prior session
       _syncToStore();
       transitionSessionState(SESSION_STATES.READY, { trigger: 'ws_onopen' });
       transitionSessionState(SESSION_STATES.TASK_ACTIVE, { trigger: 'ws_onopen_auto_advance' });
@@ -1369,7 +1370,8 @@ function handleServerMessage(msg) {
     //                the user's words on screen and drive the stage engine.
     if (sc.inputTranscription) {
       const geminiText = (sc.inputTranscription.text || '').trim();
-      const isFinal    = !!sc.inputTranscription.isFinal;
+      // Gemini sends "finished" (not "isFinal") — check both to be safe
+      const isFinal    = !!(sc.inputTranscription.finished || sc.inputTranscription.isFinal);
       const dgLive     = dgWs && dgWs.readyState === WebSocket.OPEN;
 
       if (dgLive) {
@@ -1378,28 +1380,34 @@ function handleServerMessage(msg) {
           window._onGeminiSpeechDetected(geminiText);
         }
       } else if (geminiText) {
-        // Deepgram offline — Gemini becomes the transcription source
+        // Deepgram offline — Gemini becomes the transcription source.
+        // Only display if text looks like Latin/German script (not Arabic/Bengali/etc.)
+        const looksLatin = /^[\u0000-\u024F\s.,!?'"()\-–—0-9]+$/.test(geminiText);
+        const displayText = looksLatin ? geminiText : '🎤 [Voice input]';
+
         if (!isFinal) {
           // Interim: create/update a streaming bubble with live words
           if (!window._geminiStreamEl) window._geminiStreamEl = _createStudentEntry();
-          _updateStudentEntry(window._geminiStreamEl, geminiText);
+          _updateStudentEntry(window._geminiStreamEl, displayText);
         } else {
           // Final: lock in the bubble, then drive stage engine
           if (window._geminiStreamEl) {
-            _updateStudentEntry(window._geminiStreamEl, geminiText);
+            _updateStudentEntry(window._geminiStreamEl, displayText);
             _finaliseStudentEntry(window._geminiStreamEl);
             window._geminiStreamEl = null;
           } else {
-            _renderStudentBubble(geminiText);
+            _renderStudentBubble(displayText);
           }
-          conversationHistory.push({ role: 'user', content: geminiText });
-          geminiText.toLowerCase().split(/\s+/).forEach(w => {
+          // Only push actual text (not placeholder) to conversation history
+          const historyText = looksLatin ? geminiText : '[voice input]';
+          conversationHistory.push({ role: 'user', content: historyText });
+          historyText.toLowerCase().split(/\s+/).forEach(w => {
             const c = w.replace(/[^a-zäöüß]/gi, '');
             if (c.length > 2) wordsUsed.add(c);
           });
           updateWordCount();
-          pushEvent('user_transcript_final', { text: geminiText, inputMode: 'voice_gemini_fallback' });
-          appendCanonicalTurn('user', geminiText, { stage: getCurrentStage() });
+          pushEvent('user_transcript_final', { text: historyText, inputMode: 'voice_gemini_fallback' });
+          appendCanonicalTurn('user', historyText, { stage: getCurrentStage() });
           tickStageEngine();
         }
       }
@@ -1416,6 +1424,11 @@ function handleServerMessage(msg) {
       }
     }
     if(sc.turnComplete){
+      // Force-finalise any pending Gemini fallback bubble so it doesn't bleed into next turn
+      if (window._geminiStreamEl) {
+        _finaliseStudentEntry(window._geminiStreamEl);
+        window._geminiStreamEl = null;
+      }
       if(currentAiText.trim()){
         const fullText = currentAiText.trim();
 
