@@ -354,9 +354,11 @@ async function fireUtteranceEval(utteranceText, confidence) {
   try {
     await fetch(`${WORKER_URL}/eval`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...( _idToken ? { Authorization: `Bearer ${_idToken}` } : {} ),
+      },
       body: JSON.stringify({
-        userId:         _userId,
         sessionId:      _sessionId,
         transcript:     utteranceText,
         confidence:     confidence || null,
@@ -507,9 +509,11 @@ async function fireConsolidate(sessionId, userId, language, profileId) {
   try {
     const res = await fetch(`${WORKER_URL}/consolidate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...( _idToken ? { Authorization: `Bearer ${_idToken}` } : {} ),
+      },
       body: JSON.stringify({
-        userId,
         sessionId,
         language:  language  || 'German',
         profileId: profileId || null,
