@@ -673,9 +673,10 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
           if (!sessionActive || micMuted) return;
           if (ws?.readyState === WebSocket.OPEN) {
             const b64 = btoa(String.fromCharCode(...new Uint8Array(pcmBuffer)));
-            ws.send(JSON.stringify({
-              realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }] }
-            }));
+            // NEW
+ws.send(JSON.stringify({
+  realtimeInput: { audio: { data: b64, mimeType: 'audio/pcm;rate=16000' } }
+}));
           }
           sendToDeeepgram(pcmBuffer);
         }
