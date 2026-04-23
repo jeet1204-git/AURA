@@ -164,11 +164,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .msg.me{align-self:flex-end;max-width:75%;}
 .msg-label{font-size:9px;font-weight:500;letter-spacing:.45px;color:var(--muted);text-transform:uppercase;}
 .msg.me .msg-label{text-align:right;}
-.bubble{padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.58;color:var(--text);}
+.bubble{padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.58;color:var(--text);word-break:break-word;}
 .msg.ai .bubble{background:var(--chat-ai-bg);color:var(--chat-ai-color);border-radius:3px 14px 14px 14px;}
-.msg.me .bubble{background:var(--grad2);color:#fff;border-radius:14px 14px 3px 14px;}
+.msg.me .bubble{background:var(--grad2);color:#fff;border-radius:14px 14px 3px 14px;min-width:56px;}
 /* Streaming bubble for live transcription */
-.msg.me.streaming .bubble{opacity:.85;border:0.5px dashed rgba(124,92,252,.5);min-height:38px;position:relative;}
+.msg.me.streaming .bubble{opacity:.85;border:0.5px dashed rgba(124,92,252,.5);min-height:38px;min-width:56px;position:relative;}
 /* Pulsing dots shown while user is speaking but text hasn't arrived yet */
 .msg.me.streaming .bubble:empty::after{
   content:'';display:inline-flex;gap:4px;align-items:center;
