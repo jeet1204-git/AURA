@@ -1266,14 +1266,13 @@ ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(tok
       transitionSessionState(SESSION_STATES.READY, { trigger: 'ws_onopen' });
       transitionSessionState(SESSION_STATES.TASK_ACTIVE, { trigger: 'ws_onopen_auto_advance' });
       updateListeningPill('listening');
+      // Gemini's inputAudioTranscription is the transcription source — no Deepgram needed
       logAnalyticsEvent('session_started', {
         level: activeBlueprint.level,
         scenarioId: activeBlueprint.scenarioId,
         mode: activeBlueprint.mode,
         inputMode: selectedInputMode || 'voice',
       }).catch(()=>{});
-
-      initDeepgramSTT();
 
       if (window._keepAlive) clearInterval(window._keepAlive);
       window._keepAlive = setInterval(()=>{
@@ -1363,53 +1362,44 @@ function handleServerMessage(msg) {
         }
       });
     }
-    // inputTranscription: what the user said, as transcribed by Gemini.
-    // PRIMARY path:  Deepgram is live — it drives the bubble + tickStageEngine.
-    //                Gemini copy is only forwarded to _onGeminiSpeechDetected (non-German detection).
-    // FALLBACK path: Deepgram is offline — use Gemini's transcription to show
-    //                the user's words on screen and drive the stage engine.
+    // inputTranscription: Gemini transcribes exactly what the user said, including mistakes.
+    // Gemini sends interim events (finished: false) while the user speaks,
+    // and a final event (finished: true) when the utterance ends.
     if (sc.inputTranscription) {
       const geminiText = (sc.inputTranscription.text || '').trim();
-      // Gemini sends "finished" (not "isFinal") — check both to be safe
-      const isFinal    = !!(sc.inputTranscription.finished || sc.inputTranscription.isFinal);
-      const dgLive     = dgWs && dgWs.readyState === WebSocket.OPEN;
+      // Gemini uses "finished", older builds used "isFinal" — accept both
+      const isFinal = !!(sc.inputTranscription.finished || sc.inputTranscription.isFinal);
 
-      if (dgLive) {
-        // Deepgram online — just notify for non-German detection
-        if (isFinal && typeof window._onGeminiSpeechDetected === 'function') {
-          window._onGeminiSpeechDetected(geminiText);
-        }
-      } else if (geminiText) {
-        // Deepgram offline — Gemini becomes the transcription source.
-        // Only display if text looks like Latin/German script (not Arabic/Bengali/etc.)
-        const looksLatin = /^[\u0000-\u024F\s.,!?'"()\-–—0-9]+$/.test(geminiText);
-        const displayText = looksLatin ? geminiText : '🎤 [Voice input]';
+      if (!geminiText) return;
 
-        if (!isFinal) {
-          // Interim: create/update a streaming bubble with live words
-          if (!window._geminiStreamEl) window._geminiStreamEl = _createStudentEntry();
+      // Filter out non-Latin script (Arabic, Bengali etc.) — happens when Gemini
+      // confuses the audio language. Show a mic placeholder instead of garbled text.
+      const looksLatin = /^[\u0000-\u024F\s.,!?'"()\-–—0-9]+$/.test(geminiText);
+      const displayText = looksLatin ? geminiText : '🎤 [Speaking...]';
+
+      if (!isFinal) {
+        // Interim: show live word-by-word as the user speaks
+        if (!window._geminiStreamEl) window._geminiStreamEl = _createStudentEntry();
+        _updateStudentEntry(window._geminiStreamEl, displayText);
+      } else {
+        // Final: lock in the bubble and drive the stage engine
+        if (window._geminiStreamEl) {
           _updateStudentEntry(window._geminiStreamEl, displayText);
+          _finaliseStudentEntry(window._geminiStreamEl);
+          window._geminiStreamEl = null;
         } else {
-          // Final: lock in the bubble, then drive stage engine
-          if (window._geminiStreamEl) {
-            _updateStudentEntry(window._geminiStreamEl, displayText);
-            _finaliseStudentEntry(window._geminiStreamEl);
-            window._geminiStreamEl = null;
-          } else {
-            _renderStudentBubble(displayText);
-          }
-          // Only push actual text (not placeholder) to conversation history
-          const historyText = looksLatin ? geminiText : '[voice input]';
-          conversationHistory.push({ role: 'user', content: historyText });
-          historyText.toLowerCase().split(/\s+/).forEach(w => {
-            const c = w.replace(/[^a-zäöüß]/gi, '');
-            if (c.length > 2) wordsUsed.add(c);
-          });
-          updateWordCount();
-          pushEvent('user_transcript_final', { text: historyText, inputMode: 'voice_gemini_fallback' });
-          appendCanonicalTurn('user', historyText, { stage: getCurrentStage() });
-          tickStageEngine();
+          _renderStudentBubble(displayText);
         }
+        const historyText = looksLatin ? geminiText : '[voice input]';
+        conversationHistory.push({ role: 'user', content: historyText });
+        historyText.toLowerCase().split(/\s+/).forEach(w => {
+          const c = w.replace(/[^a-zäöüß]/gi, '');
+          if (c.length > 2) wordsUsed.add(c);
+        });
+        updateWordCount();
+        pushEvent('user_transcript_final', { text: historyText, inputMode: 'voice' });
+        appendCanonicalTurn('user', historyText, { stage: getCurrentStage() });
+        tickStageEngine();
       }
     }
 
