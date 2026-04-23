@@ -25,7 +25,7 @@ import { memoryAgent, curriculumAgent, instructionAgent, errorAgent, consolidati
 import { verifySupabaseToken } from './supabase-auth.js';
 
 const SUPABASE_URL = 'https://wkdwjhpeaahonuixqgwq.supabase.co';
-const LIVE_MODEL   = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+const LIVE_MODEL = 'models/gemini-3.1-flash-live-preview';
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 function isAllowedOrigin(origin, env) {
