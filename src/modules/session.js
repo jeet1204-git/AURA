@@ -1622,118 +1622,166 @@ async function initDeepgramSTT() {
     setDeepgramStatusVisible(false);
     dgClosingByApp = false;
 
-    // ── Auth: the proxy worker requires a Supabase access token ──────────────
+    // ── Step 1: Supabase auth token ───────────────────────────────────────────
     const idToken = currentUser ? await getIdToken(currentUser) : null;
     if (!idToken) {
-      console.warn('[Deepgram] no idToken — cannot authenticate with proxy, skipping STT');
+      console.warn('[Deepgram] no idToken — skipping STT');
       setDeepgramStatusVisible(true);
       return;
     }
 
-    // Convert HTTPS worker URL → WSS, then append auth + Deepgram params
-    const workerWssUrl = DEEPGRAM_WORKER_URL.replace(/^https?:\/\//, "wss://");
+    // ── Step 2: Exchange Supabase token for a short-lived Deepgram grant token ─
+    // The worker handles auth and calls Deepgram's /v1/auth/grant endpoint.
+    // We never touch the real Deepgram API key on the client side.
+    let dgGrantToken;
+    try {
+      const tokenRes = await fetch(`${DEEPGRAM_WORKER_URL}/deepgram-token`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ idToken }),
+      });
+      if (!tokenRes.ok) {
+        const err = await tokenRes.text();
+        throw new Error(`HTTP ${tokenRes.status}: ${err}`);
+      }
+      const data = await tokenRes.json();
+      dgGrantToken = data.token;
+      if (!dgGrantToken) throw new Error('No token in worker response');
+    } catch (e) {
+      console.warn('[Deepgram] ❌ failed to get grant token:', e.message);
+      setDeepgramStatusVisible(true);
+      return;
+    }
 
+    // ── Step 3: Connect DIRECTLY to Deepgram (no Cloudflare proxy) ───────────
+    //
+    // smart_format: false  → output exactly what was acoustically heard
+    // punctuate:    false  → no punctuation guessing / autocorrection
+    // This is critical for a language tutor: if a student says the wrong word,
+    // we must display the wrong word so they can see and learn from the mistake.
     const dgParams = new URLSearchParams({
-      token:            idToken,      // ← required by worker for Supabase auth
-      model:            "nova-3",     // upgraded model
-      language:         "de",
-      smart_format:     "true",
-      punctuate:        "true",
-      encoding:         "linear16",
-      sample_rate:      "16000",
-      endpointing:      "400",
-      utterance_end_ms: "1000",
-      interim_results:  "true",      // ← enables live word-by-word display
+      model:            'nova-3',
+      language:         'de',
+      smart_format:     'false',   // ← exact phonetic output — no autocorrect
+      punctuate:        'false',   // ← no punctuation guessing
+      profanity_filter: 'false',   // ← never censor mispronounced words
+      encoding:         'linear16',
+      sample_rate:      '16000',
+      channels:         '1',
+      interim_results:  'true',    // ← live word-by-word display
+      endpointing:      '400',     // ms of silence to detect end of utterance
+      utterance_end_ms: '1000',
     });
 
-    const dgUrl = `${workerWssUrl}/listen?${dgParams.toString()}`;
-    dgWs = new WebSocket(dgUrl);
-    dgWs.binaryType = "arraybuffer";
+    // Authenticate using WebSocket subprotocol — the only browser-compatible
+    // method (browsers cannot set Authorization headers on WebSocket connections)
+    dgWs = new WebSocket(
+      `wss://api.deepgram.com/v1/listen?${dgParams.toString()}`,
+      ['token', dgGrantToken]
+    );
+    dgWs.binaryType = 'arraybuffer';
 
-    dgWs.onopen  = () => { console.log("[Deepgram] connected via proxy"); setDeepgramStatusVisible(false); };
-    dgWs.onerror = (e) => { console.warn("[Deepgram] error", e); setDeepgramStatusVisible(true); };
-    dgWs.onclose = () => {
-      const wasUnexpected = sessionActive && !dgClosingByApp;
-      dgWs = null;
-      if (wasUnexpected) setDeepgramStatusVisible(true);
-      dgClosingByApp = false;
+    dgWs.onopen = () => {
+      console.log('[Deepgram] ✅ connected directly to Deepgram nova-3');
+      setDeepgramStatusVisible(false);
     };
 
-    // ── Buffers & live bubble ─────────────────────────────────────────────────
-    let _dgBuffer = "";   // accumulates final segments until UtteranceEnd
-    let _streamEl = null; // streaming "YOU" bubble shown while speaking
+    dgWs.onerror = (e) => {
+      console.warn('[Deepgram] ❌ connection error', e);
+      setDeepgramStatusVisible(true);
+    };
+
+    dgWs.onclose = (ev) => {
+      console.log(`[Deepgram] closed — code ${ev.code} "${ev.reason}"`);
+      const wasUnexpected = sessionActive && !dgClosingByApp;
+      dgWs = null;
+      dgClosingByApp = false;
+      if (wasUnexpected) {
+        setDeepgramStatusVisible(true);
+        // Auto-reconnect after 2 s if session is still running
+        setTimeout(() => {
+          if (sessionActive && !dgWs) {
+            console.log('[Deepgram] attempting reconnect...');
+            initDeepgramSTT();
+          }
+        }, 2000);
+      }
+    };
+
+    // ── Buffers & live streaming bubble ──────────────────────────────────────
+    let _dgBuffer = '';   // confirmed words since last flush
+    let _streamEl = null; // the live "YOU" bubble element
 
     dgWs.onmessage = (evt) => {
       try {
         const msg = JSON.parse(evt.data);
 
-        if (msg.type === "Results") {
-          const text       = (msg.channel?.alternatives?.[0]?.transcript || "").trim();
-          const isFinal    = msg.is_final;
+        if (msg.type === 'Results') {
+          const text        = (msg.channel?.alternatives?.[0]?.transcript || '').trim();
+          const isFinal     = msg.is_final;
           const speechFinal = msg.speech_final;
 
           if (!text || !sessionActive || micMuted) return;
 
           if (!isFinal) {
-            // ── Interim: show word-by-word in streaming bubble ───────────────
+            // Interim result: show word-by-word as user speaks
             if (!_streamEl) _streamEl = _createStudentEntry();
             _updateStudentEntry(_streamEl, (_dgBuffer ? _dgBuffer + ' ' : '') + text);
           } else {
-            // ── Final word confirmed: append to buffer ───────────────────────
-            _dgBuffer = _dgBuffer ? _dgBuffer + " " + text : text;
+            // Final word confirmed by Deepgram: lock into buffer
+            _dgBuffer = _dgBuffer ? _dgBuffer + ' ' + text : text;
             if (_streamEl) _updateStudentEntry(_streamEl, _dgBuffer);
           }
 
-          if (speechFinal && _dgBuffer.trim()) {
-            _flushDgBuffer();
-          }
+          if (speechFinal && _dgBuffer.trim()) _flushDgBuffer();
         }
 
-        if (msg.type === "UtteranceEnd") {
+        if (msg.type === 'UtteranceEnd') {
+          // Speaker paused long enough — flush whatever we have
           _flushDgBuffer();
         }
 
-      } catch (e) {}
+      } catch (_) { /* ignore malformed frames */ }
     };
 
+    // Called by the inputTranscription handler when Deepgram is ONLINE:
+    // Gemini's transcript is used only to detect non-German speech, not for display.
     window._onGeminiSpeechDetected = function (geminiText) {
       if (_dgBuffer) { _flushDgBuffer(); return; }
       if (geminiText && geminiText.length > 2 && sessionActive && !micMuted) {
-        const marker = "[non-German speech detected]";
-        _renderStudentBubble("\u26a0\ufe0f " + marker);
-        conversationHistory.push({ role: "user", content: marker });
-        appendCanonicalTurn("user", marker, { stage: getCurrentStage(), nonGerman: true });
+        const marker = '[non-German speech detected]';
+        _renderStudentBubble('⚠️ ' + marker);
+        conversationHistory.push({ role: 'user', content: marker });
+        appendCanonicalTurn('user', marker, { stage: getCurrentStage(), nonGerman: true });
         tickStageEngine();
       }
     };
 
     function _flushDgBuffer() {
       const text = _dgBuffer.trim();
-      _dgBuffer = "";
-      // Finalise the streaming bubble (locks in the text, removes dashed border)
+      _dgBuffer = '';
       if (_streamEl) {
         if (text) _updateStudentEntry(_streamEl, text);
         _finaliseStudentEntry(_streamEl);
         _streamEl = null;
       } else if (text) {
-        // No streaming bubble yet (e.g. direct UtteranceEnd with no interim) — create one
         _renderStudentBubble(text);
       }
       if (!text || !sessionActive || micMuted) return;
-      conversationHistory.push({ role: "user", content: text });
+      conversationHistory.push({ role: 'user', content: text });
       text.toLowerCase().split(/\s+/).forEach(w => {
-        const c = w.replace(/[^a-zäöüß]/gi, "");
+        const c = w.replace(/[^a-zäöüß]/gi, '');
         if (c.length > 2) wordsUsed.add(c);
       });
       updateWordCount();
-      pushEvent("user_transcript_final", { text, inputMode: "voice" });
-      appendCanonicalTurn("user", text, { stage: getCurrentStage() });
+      pushEvent('user_transcript_final', { text, inputMode: 'voice' });
+      appendCanonicalTurn('user', text, { stage: getCurrentStage() });
       tickStageEngine();
     }
     window._flushDgBuffer = _flushDgBuffer;
 
-  } catch (e) {
-    console.warn("[Deepgram] init failed", e);
+  } catch (err) {
+    console.error('[Deepgram] initDeepgramSTT fatal:', err);
     setDeepgramStatusVisible(true);
   }
 }
