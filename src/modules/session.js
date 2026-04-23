@@ -1249,9 +1249,10 @@ ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(tok
             let binary   = '';
             for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
             const b64 = btoa(binary);
-            ws.send(JSON.stringify({
-              realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }] }
-            }));
+            // NEW
+ws.send(JSON.stringify({
+  realtimeInput: { audio: { data: b64, mimeType: 'audio/pcm;rate=16000' } }
+}));
           }
           // Forward to Deepgram for transcription
           if (dgWs && dgWs.readyState === WebSocket.OPEN) {
@@ -1278,7 +1279,7 @@ ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(tok
       if (window._keepAlive) clearInterval(window._keepAlive);
       window._keepAlive = setInterval(()=>{
         if (ws&&ws.readyState===WebSocket.OPEN&&sessionActive){
-          try{ws.send(JSON.stringify({realtimeInput:{mediaChunks:[]}}));}catch(e){}
+          try{ws.send(JSON.stringify({realtimeInput:{audio:{data:'',mimeType:'audio/pcm;rate=16000'}}}));}catch(e){}
         } else clearInterval(window._keepAlive);
       },8000);
     };
