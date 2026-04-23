@@ -73,6 +73,7 @@ let currentUserText          = '';
 let currentUserEntryEl       = null;
 let currentAiText            = '';
 let currentAiEntryEl         = null;
+let _userTranscriptAccum     = '';   // accumulates Gemini inputTranscription deltas
 let chalkEraseTimer          = null;
 let silenceTimer             = null;
 let silenceCountdownInterval = null;
@@ -1362,35 +1363,41 @@ function handleServerMessage(msg) {
         }
       });
     }
-    // inputTranscription: Gemini transcribes exactly what the user said, including mistakes.
-    // Gemini sends interim events (finished: false) while the user speaks,
-    // and a final event (finished: true) when the utterance ends.
+    // inputTranscription: Gemini sends transcription as DELTA chunks (like outputTranscription).
+    // Each event contains a new piece of text — must be accumulated, not replaced.
+    // "finished: true" marks the end of the user's turn.
     if (sc.inputTranscription) {
-      const geminiText = (sc.inputTranscription.text || '').trim();
-      // Gemini uses "finished", older builds used "isFinal" — accept both
+      const chunk   = sc.inputTranscription.text || '';
       const isFinal = !!(sc.inputTranscription.finished || sc.inputTranscription.isFinal);
 
-      if (!geminiText) return;
+      // Accumulate delta chunks (same pattern as currentAiText for AURA's output)
+      if (chunk) _userTranscriptAccum += chunk;
 
-      // Filter out non-Latin script (Arabic, Bengali etc.) — happens when Gemini
-      // confuses the audio language. Show a mic placeholder instead of garbled text.
-      const looksLatin = /^[\u0000-\u024F\s.,!?'"()\-–—0-9]+$/.test(geminiText);
-      const displayText = looksLatin ? geminiText : '🎤 [Speaking...]';
+      const accumulated = _userTranscriptAccum.trim();
+      if (!accumulated && !isFinal) return; // nothing to show yet
+
+      // Filter non-Latin script (Arabic, Bengali etc.) — Gemini language confusion
+      const looksLatin = accumulated.length === 0 || /^[\u0000-\u024F\s.,!?'"()\-–—0-9]+$/.test(accumulated);
+      const displayText = looksLatin && accumulated ? accumulated : (accumulated ? '🎤 [Speaking...]' : '');
 
       if (!isFinal) {
-        // Interim: show live word-by-word as the user speaks
-        if (!window._geminiStreamEl) window._geminiStreamEl = _createStudentEntry();
-        _updateStudentEntry(window._geminiStreamEl, displayText);
-      } else {
-        // Final: lock in the bubble and drive the stage engine
-        if (window._geminiStreamEl) {
+        // Interim: update streaming bubble live as user speaks
+        if (displayText) {
+          if (!window._geminiStreamEl) window._geminiStreamEl = _createStudentEntry();
           _updateStudentEntry(window._geminiStreamEl, displayText);
+        }
+      } else {
+        // Final: lock in the bubble, push to history, drive stage engine
+        const finalDisplay = displayText || '🎤 [Speaking...]';
+        if (window._geminiStreamEl) {
+          _updateStudentEntry(window._geminiStreamEl, finalDisplay);
           _finaliseStudentEntry(window._geminiStreamEl);
           window._geminiStreamEl = null;
-        } else {
-          _renderStudentBubble(displayText);
+        } else if (accumulated) {
+          _renderStudentBubble(finalDisplay);
         }
-        const historyText = looksLatin ? geminiText : '[voice input]';
+        const historyText = (looksLatin && accumulated) ? accumulated : '[voice input]';
+        _userTranscriptAccum = ''; // reset accumulator for next utterance
         conversationHistory.push({ role: 'user', content: historyText });
         historyText.toLowerCase().split(/\s+/).forEach(w => {
           const c = w.replace(/[^a-zäöüß]/gi, '');
@@ -1414,11 +1421,12 @@ function handleServerMessage(msg) {
       }
     }
     if(sc.turnComplete){
-      // Force-finalise any pending Gemini fallback bubble so it doesn't bleed into next turn
+      // Force-finalise any pending user bubble so it doesn't bleed into next turn
       if (window._geminiStreamEl) {
         _finaliseStudentEntry(window._geminiStreamEl);
         window._geminiStreamEl = null;
       }
+      _userTranscriptAccum = ''; // clear any partial accumulation
       if(currentAiText.trim()){
         const fullText = currentAiText.trim();
 
@@ -2024,7 +2032,7 @@ function cleanupLive({ clearBlueprint = true, resetState = true } = {}) {
   if(playbackNode){try{playbackNode.disconnect();}catch(e){}playbackNode=null;}
   if(audioCtx){try{audioCtx.close();}catch(e){}audioCtx=null;}
   if(micCtx){try{micCtx.close();}catch(e){}micCtx=null;}
-  currentAiText=''; currentAiEntryEl=null; micMuted=false;
+  currentAiText=''; currentAiEntryEl=null; micMuted=false; _userTranscriptAccum=''; window._geminiStreamEl=null;
   currentUserText=''; currentUserEntryEl=null;
   if (clearBlueprint) activeBlueprint = null;
   dismissCorrection(); updateListeningPill('idle');
