@@ -10,8 +10,7 @@ export const GEMINI_WS_KEY = 'wss://generativelanguage.googleapis.com/ws/google.
 
 export const GEMINI_WS_EPHEMERAL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
 
-export const MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
-
+export const MODEL = 'models/gemini-3.1-flash-live-preview';
 // ── Paywall ───────────────────────────────────────────────────────────────────
 
 export const FREE_SESSION_LIMIT = 2;
