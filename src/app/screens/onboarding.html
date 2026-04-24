@@ -793,6 +793,7 @@
 
   // ── Summary ───────────────────────────────────────────────────────────────
   function buildSummary() {
+    const esc = (v) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const goalLabels = {
       exam: '🎓 Exam preparation',
       conversation: '💬 Daily conversation',
@@ -828,8 +829,8 @@
 
     document.getElementById('summaryCard').innerHTML = rows.map(r => `
       <div class="sum-row">
-        <span class="sum-label">${r.label}</span>
-        <span class="sum-val">${r.val}</span>
+        <span class="sum-label">${esc(r.label)}</span>
+        <span class="sum-val">${esc(r.val)}</span>
       </div>
     `).join('');
   }

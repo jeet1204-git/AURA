@@ -4,8 +4,8 @@ import { A2_EXAM_TOPICS, A2_EXAM_CUE_SETS, EXAM_DEFAULT_PASS_THRESHOLDS, EXAM_CU
 import { buildSystemPrompt } from './prompts.js';
 import { buildPracticeEvalPrompt, buildExamEvalPrompt, renderScore, renderPostSessionCoaching, buildFeedbackRecord, resetPostSessionCoaching, escHtml, toast } from './evaluation.js';
 import { getWorkletBlobUrl, createWorklet, ensurePlaybackWorklet, enqueueAudio } from '../audio/worklets.js';
-import { auth, getIdToken } from './auth.js';
-import { db, persistSessionProgress, loadUserSessionHistory, loadDailyState, saveDailyState, logAnalyticsEvent } from './firestore.js';
+import { getIdToken } from './auth.js';
+import { checkSessionAccess, logAnalyticsEvent } from './firestore.js';
 import { resetSession as storeResetSession, setAudioCtx, setMicCtx, setMicStream, setWorkletNode, setPlaybackNode, setWs, setDgWs, setSessionActive, setDgClosingByApp } from '../state/store.js';
 
 // ── STORE STATE SHADOWS ───────────────────────────────────────────────────────
@@ -1025,8 +1025,22 @@ async function _doStartSession() {
   } catch(e){}
 
   if (!isPaidStudent) {
-    // Phase 6: authoritative free-session gate uses freeSessionsUsedThisMonth
+    // Fast client gate + authoritative DB-backed gate
     if (checkPaywallGate()) { transitionSessionState(SESSION_STATES.FAILED, { reason: 'trial_limit' }); resetSessionState(); return; }
+    try {
+      const access = await checkSessionAccess(currentUser?.uid);
+      if (!access?.allowed) {
+        showUpgradeModal();
+        transitionSessionState(SESSION_STATES.FAILED, { reason: access?.reason || 'trial_limit' });
+        resetSessionState();
+        return;
+      }
+    } catch (accessErr) {
+      toast('Unable to verify your plan right now. Please try again.');
+      transitionSessionState(SESSION_STATES.FAILED, { reason: 'access_check_failed', error: accessErr?.message });
+      resetSessionState();
+      return;
+    }
     updateTrialBadge();
   }
 
@@ -1163,7 +1177,7 @@ async function _doStartSession() {
           : 'tutor';
         const _memResp = await fetch(`${WORKER_URL}/session-start`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
           body: JSON.stringify({ idToken: _memIdToken, mode: _memMode })
         });
         if (_memResp.ok) {
@@ -1181,12 +1195,15 @@ async function _doStartSession() {
     let token;
     try {
       const idToken = currentUser ? await getIdToken(currentUser) : null;
-if (!idToken) throw new Error('You must be signed in to start a session.');
-const resp = await fetch(`${WORKER_URL}/token`, {
-  method:'POST',
-  headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({ idToken })
-});
+      if (!idToken) throw new Error('You must be signed in to start a session.');
+      const resp = await fetch(`${WORKER_URL}/token`, {
+        method: 'POST',
+        headers: {
+          // Use a CORS-simple content type to avoid preflight failures on worker routes.
+          'Content-Type': 'text/plain;charset=UTF-8',
+        },
+        body: JSON.stringify({ idToken }),
+      });
       if (!resp.ok) {
         const errBody = await resp.json().catch(()=>({}));
         // Phase 6: server-side paywall — limit enforced at /token level
@@ -1636,7 +1653,7 @@ async function initDeepgramSTT() {
     try {
       const tokenRes = await fetch(`${DEEPGRAM_WORKER_URL}/deepgram-token`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
         body:    JSON.stringify({ idToken }),
       });
       if (!tokenRes.ok) {

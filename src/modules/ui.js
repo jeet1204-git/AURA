@@ -24,6 +24,7 @@ let allProfiles  = [];
 let activeProfile = null;
 let userDoc      = null;
 let _initialized = false;  // guard: only call onUserReady once per login
+let _initInFlight = false;
 
 // ── Wire session bridge before auth resolves so buttons are ready ─────────────
 initSession({
@@ -48,9 +49,15 @@ supabase.auth.onAuthStateChange((event, session) => {
   currentUser        = wrapped;
   window.currentUser = wrapped;
 
-  if (!_initialized) {
-    _initialized = true;
-    onUserReady(wrapped);
+  if (!_initialized && !_initInFlight) {
+    _initInFlight = true;
+    onUserReady(wrapped)
+      .then(() => { _initialized = true; })
+      .catch((e) => {
+        console.error('[AURA] dashboard init failed:', e?.message);
+        _initialized = false;
+      })
+      .finally(() => { _initInFlight = false; });
   }
 });
 
@@ -63,12 +70,18 @@ supabase.auth.onAuthStateChange((event, session) => {
     window.location.href = '/src/app/screens/auth.html';
     return;
   }
-  if (_initialized) return;
+  if (_initialized || _initInFlight) return;
   const wrapped = wrapUser(user);
   currentUser = wrapped;
   window.currentUser = wrapped;
-  _initialized = true;
-  onUserReady(wrapped);
+  _initInFlight = true;
+  onUserReady(wrapped)
+    .then(() => { _initialized = true; })
+    .catch((e) => {
+      console.error('[AURA] bootstrap init failed:', e?.message);
+      _initialized = false;
+    })
+    .finally(() => { _initInFlight = false; });
 })();
 
 /**
@@ -425,7 +438,13 @@ async function loadMemoryPanel(user, profileId) {
     // user.getIdToken() returns the Supabase access_token via wrapUser
     const idToken = await user.getIdToken();
     const url     = `${WORKER_URL}/memory?userId=${user.uid}${profileId ? `&profileId=${profileId}` : ''}`;
-    const res     = await fetch(url, { headers: { Authorization: `Bearer ${idToken}` } });
+    let res = await fetch(url);
+    // Backward-compatible retry path for worker builds that require auth header.
+    if ((!res || !res.ok) && idToken) {
+      try {
+        res = await fetch(url, { headers: { Authorization: `Bearer ${idToken}` } });
+      } catch (_) {}
+    }
     if (!res.ok) return;
     const memory  = await res.json();
     renderMemoryCards(memory, container);

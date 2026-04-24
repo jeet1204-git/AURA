@@ -123,7 +123,7 @@ function updateHeroScreen(lang) {
   const s = HERO_SCREEN[lang];
   heroLangLabel.textContent = s.label;
   document.getElementById('heroGreeting').textContent = s.greeting;
-  document.getElementById('heroErrBox').innerHTML = s.fix;
+  document.getElementById('heroErrBox').textContent = s.fix.replace(/<[^>]*>/g, '');
   document.getElementById('heroExpText').textContent = s.exp.replace(/<[^>]*>/g, '');
   document.getElementById('heroCorrected').textContent = s.userRight;
   heroInput.value = s.input;
@@ -136,10 +136,17 @@ document.getElementById('heroLangPicker').addEventListener('click', e => {
   updateHeroScreen(btn.dataset.lang);
 });
 
-function addHeroMsg(role, html) {
+function addHeroMsg(role, text) {
   const div = document.createElement('div');
   div.className = 'msg ' + (role === 'ai' ? 'ai' : 'me');
-  div.innerHTML = `<div class="msg-lbl">${role === 'ai' ? 'AURA' : 'YOU'}</div><div class="bubble">${html}</div>`;
+  const lbl = document.createElement('div');
+  lbl.className = 'msg-lbl';
+  lbl.textContent = role === 'ai' ? 'AURA' : 'YOU';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+  div.appendChild(lbl);
+  div.appendChild(bubble);
   heroMsgs.appendChild(div);
   heroMsgs.scrollTop = heroMsgs.scrollHeight;
 }

@@ -13,6 +13,7 @@ import { WORKER_URL, DEEPGRAM_WORKER_URL, GEMINI_WS_EPHEMERAL } from '../config/
 import { createWorklet, ensurePlaybackWorklet, enqueueAudio } from '../audio/worklets.js';
 import { buildSystemPrompt, buildPromptLanguageConfig } from './prompts.js';
 import { BLUEPRINT_POLICIES } from '../config/scoring.js';
+import { checkSessionAccess } from './firestore.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let ws            = null;
@@ -51,6 +52,50 @@ let _language        = 'German';      // NEW: target language for all worker cal
 let _currentNodeId   = null;          // NEW: curriculum node from /token response
 let _utteranceIndex  = 0;             // NEW: track utterance count for /eval
 let _transcript      = [];            // accumulates { role, text } turns
+const _evalQueue     = [];
+let _evalFlusher     = null;
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function safeWorkerFetch(path, { method = 'GET', idToken = null, json = null, retries = 1, timeoutMs = 12000, extraHeaders = {} } = {}) {
+  const bodyJson = json
+    ? (idToken && json.idToken === undefined ? { ...json, idToken } : json)
+    : null;
+  const headers = {
+    // CORS-simple content type so browser can send without OPTIONS preflight.
+    'Content-Type': 'text/plain;charset=UTF-8',
+    ...extraHeaders,
+  };
+  let lastErr = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetchWithTimeout(`${WORKER_URL}${path}`, {
+        method,
+        headers,
+        body: bodyJson ? JSON.stringify(bodyJson) : undefined,
+      }, timeoutMs);
+      if (resp.ok) return resp;
+      if (resp.status >= 400 && resp.status < 500 && resp.status !== 429) return resp;
+      lastErr = new Error(`Worker ${path} failed with status ${resp.status}`);
+    } catch (err) {
+      lastErr = err;
+    }
+    if (attempt < retries) await sleep(300 * (attempt + 1));
+  }
+  throw lastErr || new Error(`Worker ${path} request failed`);
+}
 
 // ── BLUEPRINT BUILDER ─────────────────────────────────────────────────────────
 function stripMetaTags(text) {
@@ -259,7 +304,7 @@ async function initDeepgramSTT(targetLanguage) {
 
     const r = await fetch(`${DEEPGRAM_WORKER_URL}/deepgram-token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify({ idToken: _idToken })   // ← FIXED: was sending empty {}
     });
     if (!r.ok) { console.warn('[Deepgram] token fetch failed', r.status, await r.text()); return; }
@@ -351,25 +396,32 @@ async function fireUtteranceEval(utteranceText, confidence) {
       }
     : { corrections: [], accuracy: 1.0, xpDelta: 15 };
 
-  try {
-    await fetch(`${WORKER_URL}/eval`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...( _idToken ? { Authorization: `Bearer ${_idToken}` } : {} ),
-      },
-      body: JSON.stringify({
-        sessionId:      _sessionId,
-        transcript:     utteranceText,
-        confidence:     confidence || null,
-        utteranceIndex: _utteranceIndex++,
-        nodeId:         _currentNodeId || null,
-        language:       _language,
-        evalResult,
-      }),
-    });
-  } catch(e) {
-    console.warn('[AURA] /eval failed (non-fatal):', e?.message);
+  _evalQueue.push({
+    sessionId: _sessionId,
+    transcript: utteranceText,
+    confidence: confidence || null,
+    utteranceIndex: _utteranceIndex++,
+    nodeId: _currentNodeId || null,
+    language: _language,
+    evalResult,
+  });
+
+  if (!_evalFlusher) {
+    _evalFlusher = setInterval(async () => {
+      if (!_evalQueue.length || !_idToken) return;
+      const item = _evalQueue.shift();
+      try {
+        await safeWorkerFetch('/eval', {
+          method: 'POST',
+          idToken: _idToken,
+          json: item,
+          retries: 2,
+          timeoutMs: 10000,
+        });
+      } catch (e) {
+        console.warn('[AURA] /eval failed after retries:', e?.message);
+      }
+    }, 350);
   }
 
   // Reset after firing so we don't double-apply the same correction
@@ -481,6 +533,11 @@ function cleanup() {
   _lastCorrectionResult = null;
   _utteranceIndex = 0;
   _idToken = null;
+  if (_evalFlusher) {
+    clearInterval(_evalFlusher);
+    _evalFlusher = null;
+  }
+  _evalQueue.length = 0;
 }
 
 // ── END SESSION ───────────────────────────────────────────────────────────────
@@ -509,17 +566,17 @@ export async function endSession() {
 // We only need to tell it which session to consolidate + language + profileId.
 async function fireConsolidate(sessionId, userId, language, profileId, idToken = null) {
   try {
-    const res = await fetch(`${WORKER_URL}/consolidate`, {
+    const res = await safeWorkerFetch('/consolidate', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...( idToken ? { Authorization: `Bearer ${idToken}` } : {} ),
-      },
-      body: JSON.stringify({
+      idToken,
+      retries: 2,
+      timeoutMs: 12000,
+      extraHeaders: { 'X-Idempotency-Key': `${sessionId}:consolidate:v1` },
+      json: {
         sessionId,
-        language:  language  || 'German',
+        language: language || 'German',
         profileId: profileId || null,
-      }),
+      },
     });
     if (!res.ok) {
       console.warn('[AURA] /consolidate failed:', res.status, await res.text());
@@ -574,6 +631,16 @@ function showSummary() {
 async function startSession({ idToken, userDisplayName = 'there', profile = null } = {}) {
   if (sessionActive) return;
   if (!idToken) { addMsg('ai', '⚠️ Please sign in to start a session.'); return; }
+  try {
+    const sessionAccess = await checkSessionAccess(profile?.userId || window.currentUser?.uid);
+    if (!sessionAccess?.allowed) {
+      addMsg('ai', '⚠️ You have reached your free-session limit. Please upgrade to continue.');
+      return;
+    }
+  } catch (_accessErr) {
+    addMsg('ai', '⚠️ Could not verify account access. Please try again.');
+    return;
+  }
 
   // Reset all state
   _words = 0; _correct = 0; _errors = 0; _corrections = [];
@@ -622,13 +689,15 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
     playbackNode = await ensurePlaybackWorklet(audioCtx);
 
     // ── CHANGE 1: Send `language` to /token ──────────────────────────────────
-    const resp = await fetch(`${WORKER_URL}/token`, {
+    const resp = await safeWorkerFetch('/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      idToken,
+      retries: 1,
+      timeoutMs: 10000,
+      json: {
         idToken,
-        language: _language,          // NEW: tells brain worker which language context to load
-      })
+        language: _language,
+      },
     });
     // ─────────────────────────────────────────────────────────────────────────
 

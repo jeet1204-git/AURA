@@ -1,8 +1,17 @@
 // ── Worker endpoints ──────────────────────────────────────────────────────────
+// Prefer runtime/env overrides so production can rotate endpoints safely.
+const runtimeWorkerUrl = globalThis.__AURA_WORKER_URL;
+const runtimeDeepgramWorkerUrl = globalThis.__AURA_DEEPGRAM_WORKER_URL;
+const envWorkerUrl = (typeof import.meta !== 'undefined' && import.meta.env)
+  ? import.meta.env.VITE_AURA_WORKER_URL
+  : undefined;
+const envDeepgramWorkerUrl = (typeof import.meta !== 'undefined' && import.meta.env)
+  ? import.meta.env.VITE_AURA_DEEPGRAM_WORKER_URL
+  : undefined;
 
-export const WORKER_URL = 'https://aura-worker.jeetupadhyay1204.workers.dev';
+export const WORKER_URL = runtimeWorkerUrl || envWorkerUrl || 'https://aura-worker.jeetupadhyay1204.workers.dev';
 
-export const DEEPGRAM_WORKER_URL = 'https://aura-deepgram-worker.jeetupadhyay1204.workers.dev';
+export const DEEPGRAM_WORKER_URL = runtimeDeepgramWorkerUrl || envDeepgramWorkerUrl || 'https://aura-deepgram-worker.jeetupadhyay1204.workers.dev';
 
 // ── Gemini ────────────────────────────────────────────────────────────────────
 
