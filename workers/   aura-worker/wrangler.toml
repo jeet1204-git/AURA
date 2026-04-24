@@ -10,3 +10,4 @@ compatibility_date = "2025-01-01"
 # GEMINI_API_KEY       → secret
 # SUPABASE_SERVICE_KEY → secret
 # ALLOWED_ORIGINS      → plain var, e.g. "https://auraspeak.in,https://www.auraspeak.in"
+# FREE_SESSION_LIMIT   → plain var, e.g. "2"

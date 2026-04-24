@@ -344,7 +344,7 @@ export async function buildAuraContext(uid, profileId) {
 // ACCESS CONTROL
 // ─────────────────────────────────────────────────────────────────────────────
 
-const FREE_SESSIONS_PER_MONTH = 3;
+const FREE_SESSIONS_PER_MONTH = 2;
 
 export async function checkSessionAccess(uid) {
   const profile = await loadUserProfile(uid);

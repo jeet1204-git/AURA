@@ -354,9 +354,11 @@ async function fireUtteranceEval(utteranceText, confidence) {
   try {
     await fetch(`${WORKER_URL}/eval`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...( _idToken ? { Authorization: `Bearer ${_idToken}` } : {} ),
+      },
       body: JSON.stringify({
-        userId:         _userId,
         sessionId:      _sessionId,
         transcript:     utteranceText,
         confidence:     confidence || null,
@@ -486,16 +488,18 @@ export async function endSession() {
   if (!sessionActive) return;
   sessionActive = false;
   window.sessionActive = false;
-  cleanup();
+  const idTokenForFinalize = _idToken;
   stopTimer();
   setOrbSpeaking(false);
   window.dispatchEvent(new CustomEvent('aura:session-ended'));
 
   // ── CHANGE 3: Fire /consolidate with new payload ──────────────────────────
   if (_sessionId && _userId) {
-    fireConsolidate(_sessionId, _userId, _language, _profileId).catch(console.error);
+    fireConsolidate(_sessionId, _userId, _language, _profileId, idTokenForFinalize).catch(console.error);
   }
   // ─────────────────────────────────────────────────────────────────────────
+
+  cleanup();
 
   showSummary();
 }
@@ -503,13 +507,15 @@ export async function endSession() {
 // ── CHANGE 3: New consolidate function ────────────────────────────────────────
 // The new brain worker reads session_utterances from DB itself.
 // We only need to tell it which session to consolidate + language + profileId.
-async function fireConsolidate(sessionId, userId, language, profileId) {
+async function fireConsolidate(sessionId, userId, language, profileId, idToken = null) {
   try {
     const res = await fetch(`${WORKER_URL}/consolidate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...( idToken ? { Authorization: `Bearer ${idToken}` } : {} ),
+      },
       body: JSON.stringify({
-        userId,
         sessionId,
         language:  language  || 'German',
         profileId: profileId || null,
