@@ -7,7 +7,7 @@
  *   1. memoryAgent     — reads the full student picture before session
  *   2. curriculumAgent — picks what to teach today
  *   3. errorAgent      — classifies a mistake and writes it to DB
- *   4. instructionAgent— builds the short Gemini instruction from all context
+ *   4. instructionAgent— builds the short Gemini instruction from all context 
  *   5. consolidationAgent — writes everything back after session ends
  */
 
