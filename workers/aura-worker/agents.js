@@ -218,58 +218,61 @@ export async function errorAgent(env, userId, sessionId, utteranceIndex, {
   if (!uttRes.ok) console.error('[errorAgent] utterance write failed:', await uttRes.text());
 
   // Write each error to error_log (upsert — increment occurrence_count)
-  for (const correction of corrections) {
-    const errorType = correction.rule
-      ? slugify(correction.rule)
-      : 'unknown_error';
+  const normalizedCorrections = corrections.map(correction => ({
+    correction,
+    errorType: correction.rule ? slugify(correction.rule) : 'unknown_error',
+  }));
 
-    // Try to fetch existing error row
+  const uniqueTypes = [...new Set(normalizedCorrections.map(c => c.errorType))];
+  const existingMap = {};
+  if (uniqueTypes.length > 0) {
+    const inList = uniqueTypes.map(v => `"${v.replace(/"/g, '\\"')}"`).join(',');
     const existRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/error_log?user_id=eq.${userId}&language=eq.${encodeURIComponent(language)}&error_type=eq.${encodeURIComponent(errorType)}&select=id,occurrence_count,resolved_count`,
+      `${SUPABASE_URL}/rest/v1/error_log?user_id=eq.${userId}&language=eq.${encodeURIComponent(language)}&error_type=in.(${encodeURIComponent(inList)})&select=id,error_type,occurrence_count`,
       { headers: h(env) }
     );
     const existRows = existRes.ok ? await existRes.json() : [];
-    const existing  = existRows?.[0];
+    for (const row of existRows) existingMap[row.error_type] = row;
+  }
 
+  await Promise.all(normalizedCorrections.map(async ({ correction, errorType }) => {
+    const existing = existingMap[errorType];
     if (existing) {
-      const newCount   = (existing.occurrence_count || 1) + 1;
+      const newCount = (existing.occurrence_count || 1) + 1;
       const isRecurring = newCount >= 3;
-      await fetch(
-        `${SUPABASE_URL}/rest/v1/error_log?id=eq.${existing.id}`,
-        {
-          method:  'PATCH',
-          headers: { ...h(env), 'Prefer': 'return=minimal' },
-          body: JSON.stringify({
-            occurrence_count: newCount,
-            is_recurring:     isRecurring,
-            last_seen_at:     new Date().toISOString(),
-            example_wrong:    correction.wrong || null,
-            example_right:    correction.right || null,
-            updated_at:       new Date().toISOString(),
-          }),
-        }
-      );
-    } else {
-      // First time seeing this error — insert
-      await fetch(`${SUPABASE_URL}/rest/v1/error_log`, {
-        method:  'POST',
+      await fetch(`${SUPABASE_URL}/rest/v1/error_log?id=eq.${existing.id}`, {
+        method:  'PATCH',
         headers: { ...h(env), 'Prefer': 'return=minimal' },
         body: JSON.stringify({
-          user_id:         userId,
-          language,
-          error_type:      errorType,
-          error_category:  correction.category || 'grammar',
-          node_id:         nodeId || null,
-          occurrence_count: 1,
-          severity:        correction.severity || 'medium',
-          example_wrong:   correction.wrong    || null,
-          example_right:   correction.right    || null,
-          first_seen_at:   new Date().toISOString(),
-          last_seen_at:    new Date().toISOString(),
+          occurrence_count: newCount,
+          is_recurring:     isRecurring,
+          last_seen_at:     new Date().toISOString(),
+          example_wrong:    correction.wrong || null,
+          example_right:    correction.right || null,
+          updated_at:       new Date().toISOString(),
         }),
       });
+      return;
     }
-  }
+
+    await fetch(`${SUPABASE_URL}/rest/v1/error_log`, {
+      method:  'POST',
+      headers: { ...h(env), 'Prefer': 'return=minimal' },
+      body: JSON.stringify({
+        user_id:          userId,
+        language,
+        error_type:       errorType,
+        error_category:   correction.category || 'grammar',
+        node_id:          nodeId || null,
+        occurrence_count: 1,
+        severity:         correction.severity || 'medium',
+        example_wrong:    correction.wrong    || null,
+        example_right:    correction.right    || null,
+        first_seen_at:    new Date().toISOString(),
+        last_seen_at:     new Date().toISOString(),
+      }),
+    });
+  }));
 
   // Update student_progress mastery score for the current node
   if (nodeId) {
