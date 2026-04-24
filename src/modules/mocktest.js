@@ -1,6 +1,8 @@
 import { WORKER_URL } from '../config/constants.js';
 import { buildExamEvalPrompt } from './evaluation.js';
 import { escHtml, toast } from './evaluation.js';
+import { getIdToken } from './auth.js';
+import { checkSessionAccess } from './firestore.js';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let mtSelectedExam = null;   // 'a1_speaking' | 'a2_teil1' | 'a2_teil2' | 'a2_teil3' | 'a2_full'
@@ -275,7 +277,7 @@ export function mtRenderCardPanel(cfg) {
           <span>Sprechen Teil 1</span>
         </div>
         <div class="mt-t1-card-subtitle">Fragen zur Person</div>
-        <div class="mt-t1-card-keyword">${word}?</div>`;
+        <div class="mt-t1-card-keyword">${escHtml(word)}?</div>`;
     });
 
   } else if (isTeil3) {
@@ -292,8 +294,8 @@ export function mtRenderCardPanel(cfg) {
       if (grid) {
         grid.innerHTML = cal.auraSlots.map(s => `
           <div class="mt-t3-slot ${s.busy ? 'busy' : 'free'}">
-            <span class="mt-t3-time">${s.time}</span>
-            <span class="mt-t3-activity ${s.busy ? '' : 'free-label'}">${s.activity}</span>
+            <span class="mt-t3-time">${escHtml(s.time)}</span>
+            <span class="mt-t3-activity ${s.busy ? '' : 'free-label'}">${escHtml(s.activity)}</span>
           </div>`).join('');
       }
     }
@@ -364,11 +366,17 @@ export function mtUpdateTimer() {
 // ── Connect to Gemini Live (reuses existing machinery) ──────────────────────
 export async function mtConnectLive() {
   try {
+    const currentUser = window.currentUser || null;
     const idToken = currentUser ? await getIdToken(currentUser) : null;
     if (!idToken) { mtAppendExaminerMsg('Authentication required. Please refresh and try again.'); return; }
+    const access = await checkSessionAccess(currentUser?.uid);
+    if (!access?.allowed) {
+      mtAppendExaminerMsg('Free-session limit reached. Please upgrade to continue mock tests.');
+      return;
+    }
 
     const tokenResp = await fetch(`${WORKER_URL}/token`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
       body: JSON.stringify({ idToken })
     });
     const tokenData = await tokenResp.json();
@@ -563,9 +571,14 @@ export async function mtEndExam() {
   }
 
   try {
+    const currentUser = window.currentUser || null;
     const idToken = currentUser ? await getIdToken(currentUser) : null;
     if (!idToken) throw new Error('Auth required');
-    const tokenResp = await fetch(`${WORKER_URL}/token`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({idToken}) });
+    const tokenResp = await fetch(`${WORKER_URL}/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ idToken }),
+    });
     const tokenData = await tokenResp.json();
     const apiKey = tokenData.token || tokenData.key || tokenData.apiKey;
     if (!apiKey) throw new Error('No token');

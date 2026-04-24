@@ -11,6 +11,7 @@
  *   analytics_events         → public.analytics_events
  */
 import { supabase } from './supabase-client.js';
+import { FREE_SESSION_LIMIT } from '../config/constants.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LANGUAGE HELPERS
@@ -150,18 +151,14 @@ export async function createProfile(uid, { targetLanguage, level, nativeLanguage
       .single();
     if (error) throw error;
 
-    // If this is the first profile, mark it active on the users row
-    const { data: u } = await supabase
-      .from('users')
-      .select('active_profile_id')
-      .eq('id', uid)
-      .single();
-
-    if (!u?.active_profile_id && inserted?.id) {
+    // If this is the first profile, mark it active on the users row.
+    // Use conditional update to reduce race window on concurrent profile creation.
+    if (inserted?.id) {
       await supabase
         .from('users')
         .update({ active_profile_id: inserted.id })
-        .eq('id', uid);
+        .eq('id', uid)
+        .is('active_profile_id', null);
     }
 
     return rowToProfile(inserted || row);
@@ -344,7 +341,7 @@ export async function buildAuraContext(uid, profileId) {
 // ACCESS CONTROL
 // ─────────────────────────────────────────────────────────────────────────────
 
-const FREE_SESSIONS_PER_MONTH = 2;
+const FREE_SESSIONS_PER_MONTH = FREE_SESSION_LIMIT;
 
 export async function checkSessionAccess(uid) {
   const profile = await loadUserProfile(uid);
