@@ -70,10 +70,13 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
 }
 
 async function safeWorkerFetch(path, { method = 'GET', idToken = null, json = null, retries = 1, timeoutMs = 12000, extraHeaders = {} } = {}) {
+  const bodyJson = json
+    ? (idToken && json.idToken === undefined ? { ...json, idToken } : json)
+    : null;
   const headers = {
-    'Content-Type': 'application/json',
+    // CORS-simple content type so browser can send without OPTIONS preflight.
+    'Content-Type': 'text/plain;charset=UTF-8',
     ...extraHeaders,
-    ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
   };
   let lastErr = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -81,7 +84,7 @@ async function safeWorkerFetch(path, { method = 'GET', idToken = null, json = nu
       const resp = await fetchWithTimeout(`${WORKER_URL}${path}`, {
         method,
         headers,
-        body: json ? JSON.stringify(json) : undefined,
+        body: bodyJson ? JSON.stringify(bodyJson) : undefined,
       }, timeoutMs);
       if (resp.ok) return resp;
       if (resp.status >= 400 && resp.status < 500 && resp.status !== 429) return resp;
@@ -301,7 +304,7 @@ async function initDeepgramSTT(targetLanguage) {
 
     const r = await fetch(`${DEEPGRAM_WORKER_URL}/deepgram-token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify({ idToken: _idToken })   // ← FIXED: was sending empty {}
     });
     if (!r.ok) { console.warn('[Deepgram] token fetch failed', r.status, await r.text()); return; }

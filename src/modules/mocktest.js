@@ -376,7 +376,7 @@ export async function mtConnectLive() {
     }
 
     const tokenResp = await fetch(`${WORKER_URL}/token`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify({ idToken })
     });
     const tokenData = await tokenResp.json();
@@ -576,7 +576,7 @@ export async function mtEndExam() {
     if (!idToken) throw new Error('Auth required');
     const tokenResp = await fetch(`${WORKER_URL}/token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify({ idToken }),
     });
     const tokenData = await tokenResp.json();

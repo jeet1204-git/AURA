@@ -1177,7 +1177,7 @@ async function _doStartSession() {
           : 'tutor';
         const _memResp = await fetch(`${WORKER_URL}/session-start`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
           body: JSON.stringify({ idToken: _memIdToken, mode: _memMode })
         });
         if (_memResp.ok) {
@@ -1199,10 +1199,9 @@ async function _doStartSession() {
       const resp = await fetch(`${WORKER_URL}/token`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
+          // Use a CORS-simple content type to avoid preflight failures on worker routes.
+          'Content-Type': 'text/plain;charset=UTF-8',
         },
-        // keep idToken for backwards compatibility with existing worker contracts
         body: JSON.stringify({ idToken }),
       });
       if (!resp.ok) {
@@ -1654,7 +1653,7 @@ async function initDeepgramSTT() {
     try {
       const tokenRes = await fetch(`${DEEPGRAM_WORKER_URL}/deepgram-token`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
         body:    JSON.stringify({ idToken }),
       });
       if (!tokenRes.ok) {
