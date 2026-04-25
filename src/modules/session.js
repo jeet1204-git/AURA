@@ -1168,28 +1168,12 @@ async function _doStartSession() {
     setPlaybackNode(playbackNode); window.playbackNode = playbackNode;
 
 
-    // Fetch student memory context before opening session
-    try {
-      const _memIdToken = currentUser ? await getIdToken(currentUser) : null;
-      if (_memIdToken) {
-        const _memMode = activeBlueprint?.programType === 'exam' ? 'exam'
-          : activeBlueprint?.mode === 'immersion' ? 'partner'
-          : 'tutor';
-        const _memResp = await fetch(`${WORKER_URL}/session-start`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-          body: JSON.stringify({ idToken: _memIdToken, mode: _memMode })
-        });
-        if (_memResp.ok) {
-          const _memData = await _memResp.json();
-          auraContextBlock = _memData.contextBlock || '';
-          console.log('[AURA] Memory context loaded:', !!auraContextBlock);
-        }
-      }
-    } catch (_memErr) {
-      console.warn('[AURA] session-start failed (non-fatal):', _memErr.message);
-      auraContextBlock = '';
-    }
+    // NOTE: Memory context is no longer fetched here.
+    // The backend /token endpoint runs memoryAgent + curriculumAgent + instructionAgent
+    // and embeds the full Supabase-informed system instruction directly into the
+    // Gemini ephemeral token via bidiGenerateContentSetup.systemInstruction.
+    // auraContextBlock is intentionally left empty — it is not sent to Gemini.
+    auraContextBlock = '';
 
     // Fetch API token from Cloudflare Worker
     let token;
@@ -1236,25 +1220,19 @@ ws = new WebSocket(`${GEMINI_WS_EPHEMERAL}?access_token=${encodeURIComponent(tok
 
     ws.onopen = async () => {
       clearTimeout(wsTimeout);
-      let systemPromptText;
-      try {
-        systemPromptText = buildSystemPrompt(activeBlueprint, selectedLangPref, auraContextBlock);
-      } catch (promptErr) {
-        toast(`Session configuration error: ${promptErr.message}`);
-        console.error('[AURA] buildSystemPrompt failed in ws.onopen:', promptErr);
-        cleanupLive();
-        goBackToSetup();
-        transitionSessionState(SESSION_STATES.FAILED, { reason: 'prompt_build_failed', error: promptErr.message });
-        resetSessionState();
-        return;
-      }
+      // systemInstruction is intentionally omitted from this setup message.
+      // The backend /token endpoint (instructionAgent) already embedded a
+      // Supabase-informed instruction — CEFR mixing ratios, error history,
+      // session memory, curriculum node — inside the ephemeral Gemini token
+      // via bidiGenerateContentSetup.systemInstruction.
+      // Sending another systemInstruction here would override it with a
+      // stale, memory-free prompt from buildSystemPrompt().
       ws.send(JSON.stringify({
         setup:{
           model:MODEL,
           generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Zephyr'}}}},
           inputAudioTranscription:{},
           outputAudioTranscription:{},
-          systemInstruction:{parts:[{text:systemPromptText}]}
         }
       }));
       workletNode = await createWorklet(micCtx, micStream, {
