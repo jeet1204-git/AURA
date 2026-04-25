@@ -437,14 +437,11 @@ async function loadMemoryPanel(user, profileId) {
   try {
     // user.getIdToken() returns the Supabase access_token via wrapUser
     const idToken = await user.getIdToken();
-    const url     = `${WORKER_URL}/memory?userId=${user.uid}${profileId ? `&profileId=${profileId}` : ''}`;
-    let res = await fetch(url);
-    // Backward-compatible retry path for worker builds that require auth header.
-    if ((!res || !res.ok) && idToken) {
-      try {
-        res = await fetch(url, { headers: { Authorization: `Bearer ${idToken}` } });
-      } catch (_) {}
-    }
+    if (!idToken) return;  // not signed in — nothing to load
+    const url = `${WORKER_URL}/memory?language=${encodeURIComponent(
+      window.__auraTargetLanguage || 'German'
+    )}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${idToken}` } });
     if (!res.ok) return;
     const memory  = await res.json();
     renderMemoryCards(memory, container);
