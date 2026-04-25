@@ -1,6 +1,11 @@
 /**
  * session-bridge.js — AURA Live Session Engine
- * Uses real buildSystemPrompt() from prompts.js for both voice and text fallback.
+ * Uses buildSystemPrompt() from prompts.js for the text-fallback (Claude API) path only.
+ * For voice sessions, the system instruction comes exclusively from the backend's
+ * instructionAgent (embedded in the Gemini ephemeral token at /token time).
+ * DO NOT send systemInstruction in the WebSocket setup message — it would override
+ * the Supabase-informed instruction and lose CEFR mixing rules, session memory,
+ * error history, and curriculum context.
  *
  * CHANGES FROM PREVIOUS VERSION:
  *  1. /token — now sends `language` field so the brain worker queries correct memory/curriculum
@@ -661,20 +666,13 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
   const btn = document.getElementById('liveSessionBtn');
   if (btn) btn.disabled = true;
 
-  // Build system prompt
-  const langPref = profile?.langPref || profile?.nativeLanguage || 'English';
-
-  let systemPrompt;
-  try {
-    const blueprint = buildBlueprintFromProfile(profile);
-    systemPrompt = buildSystemPrompt(blueprint, langPref);
-    console.log('[AURA] system prompt built', { level: blueprint.level, mode: blueprint.mode, langPref });
-  } catch (promptErr) {
-    console.error('[AURA] buildSystemPrompt failed, using fallback', promptErr);
-    const nativeLang = profile?.nativeLanguage || 'English';
-    const level      = profile?.level || 'A2';
-    systemPrompt = `You are AURA, a warm AI language tutor. The student is learning ${_language} at ${level} level. Their native language is ${nativeLang}. Use ${nativeLang} only for corrections (one sentence max). Keep each turn to 2-3 sentences. Greet the student warmly in ${_language} to begin.`;
-  }
+  // NOTE: System instruction is intentionally NOT built here for the voice path.
+  // The backend /token endpoint builds a Supabase-informed system instruction
+  // (via instructionAgent: CEFR mixing rules, error history, session memory,
+  // curriculum context) and embeds it in the Gemini ephemeral token via
+  // bidiGenerateContentSetup.systemInstruction. Sending a second systemInstruction
+  // in the WebSocket setup message would override it with a stale, memory-free prompt.
+  // → buildSystemPrompt() is only used below for the text-fallback (Claude API) path.
 
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
@@ -730,6 +728,11 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
 
     ws.onopen = async () => {
       clearTimeout(wsTimeout);
+      // systemInstruction is intentionally omitted here — it was already embedded
+      // in the ephemeral token by the backend (instructionAgent via /token).
+      // Sending it again would override the Supabase-informed instruction with
+      // a stale, memory-free prompt and break CEFR mixing, error tracking, and
+      // session memory context reaching Gemini.
       ws.send(JSON.stringify({
         setup: {
           model: 'models/gemini-3.1-flash-live-preview',
@@ -739,7 +742,6 @@ async function startSession({ idToken, userDisplayName = 'there', profile = null
           },
           inputAudioTranscription:  {},
           outputAudioTranscription: {},
-          systemInstruction: { parts: [{ text: systemPrompt }] }
         }
       }));
 
